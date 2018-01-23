@@ -1,0 +1,9 @@
+[package]
+name = "project_analyser"
+version = "0.1.0"
+authors = ["Joshua <jungen@student.chalmers.se>", "Peter <peterpi@student.chalmers.se>"]
+
+[dependencies]
+log = "0.4"
+fern = "0.5.2"
+chrono = "0.4.0"
