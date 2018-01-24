@@ -2,9 +2,11 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
-use std::ffi::OsString;
-
+use std::io::{BufReader, BufRead, BufWriter};
+use std::io::Write;
+use std::process::Command;
+use std::str;
+use std::io;
 
 /// Stores an id and a url to GitHub for a project
 #[derive(Debug)]
@@ -61,14 +63,42 @@ pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
 
 pub fn clone_project(project: &GitHubProject) {
     let path_to_home = get_home_dir_path();
-    let p = Path::new(&path_to_home)
+    let project_path = Path::new(&path_to_home)
         .join(String::from("project_analyser"))
         .join(String::from("out"))
         .join(project.id.to_string());
 
-    if !p.exists() {
-        fs::create_dir_all(p);
+    if !project_path.exists() {
+        fs::create_dir_all(&project_path);
     }
+    info!("Downloading {} from {}", &project.id, &project.url);
+    let project_path_string = project_path.clone().into_os_string().into_string().unwrap();
+    let log_path_output = project_path.clone().join("pa_git_log.log").into_os_string().into_string().unwrap();
+    let clone_command = Command::new("git")
+        .args(&["clone", &project.url, &project_path_string])
+        .output()
+        .expect("Failed to clone");
+    info!("Downloaded {} from {}", &project.id, &project.url);
+
+    match generate_git_log(&project_path) {
+        Ok(_) => info!("Created log for in {}", &log_path_output),
+        Err(e) => error!("Could not write log file to {}:{}", &log_path_output, e),
+    };
+}
+fn generate_git_log(project_path: &Path) -> Result<(), io::Error> {
+    let log_path_string = project_path.clone().join(".git").into_os_string().into_string().unwrap();
+    let file = File::create(&project_path.join("pa_log.txt"))?;
+    let mut bufwriter = BufWriter::new(file);
+
+    let command = Command::new("git")
+        .args(&["--git-dir", &log_path_string , "log", "--format=%ct"])
+        .output()
+        .expect("Failed to create project log");
+
+    bufwriter.write_all(&command.stdout)?;
+    bufwriter.flush()?;
+
+    Ok(())
 }
 
 fn get_home_dir_path() -> String {
@@ -83,8 +113,6 @@ fn get_home_dir_path() -> String {
             panic!("Could not convert home dir into string.");
         },
     }
-
-
 }
 
 
