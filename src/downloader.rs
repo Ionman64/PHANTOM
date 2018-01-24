@@ -1,12 +1,11 @@
+use git_analyser;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::fs::File;
-use std::io::{BufReader, BufRead, BufWriter};
-use std::io::Write;
+use std::io::{BufReader, BufRead};
 use std::process::Command;
 use std::str;
-use std::io;
 
 /// Stores an id and a url to GitHub for a project
 #[derive(Debug)]
@@ -28,7 +27,7 @@ pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
     let path = String::from("projects.csv");
     let csvfile = match File::open(path) {
         Ok(file) => file,
-        Err(e) => {
+        Err(_) => {
             error!("Could not open file with project urls");
             panic!("Could not open file with project urls");
         },
@@ -41,7 +40,7 @@ pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
     for (counter, line) in reader.lines().enumerate().skip(skip_rows) {
         let str_line = match line {
             Ok(line) => line,
-            Err(e) => {
+            Err(_) => {
                 warn!("Could not read line {}", counter + skip_rows);
                 continue;
             },
@@ -62,53 +61,36 @@ pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
 }
 
 pub fn clone_project(project: &GitHubProject) {
-    let path_to_home = get_home_dir_path();
-    let project_path = Path::new(&path_to_home)
+    let home_path = get_home_dir_path();
+    let project_path = Path::new(&home_path)
         .join(String::from("project_analyser"))
-        .join(String::from("out"))
+        .join(String::from("repos"))
         .join(project.id.to_string());
 
     if !project_path.exists() {
-        fs::create_dir_all(&project_path);
+        fs::create_dir_all(&project_path).expect("Could not create directories");
     }
+
     info!("Downloading {} from {}", &project.id, &project.url);
     let project_path_string = project_path.clone().into_os_string().into_string().unwrap();
-    let log_path_output = project_path.clone().join("pa_git_log.log").into_os_string().into_string().unwrap();
-    let clone_command = Command::new("git")
+    Command::new("git")
         .args(&["clone", &project.url, &project_path_string])
         .output()
         .expect("Failed to clone");
     info!("Downloaded {} from {}", &project.id, &project.url);
 
-    match generate_git_log(&project_path) {
-        Ok(_) => info!("Created log for in {}", &log_path_output),
-        Err(e) => error!("Could not write log file to {}:{}", &log_path_output, e),
-    };
-}
-fn generate_git_log(project_path: &Path) -> Result<(), io::Error> {
-    let log_path_string = project_path.clone().join(".git").into_os_string().into_string().unwrap();
-    let file = File::create(&project_path.join("pa_log.txt"))?;
-    let mut bufwriter = BufWriter::new(file);
-
-    let command = Command::new("git")
-        .args(&["--git-dir", &log_path_string , "log", "--format=%ct"])
-        .output()
-        .expect("Failed to create project log");
-
-    bufwriter.write_all(&command.stdout)?;
-    bufwriter.flush()?;
-
-    Ok(())
+    git_analyser::analyse_project(project_path.as_path()); // TODO spawn in new thread
 }
 
-fn get_home_dir_path() -> String {
+
+pub fn get_home_dir_path() -> String {
     let home_dir = match env::home_dir() {
         None => PathBuf::from(""),
         Some(path) => PathBuf::from(path),
     };
     match home_dir.into_os_string().into_string() {
         Ok(s) => s,
-        Err(e) => {
+        Err(_) => {
             error!("Could not convert home dir into string.");
             panic!("Could not convert home dir into string.");
         },
