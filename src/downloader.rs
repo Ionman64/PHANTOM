@@ -21,7 +21,7 @@ impl GitHubProject {
     }
 }
 
-/// Reads  the csv file "projects" (see project root directory) and extracts the id and url for each row.
+/// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
 pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
     let path = String::from("projects.csv");
     let csvfile = match File::open(path) {
