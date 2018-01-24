@@ -7,7 +7,7 @@ use std::io;
 use std::io::{Write, BufWriter, BufRead, BufReader};
 use std::process::Command;
 use std::collections::HashMap;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime};
 
 pub fn analyse_project(project_path: &Path) {
     let log_file = match generate_git_log(&project_path) {
@@ -28,7 +28,7 @@ pub fn analyse_project(project_path: &Path) {
     generate_analysis_csv(project_path, datecount)
 }
 
-fn generate_analysis_csv(project_path: &Path, datecount: HashMap<NaiveDateTime, i32>) {
+fn generate_analysis_csv(project_path: &Path, datecount: HashMap<String, i32>) {
     let project_name = project_path.file_name().unwrap().to_owned().into_string().unwrap();
     let csv_file_name =  project_name + &".csv".to_string();
 
@@ -40,13 +40,13 @@ fn generate_analysis_csv(project_path: &Path, datecount: HashMap<NaiveDateTime, 
     let log_file = File::create(&csv_path.join(&csv_file_name)).unwrap();
     let mut bufwriter = BufWriter::new(&log_file);
     for (key, value) in datecount.iter() {
-        let date = key.date().to_string();
+        let date = key;
         bufwriter.write_fmt(format_args!("{}, {}\n", date, value)).expect("Could not write file");
     }
 }
 
-fn count_commits_per_day(log_file: &Path) -> HashMap<NaiveDateTime, i32> {
-    let mut date_count: HashMap<NaiveDateTime, i32> = HashMap::new();
+fn count_commits_per_day(log_file: &Path) -> HashMap<String, i32> {
+    let mut date_count = HashMap::new();
 
     for (i, line) in read_git_log_to_vec(log_file).iter().enumerate() {
         let timestamp: i64 = match line.parse() {
@@ -58,7 +58,7 @@ fn count_commits_per_day(log_file: &Path) -> HashMap<NaiveDateTime, i32> {
                 continue;
             }
         };
-        let date = NaiveDateTime::from_timestamp(timestamp, 0);
+        let date = NaiveDateTime::from_timestamp(timestamp, 0).date().to_string();
         let count = date_count.entry(date).or_insert(0);
         *count += 1;
         //info!("Date: {} -> {}", date.date(), count);
