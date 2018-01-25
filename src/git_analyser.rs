@@ -7,20 +7,20 @@ use std::io;
 use std::io::{Write, BufWriter, BufRead, BufReader};
 use std::process::Command;
 use std::collections::HashMap;
-use chrono::{NaiveDateTime};
+use chrono::NaiveDateTime;
 
 pub fn analyse_project(project_path: &Path) {
     let log_file = match generate_git_log(&project_path) {
         Ok(log) => {
             info!("Created log in {}", project_path.as_os_str().to_str().unwrap());
             log
-        },
+        }
         Err(e) => {
             error!("Could not generate log file for project {}. Error: {}",
                    project_path.as_os_str().to_str().unwrap(),
                    e);
             return;
-        },
+        }
     };
 
     let datecount = count_commits_per_day(&log_file);
@@ -30,7 +30,7 @@ pub fn analyse_project(project_path: &Path) {
 
 fn generate_analysis_csv(project_path: &Path, datecount: HashMap<String, i32>) {
     let project_name = project_path.file_name().unwrap().to_owned().into_string().unwrap();
-    let csv_file_name =  project_name + &".csv".to_string();
+    let csv_file_name = project_name + &".csv".to_string();
 
     let csv_path = Path::new(&get_home_dir_path())
         .join("project_analyser")
