@@ -1,4 +1,5 @@
 import os
+import sys
 import matplotlib.pyplot as plt
 from DataHandler import *
 import time
@@ -10,14 +11,12 @@ import matplotlib.cbook as cbook
 def convert_date_to_time(date_string, format_string):
     return int(time.mktime(datetime.datetime.strptime(date_string, format_string).timetuple()))
 
-def read_file():
+def read_file(input_file, start_date, end_date):
     DATE_FORMAT = "%Y-%m-%d"
     gap_time = DataHandler.Units.WEEK
-    start_date = "2018-01-24"
-    end_date = "2018-04-08"
     start_time = convert_date_to_time(start_date, DATE_FORMAT)
     end_time = convert_date_to_time(end_date, DATE_FORMAT)
-    data_handler = DataHandler("example_output_2.csv", [DataHandler.DATETIME, DataHandler.NUMBER], False)
+    data_handler = DataHandler(input_file, [DataHandler.DATETIME, DataHandler.NUMBER], False)
     x_axis = []
     y_axis = []
     x_axis_label = "Date"
@@ -37,10 +36,11 @@ def read_file():
 
     title = "Showing %i %s(s) between (%s - %s)" % (((end_time - start_time) / data_handler.get_number_of_seconds(gap_time)), data_handler.unit_to_string(gap_time),  start_date, end_date)
     #title = "Commits per week"
-    create_graph(title, x_axis_label, y_axis_label, x_axis, y_axis)
+    create_graph(title, x_axis_label, y_axis_label, x_axis, y_axis, date_format)
 
 def create_graph(title, x_label, y_label, x_axis, y_axis):
     fig, ax = plt.subplots()
+    
     ax.plot(x_axis, y_axis)
 
     # format the ticks
@@ -54,7 +54,7 @@ def create_graph(title, x_label, y_label, x_axis, y_axis):
 
     def intergise(x):
         return int(x)
-    ax.format_xdata = mdates.DateFormatter('%Y-%m-%d')
+    ax.format_xdata = mdates.DateFormatter(date_format)
     ax.format_ydata = intergise
     ax.grid(True)
 
@@ -71,6 +71,22 @@ def create_graph(title, x_label, y_label, x_axis, y_axis):
     plt.title(title)
     #plt.plot(x_axis, y_axis)
     plt.savefig("output_graph.png")
+    plt.legend(loc='upper left');
 
-read_file()
+if __name__ == "__main__":
+    if (len(sys.argv) < 3):
+        print ("missing parameters")
+        print ("usage: graph.py file start_date end_date [FORMAT: YYYY-MM-DD]")
+        exit()
+    import scipy, pylab
+    ax = pylab.subplot(111)
+    ax.scatter(scipy.randn(100), scipy.randn(100), c='b')
+    ax.scatter(scipy.randn(100), scipy.randn(100), c='r')
+    ax.figure.show()
+    print ("Input File: %s" % sys.argv[1])
+    print ("Start Date: %s" % sys.argv[2])
+    print ("End Date: %s" % sys.argv[3])
+    read_file(sys.argv[1], sys.argv[2], sys.argv[3])
+
+
 

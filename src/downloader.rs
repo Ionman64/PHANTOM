@@ -8,24 +8,40 @@ use std::process::Command;
 use std::str;
 
 /// Stores an id and a url to GitHub for a project
-#[derive(Debug)]
 pub struct GitHubProject {
-    id: i64,
-    url: String,
+    pub id: i64,
+    pub url: String,
+}
+
+pub struct ClonedProject {
+    pub github: GitHubProject,
+    pub path: String,
+    pub output_log_path: String,
+    pub input_log_path: String,
 }
 
 impl GitHubProject {
     /// Helper function to create a new struct
     pub fn new(id: i64, url: String) -> GitHubProject {
         // TODO Validate
-        GitHubProject { id, url }
+        GitHubProject { id, url}
     }
 }
-
+impl ClonedProject {
+    /// Helper function to create a new struct
+    pub fn new(github: GitHubProject, file_path: PathBuf) -> ClonedProject {
+        // TODO Validate
+        ClonedProject {github,
+            output_log_path:file_path.join("pa_git.log").into_os_string().into_string().unwrap(),
+            input_log_path:file_path.join(".git").into_os_string().into_string().unwrap(),
+            path:file_path.into_os_string().into_string().unwrap()
+        }
+    }
+}
 /// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
 pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
     let path = String::from("projects.csv");
-    let csvfile = match File::open(path) {
+    let csv_file = match File::open(path) {
         Ok(file) => file,
         Err(_) => {
             error!("Could not open file with project urls");
@@ -33,7 +49,7 @@ pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
         },
     };
 
-    let reader = BufReader::new(csvfile);
+    let reader = BufReader::new(csv_file);
 
     let mut projects: Vec<GitHubProject> = Vec::new();
     let skip_rows = 1;
@@ -51,7 +67,7 @@ pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
             let id: i64 = columns.get(0).unwrap().parse().unwrap();
             let url = columns.get(1).unwrap().to_string();
 
-            projects.push(GitHubProject::new(id, url));
+            projects.push(GitHubProject::new(id, url)); //TODO: give the correct project path
         } else {
             warn!("Err: Line {} is not formatted correctly and has been skipped.", counter + skip_rows);
         }
@@ -60,7 +76,7 @@ pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
     projects
 }
 
-pub fn clone_project(project: &GitHubProject) {
+pub fn clone_project(project: GitHubProject) {
     let home_path = get_home_dir_path();
     let project_path = Path::new(&home_path)
         .join(String::from("project_analyser"))
@@ -70,18 +86,15 @@ pub fn clone_project(project: &GitHubProject) {
     if !project_path.exists() {
         fs::create_dir_all(&project_path).expect("Could not create directories");
     }
-
-    info!("Downloading {} from {}", &project.id, &project.url);
-    let project_path_string = project_path.clone().into_os_string().into_string().unwrap();
+    let cloned_project = ClonedProject::new(project, project_path);
+    info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
     Command::new("git")
-        .args(&["clone", &project.url, &project_path_string])
+        .args(&["clone", &cloned_project.github.url, &cloned_project.path])
         .output()
         .expect("Failed to clone");
-    info!("Downloaded {} from {}", &project.id, &project.url);
-
-    git_analyser::analyse_project(project_path.as_path()); // TODO spawn in new thread
+    info!("Downloaded {} from {}", &cloned_project.github.id, &cloned_project.github.url);
+    git_analyser::analyse_project(&cloned_project);
 }
-
 
 pub fn get_home_dir_path() -> String {
     let home_dir = match env::home_dir() {

@@ -1,3 +1,4 @@
+import os
 class DataHandler():
     UNKNOWN = 0
     DATETIME = 1
@@ -24,6 +25,8 @@ class DataHandler():
         self.rows = []
         self.headers = []
         self.count = 0
+        if not os.path.exists(file_path):
+            raise Exception("File not found: %s" % file_path)
         with open(file_path, "r") as file:
             for line in file:
                 rowStringArray = line.replace("\n", "").split(",")
