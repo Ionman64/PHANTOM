@@ -81,26 +81,32 @@ pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
 
 
 pub fn clone_project(project: GitHubProject) {
-    let home_path = get_home_dir_path();
-    let project_path = Path::new(&home_path)
-        .join(String::from("project_analyser"))
-        .join(String::from("repos"))
-        .join(project.id.to_string());
+    match check_url_http_code(200, &cloned_project.github.url) {
+        Ok(_) => {
+            let home_path = get_home_dir_path();
+            let project_path = Path::new(&home_path)
+                .join(String::from("project_analyser"))
+                .join(String::from("repos"))
+                .join(project.id.to_string());
 
-    if !project_path.exists() {
-        fs::create_dir_all(&project_path).expect("Could not create directories");
+            if !project_path.exists() {
+                fs::create_dir_all(&project_path).expect("Could not create directories");
+            }
+            let cloned_project = ClonedProject::new(project, project_path);
+
+            info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
+            Command::new("git")
+                .args(&["clone", &cloned_project.github.url, &cloned_project.path, "-q"])
+                .output()
+                .expect("Failed to execute git clone");
+
+            info!("Downloaded {} from {}", &cloned_project.github.id, &cloned_project.github.url);
+
+            git_analyser::analyse_project(&cloned_project); // TODO spawn in new thread
+        },
+        Err(_) => {return},
     }
-    let cloned_project = ClonedProject::new(project, project_path);
 
-    info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
-    Command::new("git")
-        .args(&["clone", &cloned_project.github.url, &cloned_project.path, "-q"])
-        .output()
-        .expect("Failed to execute git clone");
-
-    info!("Downloaded {} from {}", &cloned_project.github.id, &cloned_project.github.url);
-
-    git_analyser::analyse_project(&cloned_project); // TODO spawn in new thread
 }
 
 pub fn get_home_dir_path() -> String {
@@ -139,7 +145,7 @@ fn check_url_http_code(expected_code: i32, url: &str) -> Result<(), ()> {
 /// Tries to parse the specified data into a string and then into an integer
 fn utf8_to_http_code(data: Vec<u8>) -> Result<i32, ()> {
     match String::from_utf8(data) {
-        Ok(code_string) => match code_string.parse() {
+        Ok(code_string) => match code_string[1..4].parse() {
             Ok(code_i32) => Ok(code_i32),
             Err(e) => {
                 error!("Could not parse http code '{}' into int. Treating url as not existent. Err: {}", code_string, e);

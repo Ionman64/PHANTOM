@@ -8,12 +8,11 @@ fn main() {
 
     let projects = downloader::read_project_urls_from_file();
 
-    let thread_pool = ThreadPool::new(50);
+    let thread_pool = ThreadPool::new(75);
     for project in projects.into_iter() {
         thread_pool.execute(move || {
             downloader::clone_project(project);
         });
-
     }
 }
 
