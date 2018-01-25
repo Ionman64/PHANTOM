@@ -7,7 +7,7 @@ import numpy as np
 years = YearLocator()
 months = MonthLocator()
 days = DayLocator()
-yearsFmt = DateFormatter('%Y-%m')
+yearsFmt = DateFormatter('%Y')
 monthsFmt = DateFormatter('%m')
 
 def read_csv(path):
@@ -27,12 +27,13 @@ def read_csv(path):
 
 fig, ax = plt.subplots()
 
-x1, y1 = read_csv('6.csv')
-ax.plot_date(x1, y1, '-', label='6')
+x1, y1 = read_csv('1_single.csv')
+ax.plot_date(x1, y1, '-', label='single')
 
-x2, y2 = read_csv('7.csv')
-ax.plot_date(x2, y2, '-', label='7')
+x2, y2 = read_csv('1_threaded.csv')
+ax.plot_date(x2, y2, '.', label='threaded')
 
+'''
 x3, y3 = read_csv('8.csv')
 ax.plot_date(x3, y3, '-', label='8')
 
@@ -41,6 +42,7 @@ ax.plot_date(x4, y4, '-', label='9')
 
 x5, y5 = read_csv('10.csv')
 ax.plot_date(x5, y5, '-', label='10')
+'''
 
 # tick formats
 ax.xaxis.set_major_locator(years)
