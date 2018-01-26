@@ -1,4 +1,4 @@
-use downloader::{get_home_dir_path, ClonedProject};
+use downloader::{get_home_dir_path, ClonedProject, LinesResponse};
 
 use std::path::{PathBuf, Path};
 use std::fs;
@@ -7,18 +7,12 @@ use std::io::{Write, BufWriter, BufRead, BufReader};
 use std::process::Command;
 use std::collections::HashMap;
 use chrono::NaiveDateTime;
-use std::ops::Add;
 use std::io::ErrorKind;
 
 
 pub fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String, i32>) -> Result<(), ErrorKind> {
-    let csv_file_name = project.github.id.to_string().add(".csv");
-    //TODO::handle get home path error
-    let csv_path = Path::new(&get_home_dir_path().unwrap())
-        .join("project_analyser")
-        .join("analysis");
-    fs::create_dir_all(&csv_path).expect("Could not create directories");
-    let mut bufwriter = BufWriter::new(&log_file);
+    let analysis_csv_file_output = File::create(&project.analysis_csv_file).unwrap();
+    let mut bufwriter = BufWriter::new(analysis_csv_file_output);
     for (key, value) in datecount.iter() {
         let date = key;
         bufwriter.write_fmt(format_args!("{}, {}\n", date, value));
@@ -29,7 +23,7 @@ pub fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String,
 pub fn count_commits_per_day(cloned_project: &ClonedProject) -> Result<HashMap<String, i32>, ErrorKind> {
     let mut date_count = HashMap::new();
     let git_log_lines = read_git_log_to_vec(&cloned_project.output_log_path).unwrap();
-    for (i, line) in git_log_lines.iter().enumerate() {
+    for (i, line) in git_log_lines.response.iter().enumerate() {
         let timestamp: i64 = match line.parse() {
             Ok(val) => val,
             Err(e) => {
@@ -52,21 +46,23 @@ pub fn count_commits_per_day(cloned_project: &ClonedProject) -> Result<HashMap<S
     Ok(date_count)
 }
 
-fn read_git_log_to_vec(filepath: &String) -> Result<Vec<String>, ErrorKind> {
+fn read_git_log_to_vec(filepath: &String) -> Result<LinesResponse<String>, ErrorKind> {
     let file = File::open(filepath).expect("Git log not found");
     let reader = BufReader::new(file);
     let mut lines: Vec<String> = Vec::new();
-    let mut skipped_lines = 0;
-    for (i, line) in reader.lines().enumerate() {
+    let mut skipped_lines: Vec<u32> = Vec::new();
+    let mut lineNum:u32 = 0;
+    for line in reader.lines() {
+        lineNum += 1;
         match line {
             Ok(value) => lines.push(value),
             Err(e) => {
-                warn!("Could not read line {} in git log. Err: {}", i + 1, e);
-                skipped_lines += 1;
+                warn!("Could not read line {} in git log. Err: {}", lineNum, e);
+                skipped_lines.push(lineNum);
             },
         }
     }
-    Ok(lines)
+    Ok(LinesResponse {response: lines, skipped_lines:Some(skipped_lines)})
 }
 
 /// Generate a log by calling "git log" in the specified project directory.
@@ -104,7 +100,7 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
 }
 
 fn get_anaylsis_output_dir() -> PathBuf {
-    let analysis_dir = Path::new(&get_home_dir_path())
+    let analysis_dir = Path::new(&get_home_dir_path().unwrap())
         .join("project_analyser")
         .join("analysis");
     fs::create_dir_all(&analysis_dir).expect("Could not create directories");

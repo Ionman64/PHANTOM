@@ -6,10 +6,11 @@ use std::io::{BufReader, BufRead};
 use std::process::Command;
 use std::str;
 use std::io::ErrorKind;
+use std::ops::Add;
 
-pub struct LinesResponse {
-    pub projects: Vec<GitHubProject>,
-    pub skipped_lines: Option<Vec<u64>>
+pub struct LinesResponse <T> {
+    pub response: Vec<T>,
+    pub skipped_lines: Option<Vec<u32>>
 }
 
 /// Stores an id and a url to GitHub for a project
@@ -23,6 +24,7 @@ pub struct ClonedProject {
     pub path: String,
     pub output_log_path: String,
     pub input_log_path: String,
+    pub analysis_csv_file: String,
 }
 
 impl GitHubProject {
@@ -37,8 +39,13 @@ impl ClonedProject {
     /// Helper function to create a new struct
     pub fn new(github: GitHubProject, file_path: PathBuf) -> ClonedProject {
         // TODO Validate
+        let csv_path = Path::new(&get_home_dir_path().unwrap())
+            .join("project_analyser")
+            .join("analysis")
+            .join(github.id.to_string().add(".csv"));
         ClonedProject {
             github,
+            analysis_csv_file: csv_path.into_os_string().into_string().unwrap(),
             output_log_path: file_path.join("pa_git.log").into_os_string().into_string().unwrap(),
             input_log_path: file_path.join(".git").into_os_string().into_string().unwrap(),
             path: file_path.into_os_string().into_string().unwrap(),
@@ -47,16 +54,16 @@ impl ClonedProject {
 }
 
 /// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
-pub fn read_project_urls_from_file() -> Result<LinesResponse, ErrorKind> {
+pub fn read_project_urls_from_file() -> Result<LinesResponse <GitHubProject>, ErrorKind> {
     let path = String::from("projects.csv");
     //TODO:: Fix below line to return it's error
     let csv_file = File::open(path).expect("Could not open urls file");
     let reader = BufReader::new(csv_file);
     let mut projects: Vec<GitHubProject> = Vec::new();
     let skip_rows = 1;
-    let mut skipped_lines:Vec<u64> = Vec::new();
-    let mut lineNum:u64 = 1;
-    for (count, line) in reader.lines().enumerate().skip(skip_rows) {
+    let mut skipped_lines:Vec<u32> = Vec::new();
+    let mut lineNum:u32 = 1;
+    for line in reader.lines().skip(skip_rows) {
         lineNum += 1;
         let str_line = match line {
             Ok(line) => line,
@@ -90,12 +97,12 @@ pub fn read_project_urls_from_file() -> Result<LinesResponse, ErrorKind> {
             skipped_lines.push(lineNum);;
         }
     }
-    Ok(LinesResponse {projects, skipped_lines:None})
+    Ok(LinesResponse { response: projects, skipped_lines:None})
 }
 
 ///Counts the number of matching characters in a String
-pub fn character_count(str_line: &String, matching_character: char) -> u64 {
-    let mut count:u64 = 0;
+pub fn character_count(str_line: &String, matching_character: char) -> u32 {
+    let mut count:u32 = 0;
 
     for character in str_line.chars() {
         if character == matching_character {
