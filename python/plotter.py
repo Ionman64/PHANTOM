@@ -1,57 +1,111 @@
+"""
+Usage:
+    plotter.py <files>... [options]
+
+Arguments:
+    files
+    timeunit
+
+Options:
+    -t --time=<val>   Possible units are day, week, month, year [default: month]
+    -s                      Show the diagram [default: True]
+    -o --out=<file>
+
+"""
+from docopt import docopt
+#plot(args['files'], args['-t'], args['-s'], args['-o'])
+import sys
 import matplotlib.pyplot as plt
+import matplotlib.dates as mpl_dates
 from matplotlib.dates import YearLocator, MonthLocator, DayLocator, DateFormatter
-from datetime import datetime
-import csv
+from datetime import datetime, timedelta
 import numpy as np
+import csv
 
-years = YearLocator()
-months = MonthLocator()
-days = DayLocator()
-yearsFmt = DateFormatter('%Y')
-monthsFmt = DateFormatter('%m')
 
-def read_csv(path):
-    x = []
-    y = []
+def convert_date_to_day(date):
+    return date
 
+
+def convert_date_to_week(date):
+    return date - timedelta(days=date.weekday())
+
+
+def convert_date_to_month(date):
+    return date.replace(day=1)
+
+
+def convert_date_to_year(date):
+    return date.replace(month=1, day=1)
+
+
+def read_csv(path, convert_date_fun):
+    date_count = {}
     with open(path) as csvfile:
         plots = csv.reader(csvfile, delimiter=',')
         for row in plots:
-            x.append(datetime.strptime(row[0], '%Y-%m-%d'))
-            y.append(int(row[1]))
+            date = datetime.strptime(row[0], '%Y-%m-%d')
+            date = convert_date_fun(date)
+            val = int(row[1])
+            date_count[date] = date_count.get(date, 0) + val
 
+    x = date_count.keys()
+    y = date_count.values()
+    return sort_by_x(x, y)
+
+
+def sort_by_x(x, y):
     order = np.argsort(x)
     sorted_x = np.array(x)[order]
     sorted_y = np.array(y)[order]
     return sorted_x, sorted_y
 
-fig, ax = plt.subplots()
 
-x1, y1 = read_csv('1_single.csv')
-ax.plot_date(x1, y1, '-', label='single')
+def plot_from_csv(handle, path, convert_date_fun, fmt='-', label=None):
+    x, y = read_csv(path, convert_date_fun)
+    handle.plot_date(x, y, fmt, label=label)
 
-x2, y2 = read_csv('1_threaded.csv')
-ax.plot_date(x2, y2, '.', label='threaded')
 
-'''
-x3, y3 = read_csv('8.csv')
-ax.plot_date(x3, y3, '-', label='8')
+def plot(files, time_unit, show, output_file):
+    years = YearLocator()
+    months = MonthLocator()
+    days = DayLocator()
+    yearsFmt = mpl_dates.DateFormatter('%Y')
 
-x4, y4 = read_csv('9.csv')
-ax.plot_date(x4, y4, '-', label='9')
+    fig, ax = plt.subplots()
+    convert_date_fun_options = {
+        'day': convert_date_to_day,
+        'week': convert_date_to_week,
+        'month': convert_date_to_month,
+        'year': convert_date_to_year,
+    }
 
-x5, y5 = read_csv('10.csv')
-ax.plot_date(x5, y5, '-', label='10')
-'''
+    for file in files:
+        plot_from_csv(
+            handle=ax,
+            path=file,
+            convert_date_fun=convert_date_fun_options[time_unit],
+            label=file)
 
-# tick formats
-ax.xaxis.set_major_locator(years)
-ax.xaxis.set_major_formatter(yearsFmt)
-ax.xaxis.set_minor_locator(months)
-ax.xaxis.set_minor_formatter(monthsFmt)
-ax.autoscale_view()
+    # format settings
+    # tick label
+    ax.xaxis.set_major_locator(years)
+    ax.xaxis.set_major_formatter(yearsFmt)
+    ax.xaxis.set_minor_locator(months)
+    #ax.xaxis.set_minor_formatter(monthsFmt)
 
-#plt.title('Number of commits over time')
-fig.autofmt_xdate()
-plt.legend(loc='upper left')
-plt.show()
+    ax.autoscale_view()
+
+    plt.title('Number of commits over time')
+    fig.autofmt_xdate()
+    plt.legend(loc='upper left')
+
+    if show:
+        plt.show()
+    if not output_file == None:
+        plt.savefig(output_file)
+
+
+if __name__ == '__main__':
+    args = docopt(__doc__)
+    plot(args['<files>'], args['--time'], args['-s'], args['--out'])
