@@ -7,9 +7,9 @@ Arguments:
     timeunit
 
 Options:
-    -t --time=<val>   Possible units are day, week, month, year [default: month]
-    -s                      Show the diagram [default: True]
-    -o --out=<file>
+    -t --time=<val>     Possible units are day, week, month, year [default: month]
+    -s --show=<bool>    Show the diagram [default: true]
+    -o --out=<file>     Path to output file. You can specify the file format by using the desired file extension (e.g. png, pdf)
 
 """
 from docopt import docopt
@@ -21,6 +21,7 @@ from matplotlib.dates import YearLocator, MonthLocator, DayLocator, DateFormatte
 from datetime import datetime, timedelta
 import numpy as np
 import csv
+from schema import Regex, SchemaError
 
 
 def convert_date_to_day(date):
@@ -108,4 +109,12 @@ def plot(files, time_unit, show, output_file):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    plot(args['<files>'], args['--time'], args['-s'], args['--out'])
+    try:
+        Regex('day|week|month|year').validate(args['--time'])
+        Regex('true|false|True|False|yes|no').validate(args['--show'])
+    except SchemaError as e:
+        print("Invalid argument:")
+        exit(e)
+
+    plot(args['<files>'], args['--time'],
+         (args['--show'] in ('true', 'True', 'yes')), args['--out'])
