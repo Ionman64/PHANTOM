@@ -3,46 +3,33 @@ use downloader::{get_home_dir_path, ClonedProject};
 use std::path::{PathBuf, Path};
 use std::fs;
 use std::fs::File;
-use std::io;
 use std::io::{Write, BufWriter, BufRead, BufReader};
 use std::process::Command;
 use std::collections::HashMap;
 use chrono::NaiveDateTime;
 use std::ops::Add;
+use std::io::ErrorKind;
 
-pub fn analyse_project(cloned_project: &ClonedProject) {
-    let cloned_project = match generate_git_log(&cloned_project) {
-        Ok(log) => {
-            info!("Created log in {}", &cloned_project.path);
-            log
-        }
-        Err(e) => {
-            error!("Could not generate log file for project {}. Error: {}", &cloned_project.path, e);
-            return;
-        }
-    };
-    let datecount = count_commits_per_day(&cloned_project);
-    generate_analysis_csv(&cloned_project, datecount)
-}
 
-fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String, i32>) {
+pub fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String, i32>) -> Result<(), ErrorKind> {
     let csv_file_name = project.github.id.to_string().add(".csv");
-    let csv_path = get_anaylsis_output_dir().join(csv_file_name);
-
-    let log_file = File::create(&csv_path).expect("Could not create file");
-
+    //TODO::handle get home path error
+    let csv_path = Path::new(&get_home_dir_path().unwrap())
+        .join("project_analyser")
+        .join("analysis");
+    fs::create_dir_all(&csv_path).expect("Could not create directories");
     let mut bufwriter = BufWriter::new(&log_file);
     for (key, value) in datecount.iter() {
         let date = key;
-        bufwriter.write_fmt(format_args!("{}, {}\n", date, value))
-            .expect("Could not write file");
+        bufwriter.write_fmt(format_args!("{}, {}\n", date, value));
     }
+    Ok(())
 }
 
-fn count_commits_per_day(cloned_project: &ClonedProject) -> HashMap<String, i32> {
+pub fn count_commits_per_day(cloned_project: &ClonedProject) -> Result<HashMap<String, i32>, ErrorKind> {
     let mut date_count = HashMap::new();
-
-    for (i, line) in read_git_log_to_vec(&cloned_project.output_log_path).iter().enumerate() {
+    let git_log_lines = read_git_log_to_vec(&cloned_project.output_log_path).unwrap();
+    for (i, line) in git_log_lines.iter().enumerate() {
         let timestamp: i64 = match line.parse() {
             Ok(val) => val,
             Err(e) => {
@@ -62,38 +49,58 @@ fn count_commits_per_day(cloned_project: &ClonedProject) -> HashMap<String, i32>
         *count += 1;
         //info!("Date: {} -> {}", date.date(), count);
     }
-
-    date_count
+    Ok(date_count)
 }
 
-fn read_git_log_to_vec(filepath: &String) -> Vec<String> {
+fn read_git_log_to_vec(filepath: &String) -> Result<Vec<String>, ErrorKind> {
     let file = File::open(filepath).expect("Git log not found");
     let reader = BufReader::new(file);
     let mut lines: Vec<String> = Vec::new();
+    let mut skipped_lines = 0;
     for (i, line) in reader.lines().enumerate() {
         match line {
             Ok(value) => lines.push(value),
-            Err(e) => warn!("Could not read line {} in git log. Err: {}", i + 1, e),
+            Err(e) => {
+                warn!("Could not read line {} in git log. Err: {}", i + 1, e);
+                skipped_lines += 1;
+            },
         }
     }
-    lines
+    Ok(lines)
 }
 
 /// Generate a log by calling "git log" in the specified project directory.
 /// Results with the path to the log file.
-fn generate_git_log(cloned_project: &ClonedProject) -> io::Result<&ClonedProject> {
+pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject, ErrorKind> {
     //TODO::change this to main separator
-    let output_log_file = File::create(&cloned_project.output_log_path)?;
+    let output_log_file = match File::create(&cloned_project.output_log_path) {
+        Ok(file) => file,
+        Err(_) => {
+            warn!("Could not create cloned project");
+            return Err(ErrorKind::Other)
+        }
+    };
     let mut bufwriter = BufWriter::new(&output_log_file);
 
-    let command = Command::new("git")
+    let command = match Command::new("git")
         .args(&["--git-dir", &cloned_project.input_log_path, "log", "--format=%ct"])
-        .output()?;
+        .output() {
+        Ok(output) => output,
+        Err(_) => {
+            warn!("Could not create git log");
+            return Err(ErrorKind::Other)
+        },
+    };
 
-    bufwriter.write_all(&command.stdout)?;
-    bufwriter.flush()?;
-
-    Ok(cloned_project)
+    match bufwriter.write_all(&command.stdout) {
+        Ok(_) => {},
+        Err(_) => {
+            warn!("could not write git log to file");
+            return Err(ErrorKind::Other)
+        },
+    }
+    bufwriter.flush();
+    Ok(&cloned_project)
 }
 
 fn get_anaylsis_output_dir() -> PathBuf {
