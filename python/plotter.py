@@ -10,7 +10,9 @@ Options:
     -t --time=<val>     Possible units are day, week, month, year [default: month]
     -h --hide           Hide the diagram / Don't show the diagram
     -o --out=<file>     Path to output file. You can specify the file format by using the desired file extension (e.g. png, pdf)
-
+    --shiftleft         All projects start at x=0
+    --norm              Normalises all y values to be between 0 and 1
+    --acc               Accumulate y values
 """
 from docopt import docopt
 #plot(args['files'], args['-t'], args['-s'], args['-o'])
@@ -45,47 +47,63 @@ def read_csv(path, convert_date_fun):
     with open(path) as csvfile:
         plots = csv.reader(csvfile, delimiter=',')
         for row in plots:
-            date = datetime.strptime(row[0], '%Y-%m-%d')
-            date = convert_date_fun(date)
-            val = int(row[1])
-            date_count[date] = date_count.get(date, 0) + val
-
+            date = convert_date_fun(datetime.strptime(row[0], '%Y-%m-%d'))
+            date_count[date] = date_count.get(date, 0) + int(row[1])
     x = date_count.keys()
     y = date_count.values()
-    return sort_by_x(x, y)
-
-
-def sort_by_x(x, y):
+    # sort by date
     order = np.argsort(x)
     sorted_x = np.array(x)[order]
     sorted_y = np.array(y)[order]
     return sorted_x, sorted_y
 
 
-def plot_from_csv(handle, path, convert_date_fun, fmt='-', label=None):
-    x, y = read_csv(path, convert_date_fun)
-    handle.plot_date(x, y, fmt, label=label)
-
-
-def plot(files, time_unit, hide, output_file):
-    years = YearLocator()
-    months = MonthLocator()
-    days = DayLocator()
-    yearsFmt = mpl_dates.DateFormatter('%Y')
-
-    fig, ax = plt.subplots()
+def plot_from_csv(handle,
+                  path,
+                  time_unit,
+                  shift_left,
+                  accumulate,
+                  normalise,
+                  fmt='-',
+                  label=None):
     convert_date_fun_options = {
         'day': convert_date_to_day,
         'week': convert_date_to_week,
         'month': convert_date_to_month,
         'year': convert_date_to_year,
     }
+    x, y = read_csv(path, convert_date_fun_options[time_unit])
+
+    if accumulate:
+        y = np.add.accumulate(y)
+    if normalise:
+        y_max = np.amax(y)
+        y = np.true_divide(y, y_max)
+
+    if shift_left:
+        x = [(val - x[0]).days for val in x]
+        handle.plot(x, y, fmt, label=label)
+    else:
+        handle.plot_date(x, y, fmt, label=label)
+
+
+def plot(files, time_unit, shift_left, accumulate, normalise, hide,
+         output_file):
+    years = YearLocator()
+    months = MonthLocator()
+    days = DayLocator()
+    yearsFmt = mpl_dates.DateFormatter('%Y')
+
+    fig, ax = plt.subplots()
 
     for file in files:
         plot_from_csv(
             handle=ax,
             path=file,
-            convert_date_fun=convert_date_fun_options[time_unit],
+            time_unit=time_unit,
+            shift_left=shift_left,
+            accumulate=accumulate,
+            normalise=normalise,
             label=file)
 
     # format settings
@@ -108,12 +126,20 @@ def plot(files, time_unit, hide, output_file):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
+    #TODO shift left : true or false
+    #TODO accumulate: true or false
+    #TODO normalize: true or false
     try:
         Regex('day|week|month|year').validate(args['--time'])
     except SchemaError as e:
         print("Invalid argument:")
         exit(e)
-
-    print(args)
-
-    plot(args['<files>'], args['--time'], args['--hide'], args['--out'])
+    plot(
+        files=args['<files>'],
+        time_unit=args['--time'],
+        shift_left=args['--shiftleft'],
+        accumulate=args['--acc'],
+        normalise=args['--norm'],
+        hide=args['--hide'],
+        output_file=args['--out'],
+    )
