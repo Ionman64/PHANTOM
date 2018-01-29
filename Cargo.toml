@@ -7,3 +7,4 @@ authors = ["Joshua <jungen@student.chalmers.se>", "Peter <peterpi@student.chalme
 log = "0.4"
 fern = "0.5.2"
 chrono = "0.4.0"
+preferences = "1.1.0"
