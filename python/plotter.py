@@ -8,7 +8,7 @@ Arguments:
 
 Options:
     -t --time=<val>     Possible units are day, week, month, year [default: month]
-    -s --show=<bool>    Show the diagram [default: true]
+    -h --hide           Hide the diagram / Don't show the diagram
     -o --out=<file>     Path to output file. You can specify the file format by using the desired file extension (e.g. png, pdf)
 
 """
@@ -67,7 +67,7 @@ def plot_from_csv(handle, path, convert_date_fun, fmt='-', label=None):
     handle.plot_date(x, y, fmt, label=label)
 
 
-def plot(files, time_unit, show, output_file):
+def plot(files, time_unit, hide, output_file):
     years = YearLocator()
     months = MonthLocator()
     days = DayLocator()
@@ -94,27 +94,26 @@ def plot(files, time_unit, show, output_file):
     ax.xaxis.set_major_formatter(yearsFmt)
     ax.xaxis.set_minor_locator(months)
     #ax.xaxis.set_minor_formatter(monthsFmt)
-
     ax.autoscale_view()
 
-    plt.title('Number of commits over time')
+    plt.title('Number of commits over time (' + time_unit + 's)')
     fig.autofmt_xdate()
     plt.legend(loc='upper left')
 
-    if show:
-        plt.show()
     if not output_file == None:
         plt.savefig(output_file)
+    if not hide:
+        plt.show()
 
 
 if __name__ == '__main__':
     args = docopt(__doc__)
     try:
         Regex('day|week|month|year').validate(args['--time'])
-        Regex('true|false|True|False|yes|no').validate(args['--show'])
     except SchemaError as e:
         print("Invalid argument:")
         exit(e)
 
-    plot(args['<files>'], args['--time'],
-         (args['--show'] in ('true', 'True', 'yes')), args['--out'])
+    print(args)
+
+    plot(args['<files>'], args['--time'], args['--hide'], args['--out'])
