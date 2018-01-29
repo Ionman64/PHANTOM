@@ -1,4 +1,3 @@
-use git_analyser;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -6,6 +5,13 @@ use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::process::Command;
 use std::str;
+use std::io::ErrorKind;
+use std::ops::Add;
+
+pub struct LinesResponse <T> {
+    pub response: Vec<T>,
+    pub skipped_lines: Option<Vec<u32>>
+}
 
 /// Stores an id and a url to GitHub for a project
 pub struct GitHubProject {
@@ -18,6 +24,7 @@ pub struct ClonedProject {
     pub path: String,
     pub output_log_path: String,
     pub input_log_path: String,
+    pub analysis_csv_file: String,
 }
 
 impl GitHubProject {
@@ -32,8 +39,13 @@ impl ClonedProject {
     /// Helper function to create a new struct
     pub fn new(github: GitHubProject, file_path: PathBuf) -> ClonedProject {
         // TODO Validate
+        let csv_path = Path::new(&get_home_dir_path().unwrap())
+            .join("project_analyser")
+            .join("analysis")
+            .join(github.id.to_string().add(".csv"));
         ClonedProject {
             github,
+            analysis_csv_file: csv_path.into_os_string().into_string().unwrap(),
             output_log_path: file_path.join("pa_git.log").into_os_string().into_string().unwrap(),
             input_log_path: file_path.join(".git").into_os_string().into_string().unwrap(),
             path: file_path.into_os_string().into_string().unwrap(),
@@ -42,83 +54,104 @@ impl ClonedProject {
 }
 
 /// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
-pub fn read_project_urls_from_file() -> Vec<GitHubProject> {
+pub fn read_project_urls_from_file() -> Result<LinesResponse <GitHubProject>, ErrorKind> {
     let path = String::from("projects.csv");
-    let csv_file = match File::open(path) {
-        Ok(file) => file,
-        Err(_) => {
-            error!("Could not open file with project urls");
-            panic!("Could not open file with project urls");
-        }
-    };
-
+    //TODO:: Fix below line to return it's error
+    let csv_file = File::open(path).expect("Could not open urls file");
     let reader = BufReader::new(csv_file);
-
     let mut projects: Vec<GitHubProject> = Vec::new();
     let skip_rows = 1;
-    for (counter, line) in reader.lines().enumerate().skip(skip_rows) {
+    let mut skipped_lines:Vec<u32> = Vec::new();
+    let mut lineNum:u32 = 1;
+    for line in reader.lines().skip(skip_rows) {
+        lineNum += 1;
         let str_line = match line {
             Ok(line) => line,
             Err(_) => {
-                warn!("Could not read line {}", counter + skip_rows);
+                warn!("Could not read line {}", lineNum);
+                skipped_lines.push(lineNum);
                 continue;
             }
         };
+
+        if character_count(&str_line, ',') == 0 {
+            warn!("Does not contain expected comma character on line {}", lineNum);
+            skipped_lines.push(lineNum);
+            continue;
+        }
+
         let columns: Vec<&str> = str_line.trim().split(',').collect();
 
         if columns.len() > 2 {
-            let id: i64 = columns.get(0).unwrap().parse().unwrap();
+            let id: i64 = match columns.get(0).unwrap().parse() {
+                Ok(id) => id,
+                Err(_) => {
+                    warn!("Could not parse id from CSV file");
+                    continue;
+                }
+            };
             let url = columns.get(1).unwrap().to_string();
-
-            projects.push(GitHubProject::new(id, url)); //TODO: give the correct project path
+            projects.push(GitHubProject::new(id, url));
         } else {
-            warn!("Err: Line {} is not formatted correctly and has been skipped.", counter + skip_rows);
+            warn!("Err: Line {} is not formatted correctly and has been skipped.", lineNum);
+            skipped_lines.push(lineNum);;
         }
     }
-
-    projects
+    Ok(LinesResponse { response: projects, skipped_lines:None})
 }
 
+///Counts the number of matching characters in a String
+pub fn character_count(str_line: &String, matching_character: char) -> u32 {
+    let mut count:u32 = 0;
 
-pub fn clone_project(project: GitHubProject) {
-    match check_url_http_code(200, &cloned_project.github.url) {
-        Ok(_) => {
-            let home_path = get_home_dir_path();
-            let project_path = Path::new(&home_path)
-                .join(String::from("project_analyser"))
-                .join(String::from("repos"))
-                .join(project.id.to_string());
+    for character in str_line.chars() {
+        if character == matching_character {
+            count += 1;
+        }
+    }
+    return count;
+}
 
-            if !project_path.exists() {
-                fs::create_dir_all(&project_path).expect("Could not create directories");
+pub fn clone_project(project: GitHubProject) -> Result<ClonedProject, ErrorKind> {
+    let home_path = get_home_dir_path().expect("Could not get home directory");
+    let project_path = Path::new(&home_path)
+        .join(String::from("project_analyser"))
+        .join(String::from("repos"))
+        .join(project.id.to_string());
+
+    if !project_path.exists() {
+        match fs::create_dir_all(&project_path) {
+            Ok(_) => {
+                info!("Project path created");
+                Ok(())
+            },
+            Err(_) => {
+                warn!("Could not create project directory");
+                Err(ErrorKind::Other)
             }
-            let cloned_project = ClonedProject::new(project, project_path);
-
-            info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
-            Command::new("git")
-                .args(&["clone", &cloned_project.github.url, &cloned_project.path, "-q"])
-                .output()
-                .expect("Failed to execute git clone");
-
-            info!("Downloaded {} from {}", &cloned_project.github.id, &cloned_project.github.url);
-
-            git_analyser::analyse_project(&cloned_project); // TODO spawn in new thread
-        },
-        Err(_) => {return},
+        };
     }
 
+    let cloned_project = ClonedProject::new(project, project_path);
+    info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
+    Command::new("git")
+        .args(&["clone", &cloned_project.github.url, &cloned_project.path])
+        .output()
+        .expect("Failed to clone");
+    info!("Downloaded {} from {}", &cloned_project.github.id, &cloned_project.github.url);
+    Ok(cloned_project)
 }
 
-pub fn get_home_dir_path() -> String {
+pub fn get_home_dir_path() -> Result<String, ErrorKind> {
     let home_dir = match env::home_dir() {
         None => PathBuf::from(""),
         Some(path) => PathBuf::from(path),
     };
     match home_dir.into_os_string().into_string() {
-        Ok(s) => s,
+        Ok(s) => Ok(s),
         Err(_) => {
             error!("Could not convert home dir into string.");
-            panic!("Could not convert home dir into string.");
+            return Err(ErrorKind::Other) //("Could not convert home dir into string");
         }
     }
 }
