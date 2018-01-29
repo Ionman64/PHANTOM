@@ -6,12 +6,12 @@ use std::fs::{create_dir_all, File};
 use std::path::{Path, PathBuf};
 
 const APP_INFO: AppInfo = AppInfo { name: env!("CARGO_PKG_NAME"), author: env!("CARGO_PKG_AUTHORS") };
-const pref_key: &str = "config";
+const PREF_KEY: &str = "config";
 
 pub fn setup() {
     let mut path = preferences::prefs_base_dir().expect("No base dir for config files")
         .join(APP_INFO.name)
-        .join(pref_key);
+        .join(PREF_KEY);
     path.set_extension("prefs.json");
 
     if (!path.exists()) {
@@ -22,7 +22,7 @@ pub fn setup() {
 
         let mut pref = PreferencesMap::<String>::new();
         set_to_default(&mut pref);
-        pref.save(&APP_INFO, pref_key).expect("Could not save config file");
+        pref.save(&APP_INFO, PREF_KEY).expect("Could not save config file");
 
         info!("Configuration file created: {}", path.into_os_string().into_string().unwrap());
     }
@@ -46,7 +46,7 @@ impl ConfigItem {
 
 /// Return an entry from the configuration file
 pub fn get(item: ConfigItem) -> Option<String> {
-    let map = PreferencesMap::<String>::load(&APP_INFO, pref_key).expect("Could not load config file");
+    let map = PreferencesMap::<String>::load(&APP_INFO, PREF_KEY).expect("Could not load config file");
     match map.get(&item.as_key()) {
         None => None,
         Some(s) => Some(s.clone()),
