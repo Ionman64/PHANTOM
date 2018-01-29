@@ -1,14 +1,18 @@
 extern crate preferences;
 
 use self::preferences::{AppInfo, PreferencesMap, Preferences};
-use std::collections::HashMap;
+
 use std::fs::{create_dir_all, File};
 use std::path::{Path, PathBuf};
-
+use std::collections::HashMap;
 const APP_INFO: AppInfo = AppInfo { name: env!("CARGO_PKG_NAME"), author: env!("CARGO_PKG_AUTHORS") };
 const PREF_KEY: &str = "config";
 
-pub fn setup() {
+lazy_static! {
+    static ref CONFIG: PreferencesMap = setup();
+}
+
+fn setup() -> PreferencesMap {
     let mut path = preferences::prefs_base_dir().expect("No base dir for config files")
         .join(APP_INFO.name)
         .join(PREF_KEY);
@@ -26,8 +30,9 @@ pub fn setup() {
 
         info!("Configuration file created: {}", path.into_os_string().into_string().unwrap());
     }
-}
 
+    PreferencesMap::<String>::load(&APP_INFO, PREF_KEY).expect("Could not load config file")
+}
 pub enum ConfigItem {
     DatabaseUser,
     DatabasePassword,
@@ -46,8 +51,7 @@ impl ConfigItem {
 
 /// Return an entry from the configuration file
 pub fn get(item: ConfigItem) -> Option<String> {
-    let map = PreferencesMap::<String>::load(&APP_INFO, PREF_KEY).expect("Could not load config file");
-    match map.get(&item.as_key()) {
+    match CONFIG.get(&item.as_key()) {
         None => None,
         Some(s) => Some(s.clone()),
     }

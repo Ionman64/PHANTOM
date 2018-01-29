@@ -17,8 +17,6 @@ fn main() {
         Ok(_) => {}
         Err(_) => { panic!("Cannot setup logger, Programme will terminate") }
     };
-    config::setup();
-
     let projects = match downloader::read_project_urls_from_file() {
         Ok(project_struct) => {
             info!("Finished reading projects file;");

@@ -1,6 +1,8 @@
 extern crate fern;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate lazy_static;
 extern crate chrono;
 
 pub mod thread_helper;
