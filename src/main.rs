@@ -2,7 +2,14 @@ extern crate project_analyser;
 extern crate fern;
 #[macro_use]
 extern crate log;
+extern crate diesel;
 
+use self::diesel_demo::*;
+use self::models::*;
+use self::diesel::prelude::*;
+
+pub mod schema;
+pub mod models;
 
 use project_analyser::config;
 
@@ -14,6 +21,19 @@ use std::path::Path;
 use std::fs;
 
 fn main() {
+    let connection = establish_connection();
+    let results = posts.filter(published.eq(true))
+        .limit(5)
+        .load::<Post>(&connection)
+        .expect("Error loading posts");
+
+    println!("Displaying {} posts", results.len());
+    for post in results {
+        println!("{}", post.title);
+        println!("----------\n");
+        println!("{}", post.body);
+    }
+    return;
     match project_analyser::setup_logger() {
         Ok(_) => {},
         Err(_) => { panic!("Cannot setup logger, Programme will terminate") }

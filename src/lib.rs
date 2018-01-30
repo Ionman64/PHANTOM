@@ -5,10 +5,13 @@ extern crate log;
 extern crate lazy_static;
 extern crate chrono;
 
+pub mod schema;
+pub mod models;
 pub mod thread_helper;
 pub mod downloader;
 pub mod git_analyser;
 pub mod config;
+
 
 pub fn setup_logger() -> Result<(), fern::InitError> {
     fern::Dispatch::new()
