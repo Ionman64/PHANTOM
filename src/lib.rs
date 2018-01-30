@@ -1,10 +1,14 @@
 extern crate fern;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate lazy_static;
 extern crate chrono;
+
 pub mod thread_helper;
 pub mod downloader;
 pub mod git_analyser;
+pub mod config;
 
 pub fn setup_logger() -> Result<(), fern::InitError> {
     fern::Dispatch::new()
