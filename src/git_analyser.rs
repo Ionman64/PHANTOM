@@ -51,14 +51,14 @@ fn read_git_log_to_vec(filepath: &String) -> Result<LinesResponse<String>, Error
     let reader = BufReader::new(file);
     let mut lines: Vec<String> = Vec::new();
     let mut skipped_lines: Vec<u32> = Vec::new();
-    let mut lineNum:u32 = 0;
+    let mut line_num:u32 = 0;
     for line in reader.lines() {
-        lineNum += 1;
+        line_num += 1;
         match line {
             Ok(value) => lines.push(value),
             Err(e) => {
-                warn!("Could not read line {} in git log. Err: {}", lineNum, e);
-                skipped_lines.push(lineNum);
+                warn!("Could not read line {} in git log. Err: {}", line_num, e);
+                skipped_lines.push(line_num);
             },
         }
     }
