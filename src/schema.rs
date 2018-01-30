@@ -1,8 +1,6 @@
 table! {
-    posts (id) {
+    github_projects (id) {
         id -> Int4,
-        title -> Varchar,
-        body -> Text,
-        published -> Bool,
+        url -> Text,
     }
 }

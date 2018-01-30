@@ -4,6 +4,9 @@ extern crate log;
 #[macro_use]
 extern crate lazy_static;
 extern crate chrono;
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
 
 pub mod schema;
 pub mod models;
@@ -11,6 +14,7 @@ pub mod thread_helper;
 pub mod downloader;
 pub mod git_analyser;
 pub mod config;
+pub mod database;
 
 
 pub fn setup_logger() -> Result<(), fern::InitError> {

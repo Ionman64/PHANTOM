@@ -1,7 +1,5 @@
 #[derive(Queryable)]
-pub struct Post {
+pub struct GitHubProject {
     pub id: i32,
-    pub title: String,
-    pub body: String,
-    pub published: bool,
+    pub url: String,
 }

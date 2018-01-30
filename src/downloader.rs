@@ -7,6 +7,7 @@ use std::process::Command;
 use std::str;
 use std::io::ErrorKind;
 use std::ops::Add;
+use models::GitHubProject;
 
 pub struct LinesResponse <T> {
     pub response: Vec<T>,
@@ -14,10 +15,7 @@ pub struct LinesResponse <T> {
 }
 
 /// Stores an id and a url to GitHub for a project
-pub struct GitHubProject {
-    pub id: i64,
-    pub url: String,
-}
+
 
 pub struct ClonedProject {
     pub github: GitHubProject,
@@ -29,7 +27,7 @@ pub struct ClonedProject {
 
 impl GitHubProject {
     /// Helper function to create a new struct
-    pub fn new(id: i64, url: String) -> GitHubProject {
+    pub fn new(id: i32, url: String) -> GitHubProject {
         // TODO Validate
         GitHubProject { id, url }
     }
@@ -84,7 +82,7 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <Gi
         let columns: Vec<&str> = str_line.trim().split(',').collect();
 
         if columns.len() > 2 {
-            let id: i64 = match columns.get(0).unwrap().parse() {
+            let id = match columns.get(0).unwrap().parse() {
                 Ok(id) => id,
                 Err(_) => {
                     warn!("Could not parse id from CSV file");
