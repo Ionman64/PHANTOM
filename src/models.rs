@@ -31,6 +31,7 @@ pub struct ClonedProject {
 use std::path::{Path, PathBuf};
 use downloader::get_home_dir_path;
 use std::ops::Add;
+
 impl ClonedProject {
     /// Helper function to create a new struct
     pub fn new(github: GitHubProject, file_path: PathBuf) -> ClonedProject {
