@@ -14,43 +14,6 @@ pub struct LinesResponse <T> {
     pub skipped_lines: Option<Vec<u32>>
 }
 
-/// Stores an id and a url to GitHub for a project
-
-
-pub struct ClonedProject {
-    pub github: GitHubProject,
-    pub path: String,
-    pub output_log_path: String,
-    pub input_log_path: String,
-    pub analysis_csv_file: String,
-}
-
-impl NewGitHubProject {
-    /// Helper function to create a new struct
-    pub fn new(url: String) -> NewGitHubProject {
-        // TODO Validate
-        NewGitHubProject { url }
-    }
-}
-
-impl ClonedProject {
-    /// Helper function to create a new struct
-    pub fn new(github: GitHubProject, file_path: PathBuf) -> ClonedProject {
-        // TODO Validate
-        let csv_path = Path::new(&get_home_dir_path().unwrap())
-            .join("project_analyser")
-            .join("analysis")
-            .join(github.id.to_string().add(".csv"));
-        ClonedProject {
-            github,
-            analysis_csv_file: csv_path.into_os_string().into_string().unwrap(),
-            output_log_path: file_path.join("pa_git.log").into_os_string().into_string().unwrap(),
-            input_log_path: file_path.join(".git").into_os_string().into_string().unwrap(),
-            path: file_path.into_os_string().into_string().unwrap(),
-        }
-    }
-}
-
 /// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
 pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <NewGitHubProject>, ErrorKind> {
     let csv_file = match File::open(filepath) {
