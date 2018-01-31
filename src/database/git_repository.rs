@@ -1,7 +1,7 @@
 use super::*;
 use schema::git_repository::dsl::*;
 
-pub fn create(conn: &PgConnection, entry: NewGitRepository) -> Result<GitRepository, ErrorKind> {
+pub fn create(conn: &PgConnection, entry: NewGitRepository) -> DatabaseResult<GitRepository> {
     match diesel::insert_into(git_repository)
         .values(&entry)
         .get_result(conn) {
@@ -10,7 +10,7 @@ pub fn create(conn: &PgConnection, entry: NewGitRepository) -> Result<GitReposit
     }
 }
 
-pub fn read(conn: &PgConnection, url_entry: String) -> Result<GitRepository, ErrorKind>{
+pub fn read(conn: &PgConnection, url_entry: String) -> DatabaseResult<GitRepository>{
     match git_repository
         .filter(url.eq(&url_entry))
         .first(conn) {

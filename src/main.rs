@@ -21,7 +21,9 @@ fn main() {
         Err(_) => { panic!("Cannot setup logger, Programme will terminate") }
     };
 
-    database::establish_connection(); // Test connection
+    {
+        database::establish_connection(); // Test connection
+    }
 
     execute(String::from("projects.csv"));
 }

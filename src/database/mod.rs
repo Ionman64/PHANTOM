@@ -18,6 +18,10 @@ mod git_repository;
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    establish_connection_with_url(database_url);
+}
+
+fn establish_connection_with_url(database_url: String) -> PgConnection{
     PgConnection::establish(&database_url).expect("Could not connect to database")
 }
 
@@ -32,7 +36,7 @@ pub fn create_commit_frequency(entry: CommitFrequency) -> DatabaseResult<CommitF
     commit_frequency::create(&conn, entry)
 }
 
-/* Create entries *********************************************************************************/
+/* Read entries ***********************************************************************************/
 pub fn read_git_repository(url: String) -> DatabaseResult<GitRepository> {
     let conn = establish_connection();
     git_repository::read(&conn, url)
@@ -46,5 +50,3 @@ pub fn read_commit_frequency(id: i64, date: Option<NaiveDateTime>) -> DatabaseRe
 /* Update entries *********************************************************************************/
 
 /* Delete entries *********************************************************************************/
-
-
