@@ -2,7 +2,7 @@ extern crate project_analyser;
 
 use project_analyser::downloader;
 use project_analyser::git_analyser;
-use project_analyser::models::{GitHubProject, ClonedProject};
+use project_analyser::models::{GitRepository, ClonedProject};
 use project_analyser::downloader::get_home_dir_path;
 use std::path::Path;
 use project_analyser::utils;
@@ -39,19 +39,19 @@ fn character_count_test_null_unicode() {
 
 #[test]
 fn clone_project_correct_url() {
-    let project = GitHubProject { id: 1, url: String::from("https://github.com/bitcoin/bitcoin") };
+    let project = GitRepository { id: 1, url: String::from("https://github.com/bitcoin/bitcoin") };
     assert!(downloader::clone_project(project).is_ok());
 }
 
 #[test]
 fn clone_project_incorrect_url() {
-    let project = GitHubProject { id: 1, url: String::from("") };
+    let project = GitRepository { id: 1, url: String::from("") };
     assert!(downloader::clone_project(project).is_err());
 }
 
 #[test]
 fn clone_project_incorrect_url_2() {
-    let project = GitHubProject { id: 1, url: String::from("https://github.com/private/private") };
+    let project = GitRepository { id: 1, url: String::from("https://github.com/private/private") };
     assert!(downloader::clone_project(project).is_err());
 }
 
@@ -149,7 +149,7 @@ fn read_project_urls_should_panic_2() {
 
 #[test]
 fn read_commits_per_day_correct_url() {
-    let github_project = GitHubProject {id:7, url:String::from("https://github.com/bitcoin/bitcoin")};
+    let github_project = GitRepository {id:7, url:String::from("https://github.com/bitcoin/bitcoin")};
     let home_path = get_home_dir_path().expect("Could not get home directory");
     let project_path = Path::new(&home_path)
         .join(String::from("project_analyser"))

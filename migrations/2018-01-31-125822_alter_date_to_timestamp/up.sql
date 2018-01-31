@@ -1,0 +1,1 @@
+ALTER TABLE IF EXISTS commit_frequency ALTER COLUMN commit_date TYPE timestamp

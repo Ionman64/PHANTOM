@@ -1,27 +1,38 @@
-use super::schema::github_projects;
+use super::schema::{git_repository, commit_frequency};
+use chrono::NaiveDateTime;
 
 #[derive(Queryable)]
-pub struct GitHubProject {
+pub struct GitRepository {
     pub id: i64,
     pub url: String,
 }
 
+#[derive(Queryable)]
+#[derive(Debug)]
 #[derive(Insertable)]
-#[table_name="github_projects"]
-pub struct NewGitHubProject {
+#[table_name="commit_frequency"]
+pub struct CommitFrequency {
+    pub repository_id: i64,
+    pub commit_date: NaiveDateTime,
+    pub frequency: i16,
+}
+
+#[derive(Insertable)]
+#[table_name="git_repository"]
+pub struct NewGitRepository {
     pub url: String
 }
 
-impl NewGitHubProject {
+impl NewGitRepository {
     /// Helper function to create a new struct
-    pub fn new(url: String) -> NewGitHubProject {
+    pub fn new(url: String) -> NewGitRepository {
         // TODO Validate
-        NewGitHubProject { url }
+        NewGitRepository { url }
     }
 }
 
 pub struct ClonedProject {
-    pub github: GitHubProject,
+    pub github: GitRepository,
     pub path: String,
     pub output_log_path: String,
     pub input_log_path: String,
@@ -34,7 +45,7 @@ use std::ops::Add;
 
 impl ClonedProject {
     /// Helper function to create a new struct
-    pub fn new(github: GitHubProject, file_path: PathBuf) -> ClonedProject {
+    pub fn new(github: GitRepository, file_path: PathBuf) -> ClonedProject {
         // TODO Validate
 
         let csv_path = Path::new(&get_home_dir_path().unwrap())
