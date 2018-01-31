@@ -25,7 +25,6 @@ import numpy as np
 import csv
 from schema import Regex, SchemaError
 
-
 def convert_date_to_day(date):
     return date
 
