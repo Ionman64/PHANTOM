@@ -1,11 +1,5 @@
 import psycopg2
 
-def get_db_user():
-	return dev_config.DB_USER
-
-def get_db_password():
-	return dev_config.DB_PASSWORD
-
 def drop_database():
 	db = get_database("")
 	cursor = db.cursor()
