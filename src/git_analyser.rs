@@ -1,7 +1,5 @@
-use downloader::{get_home_dir_path, ClonedProject, LinesResponse};
-
-use std::path::{PathBuf, Path};
-use std::fs;
+use downloader::LinesResponse;
+use models::ClonedProject;
 use std::fs::File;
 use std::io::{Write, BufWriter, BufRead, BufReader};
 use std::process::Command;
@@ -15,7 +13,7 @@ pub fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String,
     let mut bufwriter = BufWriter::new(analysis_csv_file_output);
     for (key, value) in datecount.iter() {
         let date = key;
-        bufwriter.write_fmt(format_args!("{}, {}\n", date, value));
+        bufwriter.write_fmt(format_args!("{}, {}\n", date, value)).expect("Could not write analysis");
     }
     Ok(())
 }
@@ -95,15 +93,6 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             return Err(ErrorKind::Other)
         },
     }
-    bufwriter.flush();
+    bufwriter.flush().expect("Could not flush bufwriter");
     Ok(&cloned_project)
-}
-
-fn get_anaylsis_output_dir() -> PathBuf {
-    let analysis_dir = Path::new(&get_home_dir_path().unwrap())
-        .join("project_analyser")
-        .join("analysis");
-    fs::create_dir_all(&analysis_dir).expect("Could not create directories");
-
-    analysis_dir
 }

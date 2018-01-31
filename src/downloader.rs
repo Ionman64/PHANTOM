@@ -6,49 +6,11 @@ use std::io::{BufReader, BufRead};
 use std::process::Command;
 use std::str;
 use std::io::ErrorKind;
-use std::ops::Add;
-use models::{GitHubProject, NewGitHubProject};
+use models::{GitHubProject, ClonedProject, NewGitHubProject};
 
 pub struct LinesResponse <T> {
     pub response: Vec<T>,
     pub skipped_lines: Option<Vec<u32>>
-}
-
-/// Stores an id and a url to GitHub for a project
-
-
-pub struct ClonedProject {
-    pub github: GitHubProject,
-    pub path: String,
-    pub output_log_path: String,
-    pub input_log_path: String,
-    pub analysis_csv_file: String,
-}
-
-impl NewGitHubProject {
-    /// Helper function to create a new struct
-    pub fn new(url: String) -> NewGitHubProject {
-        // TODO Validate
-        NewGitHubProject { url }
-    }
-}
-
-impl ClonedProject {
-    /// Helper function to create a new struct
-    pub fn new(github: GitHubProject, file_path: PathBuf) -> ClonedProject {
-        // TODO Validate
-        let csv_path = Path::new(&get_home_dir_path().unwrap())
-            .join("project_analyser")
-            .join("analysis")
-            .join(github.id.to_string().add(".csv"));
-        ClonedProject {
-            github,
-            analysis_csv_file: csv_path.into_os_string().into_string().unwrap(),
-            output_log_path: file_path.join("pa_git.log").into_os_string().into_string().unwrap(),
-            input_log_path: file_path.join(".git").into_os_string().into_string().unwrap(),
-            path: file_path.into_os_string().into_string().unwrap(),
-        }
-    }
 }
 
 /// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
@@ -112,27 +74,24 @@ pub fn clone_project(project: GitHubProject) -> Result<ClonedProject, ErrorKind>
         .join(project.id.to_string());
 
     if !project_path.exists() {
-        match fs::create_dir_all(&project_path) {
-            Ok(_) => {
-                info!("Project path created");
-                Ok(())
-            },
-            Err(_) => {
-                warn!("Could not create project directory");
-                Err(ErrorKind::Other)
-            }
+        if fs::create_dir_all(&project_path).is_err() {
+            warn!("Could not create project directory");
+            return Err(ErrorKind::Other)
         };
     }
+
     let cloned_project = ClonedProject::new(project, project_path);
     if check_url_http_code(200, &cloned_project.github.url).is_err() {
-        return Err(ErrorKind::Other);
+        return Err(ErrorKind::Other)
     }
+
     info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
     Command::new("git")
         .args(&["clone", &cloned_project.github.url, &cloned_project.path])
         .output()
         .expect("Could not clone project");
     info!("Downloaded {} from {}", &cloned_project.github.id, &cloned_project.github.url);
+
     Ok(cloned_project)
 }
 

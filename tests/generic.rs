@@ -2,7 +2,8 @@ extern crate project_analyser;
 
 use project_analyser::downloader;
 use project_analyser::git_analyser;
-use project_analyser::downloader::{GitHubProject, ClonedProject, get_home_dir_path};
+use project_analyser::models::{GitHubProject, ClonedProject};
+use project_analyser::downloader::get_home_dir_path;
 use std::path::Path;
 
 #[test]
@@ -142,7 +143,7 @@ fn read_project_urls_should_panic_2() {
 
 #[test]
 fn read_commits_per_day_correct_url() {
-    let github_project = GitHubProject::new(7, String::from("https://github.com/bitcoin/bitcoin"));
+    let github_project = GitHubProject {id:7, url:String::from("https://github.com/bitcoin/bitcoin")};
     let home_path = get_home_dir_path().expect("Could not get home directory");
     let project_path = Path::new(&home_path)
         .join(String::from("project_analyser"))

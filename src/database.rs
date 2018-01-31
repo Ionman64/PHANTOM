@@ -5,7 +5,6 @@ use diesel::pg::PgConnection;
 use self::dotenv::dotenv;
 use std::env;
 use super::models::{NewGitHubProject, GitHubProject};
-use diesel::pg::upsert::*;
 use std::io::ErrorKind;
 
 
@@ -37,7 +36,6 @@ pub fn show_posts() {
 }
 pub fn insert_new_project(project: &NewGitHubProject) -> Result<GitHubProject, ErrorKind> {
     use schema::github_projects;
-    let mut unique_url = "unique_url";
     let connection = establish_connection();
     let inserted_project:GitHubProject = match diesel::insert_into(github_projects::table)
         .values(project)
