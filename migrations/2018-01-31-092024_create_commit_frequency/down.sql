@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS commit_frequency;
+DROP TABLE commit_frequency;
