@@ -23,21 +23,27 @@ pub enum PEAK {
 /// assert_eq!(x, 1)
 ///
 /// assert_eq!(y, PEAK::UP)
-pub fn detect_all_peaks(data_set: Vec<(f64, f64)>) -> Vec<(i64, PEAK)> {
-    let mut old = 0.0;
-    let mut return_vector:Vec<(i64, PEAK)> = Vec::new();
-    let mut count = 0;
-    for data_point in data_set.iter() {
-        let &(x, y) = data_point;
-        if y > old {
-            return_vector.push((count, &PEAK::UP));
-        }
-        if y < old {
-            return_vector.push((count, &PEAK::DOWN));
-        }
-        old = y;
-        count += 1;
+pub fn detect_all_peaks(data_set: Vec<(f64, f64)>) -> Vec<(usize, PEAK)> {
+    if data_set.len() < 3 {
+        panic!("dataset must have more than three elements for peak detection");
     }
-    println!("Count: {}", count);
+    let mut return_vector:Vec<(usize, PEAK)> = Vec::new();
+    let mut index = 1;
+    let array_length = data_set.len();
+    for &(_, current) in data_set.iter().skip(index) { //[(0.0, 0.0),(1.0, 1.0),(2.0,3.0),(3.0,1.0)]
+        let (x, previous) = data_set[index-1];
+        let (z, next) = data_set[index+1];
+        if (previous < current) && (current > next) {
+            return_vector.push((index, PEAK::UP));
+        }
+        if (previous > current) && (current < next) {
+            return_vector.push((index, PEAK::DOWN));
+        }
+        index += 1;
+        if index == array_length-1 {
+            //last element
+            break;
+        }
+    }
     return_vector
 }
