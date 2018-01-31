@@ -6,7 +6,7 @@ use std::io::{BufReader, BufRead};
 use std::process::Command;
 use std::str;
 use std::io::ErrorKind;
-use models::{GitHubProject, ClonedProject, NewGitHubProject};
+use models::{GitRepository, ClonedProject, NewGitRepository};
 
 pub struct LinesResponse <T> {
     pub response: Vec<T>,
@@ -14,13 +14,13 @@ pub struct LinesResponse <T> {
 }
 
 /// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
-pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <NewGitHubProject>, ErrorKind> {
+pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <NewGitRepository>, ErrorKind> {
     let csv_file = match File::open(filepath) {
         Ok(file) => file,
         Err(_) => {panic!("Could not open urls file")},
     };
     let reader = BufReader::new(csv_file);
-    let mut projects: Vec<NewGitHubProject> = Vec::new();
+    let mut projects: Vec<NewGitRepository> = Vec::new();
     let skip_rows = 1;
     let mut skipped_lines:Vec<u32> = Vec::new();
     let mut line_num:u32 = 1;
@@ -45,7 +45,7 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <Ne
 
         if columns.len() > 2 {
             let url = columns.get(1).unwrap().to_string();
-            projects.push(NewGitHubProject::new(url));
+            projects.push(NewGitRepository::new(url));
         } else {
             warn!("Err: Line {} is not formatted correctly and has been skipped.", line_num);
             skipped_lines.push(line_num);;
@@ -66,7 +66,7 @@ pub fn character_count(str_line: &String, matching_character: char) -> u32 {
     return count;
 }
 
-pub fn clone_project(project: GitHubProject) -> Result<ClonedProject, ErrorKind> {
+pub fn clone_project(project: GitRepository) -> Result<ClonedProject, ErrorKind> {
     let home_path = get_home_dir_path().expect("Could not get home directory");
     let project_path = Path::new(&home_path)
         .join(String::from("project_analyser"))

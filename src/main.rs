@@ -8,15 +8,16 @@ use project_analyser::models::*;
 use project_analyser::database;
 use project_analyser::downloader;
 use project_analyser::thread_helper::ThreadPool;
-use project_analyser::downloader::{get_home_dir_path};
+use project_analyser::downloader::get_home_dir_path;
 use project_analyser::git_analyser;
 use std::path::Path;
 use std::fs;
 use std::io::ErrorKind;
 
+extern crate chrono;
 fn main() {
     match project_analyser::setup_logger() {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(_) => { panic!("Cannot setup logger, Programme will terminate") }
     };
 
@@ -26,13 +27,13 @@ fn main() {
             match project_struct.skipped_lines {
                 None => {
                     info!("No lines skipped");
-                },
+                }
                 Some(lines) => {
                     warn!("Lines Skipped:");
                     for line in lines {
                         warn!("{}", line);
                     }
-                },
+                }
             }
             project_struct.response
         }
@@ -40,11 +41,11 @@ fn main() {
             panic!("Could not read the project URLs");
         }
     };
-    let mut github_projects_vec: Vec<GitHubProject> = Vec::new();
-    for project in projects.iter().skip(299) {
-        match database::insert_new_project(&project) {
+    let mut github_projects_vec: Vec<GitRepository> = Vec::new();
+    for project in projects.into_iter().skip(299) {
+        match database::create_git_repository(project) {
             Ok(x) => github_projects_vec.push(x),
-            Err(ErrorKind::AlreadyExists) => github_projects_vec.push(database::get_project_by_url(String::from("https://github.com/bitcoin/bitcoin")).unwrap()),
+            Err(ErrorKind::AlreadyExists) => github_projects_vec.push(database::read_git_repository(String::from("https://github.com/bitcoin/bitcoin")).unwrap()),
             Err(_) => panic!("Problem With Database"),
         } //TODO: REMOVE PANIC HERE
     }
@@ -62,7 +63,7 @@ fn main() {
                 Err(_) => {
                     error!("Could not clone project");
                     return;
-                },
+                }
             };
             match git_analyser::generate_git_log(&cloned_project) {
                 Ok(log) => {
@@ -71,19 +72,19 @@ fn main() {
                 }
                 Err(e) => {
                     error!("Could not generate log file for project {}: {:?}", &cloned_project.path, e);
-                    return
+                    return;
                 }
             };
             let date_count = match git_analyser::count_commits_per_day(&cloned_project) {
-                Ok(date_count) => { date_count },
+                Ok(date_count) => { date_count }
                 Err(_) => {
                     error!("Could not count commits");
-                    return
-                },
+                    return;
+                }
             };
             match git_analyser::generate_analysis_csv(&cloned_project, date_count) {
-                Ok(_) => {},
-                Err(_) => { error!("Could not generate analysis CSV") },
+                Ok(_) => {}
+                Err(_) => { error!("Could not generate analysis CSV") }
             }
         });
     }

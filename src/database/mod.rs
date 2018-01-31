@@ -1,84 +1,50 @@
 extern crate diesel;
 extern crate dotenv;
+
+
+use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
-use self::dotenv::dotenv;
+use dotenv::dotenv;
+use models::{NewGitRepository, GitRepository, CommitFrequency};
 use std::env;
-use super::models::{NewGitHubProject, GitHubProject};
 use std::io::ErrorKind;
 
+type DatabaseResult<T> = Result<T, ErrorKind>;
 
+mod commit_frequency;
+mod git_repository;
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
-}
- /*
-pub fn show_posts() {
-    use super::schema::github_projects::dsl::*;
-
-    let connection = establish_connection();
-    let results = github_projects
-        .limit(300)
-        .load::<GitHubProject>(&connection)
-        .expect("Error loading projects");
-
-    println!("Displaying {} projects", results.len());
-    for post in results {
-        println!("{}", post.id);
-        println!("----------");
-        println!("{}", post.url);
-    }
-}
-*/
-
-pub fn insert_new_project(project: &NewGitHubProject) -> Result<GitHubProject, ErrorKind> {
-    use schema::github_projects;
-    let connection = establish_connection();
-    let inserted_project:GitHubProject = match diesel::insert_into(github_projects::table)
-        .values(project)
-        .get_result(&connection) {
-        Ok(x) => x,
-        Err(_) => return Err(ErrorKind::AlreadyExists),
-    };
-    Ok(inserted_project)
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    PgConnection::establish(&database_url).expect("Could not connect to database")
 }
 
-pub fn get_project_by_url(url_str: String) -> Result<GitHubProject, ErrorKind> {
-    use super::schema::github_projects::dsl::*;
-
-    let connection = establish_connection();
-    match github_projects
-        .filter(url.eq(url_str))
-        .first(&connection) {
-        Ok(x) => Ok(x),
-        Err(_) => Err(ErrorKind::NotFound)
-    }
+/* Create entries *********************************************************************************/
+pub fn create_git_repository(project: NewGitRepository) -> DatabaseResult<GitRepository> {
+    let conn = establish_connection();
+    git_repository::create(&conn, &project)
 }
 
-mod commit_frequency {
-
+pub fn create_commit_frequency(entry: CommitFrequency) -> DatabaseResult<CommitFrequency> {
+    let conn = establish_connection();
+    commit_frequency::create(&conn, entry)
 }
 
-mod git_repository {
-
-    pub fn create() {
-
-    }
-
-    pub fn read() {
-
-    }
-
-    pub fn update() {
-
-    }
-
-    pub fn delete() {
-
-    }
+/* Create entries *********************************************************************************/
+pub fn read_git_repository(url: String) -> DatabaseResult<GitRepository> {
+    let conn = establish_connection();
+    git_repository::read(&conn, url)
 }
+
+pub fn read_commit_frequency(id: i64, date: Option<NaiveDateTime>) -> DatabaseResult<Vec<CommitFrequency>> {
+    let conn = establish_connection();
+    commit_frequency::read(&conn, id, date)
+}
+
+/* Update entries *********************************************************************************/
+
+/* Delete entries *********************************************************************************/
+
+
