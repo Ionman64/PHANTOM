@@ -14,10 +14,9 @@ use project_analyser::downloader::{get_home_dir_path};
 use project_analyser::git_analyser;
 use std::path::Path;
 use std::fs;
+use std::io::ErrorKind;
 
 fn main() {
-    database::show_posts();
-    return;
     match project_analyser::setup_logger() {
         Ok(_) => {},
         Err(_) => { panic!("Cannot setup logger, Programme will terminate") }
@@ -43,13 +42,21 @@ fn main() {
             panic!("Could not read the project URLs");
         }
     };
+    let mut github_projects_vec: Vec<GitHubProject> = Vec::new();
+    for project in projects.iter().skip(299) {
+        match database::insert_new_project(&project) {
+            Ok(x) => github_projects_vec.push(x),
+            Err(ErrorKind::AlreadyExists) => github_projects_vec.push(database::get_project_by_url(String::from("https://github.com/bitcoin/bitcoin")).unwrap()),
+            Err(_) => panic!("Problem With Database"),
+        } //TODO: REMOVE PANIC HERE
+    }
     let csv_path = Path::new(&get_home_dir_path().unwrap())
         .join("project_analyser")
         .join("analysis");
     fs::create_dir_all(&csv_path).expect("Could not create directories");
 
     let thread_pool = ThreadPool::new(75);
-    for project in projects.into_iter() {
+    for project in github_projects_vec.into_iter() {
         thread_pool.execute(move || {
             println!("Spawned new thread!");
             let cloned_project = match downloader::clone_project(project) {

@@ -7,7 +7,7 @@ use std::process::Command;
 use std::str;
 use std::io::ErrorKind;
 use std::ops::Add;
-use models::GitHubProject;
+use models::{GitHubProject, NewGitHubProject};
 
 pub struct LinesResponse <T> {
     pub response: Vec<T>,
@@ -25,11 +25,11 @@ pub struct ClonedProject {
     pub analysis_csv_file: String,
 }
 
-impl GitHubProject {
+impl NewGitHubProject {
     /// Helper function to create a new struct
-    pub fn new(id: i32, url: String) -> GitHubProject {
+    pub fn new(url: String) -> NewGitHubProject {
         // TODO Validate
-        GitHubProject { id, url }
+        NewGitHubProject { url }
     }
 }
 
@@ -52,13 +52,13 @@ impl ClonedProject {
 }
 
 /// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
-pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <GitHubProject>, ErrorKind> {
+pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <NewGitHubProject>, ErrorKind> {
     let csv_file = match File::open(filepath) {
         Ok(file) => file,
         Err(_) => {panic!("Could not open urls file")},
     };
     let reader = BufReader::new(csv_file);
-    let mut projects: Vec<GitHubProject> = Vec::new();
+    let mut projects: Vec<NewGitHubProject> = Vec::new();
     let skip_rows = 1;
     let mut skipped_lines:Vec<u32> = Vec::new();
     let mut line_num:u32 = 1;
@@ -82,15 +82,8 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <Gi
         let columns: Vec<&str> = str_line.trim().split(',').collect();
 
         if columns.len() > 2 {
-            let id = match columns.get(0).unwrap().parse() {
-                Ok(id) => id,
-                Err(_) => {
-                    warn!("Could not parse id from CSV file");
-                    continue;
-                }
-            };
             let url = columns.get(1).unwrap().to_string();
-            projects.push(GitHubProject::new(id, url));
+            projects.push(NewGitHubProject::new(url));
         } else {
             warn!("Err: Line {} is not formatted correctly and has been skipped.", line_num);
             skipped_lines.push(line_num);;

@@ -1,6 +1,6 @@
 table! {
     github_projects (id) {
-        id -> Int4,
+        id -> Int8,
         url -> Text,
     }
 }
