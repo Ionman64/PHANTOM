@@ -13,8 +13,18 @@ use project_analyser::git_analyser;
 use std::path::Path;
 use std::fs;
 use std::io::ErrorKind;
+use project_analyser::utils::{detect_all_peaks, PEAK};
 
 fn main() {
+    let data_set:Vec<(f64, f64)> = vec![(0.0, 0.0),(0.0, 1.0),(0.0,0.0)];
+    for i in utils::detect_all_peaks(data_set).iter() {
+        let &(index, ref peak) = i;
+        match peak {
+            utils::PEAK::UP => println!("UP - {}", index),
+            utils::PEAK::DOWN => println!("DOWN - {}", index),
+        }
+    }
+    return;
     match project_analyser::setup_logger() {
         Ok(_) => {},
         Err(_) => { panic!("Cannot setup logger, Programme will terminate") }
