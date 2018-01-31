@@ -2,9 +2,9 @@ extern crate project_analyser;
 extern crate fern;
 #[macro_use]
 extern crate log;
+extern crate chrono;
 
 use project_analyser::models::*;
-
 use project_analyser::database;
 use project_analyser::downloader;
 use project_analyser::thread_helper::ThreadPool;
@@ -14,48 +14,52 @@ use std::path::Path;
 use std::fs;
 use std::io::ErrorKind;
 
-extern crate chrono;
+
 fn main() {
     match project_analyser::setup_logger() {
         Ok(_) => {}
         Err(_) => { panic!("Cannot setup logger, Programme will terminate") }
     };
 
-    let projects = match downloader::read_project_urls_from_file(String::from("projects.csv")) {
+    database::establish_connection(); // Test connection
+
+    execute(String::from("projects.csv"));
+}
+
+fn execute(path_to_projects_csv: String) {
+    let new_repositories = match downloader::read_project_urls_from_file(path_to_projects_csv) {
         Ok(project_struct) => {
-            info!("Finished reading projects file;");
             match project_struct.skipped_lines {
                 None => {
-                    info!("No lines skipped");
+                    info!("Read projects from csv with success.");
                 }
                 Some(lines) => {
-                    warn!("Lines Skipped:");
-                    for line in lines {
-                        warn!("{}", line);
-                    }
+                    warn!("Read project from csv with succes, but skipped lines: {:?}", lines);
                 }
             }
             project_struct.response
         }
         Err(_) => {
-            panic!("Could not read the project URLs");
+            panic!("Reading project from csv failed");
         }
     };
-    let mut github_projects_vec: Vec<GitRepository> = Vec::new();
-    for project in projects.into_iter().skip(299) {
+
+    let mut git_repositories: Vec<GitRepository> = Vec::new();
+    for project in new_repositories.into_iter().skip(299) {
         match database::create_git_repository(project) {
-            Ok(x) => github_projects_vec.push(x),
-            Err(ErrorKind::AlreadyExists) => github_projects_vec.push(database::read_git_repository(String::from("https://github.com/bitcoin/bitcoin")).unwrap()),
+            Ok(x) => git_repositories.push(x),
+            Err(ErrorKind::AlreadyExists) => git_repositories.push(database::read_git_repository(String::from("https://github.com/bitcoin/bitcoin")).unwrap()),
             Err(_) => panic!("Problem With Database"),
         } //TODO: REMOVE PANIC HERE
     }
+
     let csv_path = Path::new(&get_home_dir_path().unwrap())
         .join("project_analyser")
         .join("analysis");
     fs::create_dir_all(&csv_path).expect("Could not create directories");
 
     let thread_pool = ThreadPool::new(75);
-    for project in github_projects_vec.into_iter() {
+    for project in git_repositories.into_iter() {
         thread_pool.execute(move || {
             println!("Spawned new thread!");
             let cloned_project = match downloader::clone_project(project) {
