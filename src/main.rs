@@ -45,10 +45,14 @@ fn execute(path_to_projects_csv: String) {
     };
 
     let mut git_repositories: Vec<GitRepository> = Vec::new();
-    for project in new_repositories.into_iter().skip(299) {
+    for project in new_repositories.into_iter().skip(297) {
+        let url = project.url.clone();
         match database::create_git_repository(project) {
-            Ok(x) => git_repositories.push(x),
-            Err(ErrorKind::AlreadyExists) => git_repositories.push(database::read_git_repository(String::from("https://github.com/bitcoin/bitcoin")).unwrap()),
+            Ok(repository) => git_repositories.push(repository),
+            Err(ErrorKind::AlreadyExists) => {
+                let repository = database::read_git_repository(url).unwrap();
+                git_repositories.push(repository);
+            }
             Err(_) => panic!("Problem With Database"),
         } //TODO: REMOVE PANIC HERE
     }
@@ -86,9 +90,20 @@ fn execute(path_to_projects_csv: String) {
                     return;
                 }
             };
-            match git_analyser::generate_analysis_csv(&cloned_project, date_count) {
-                Ok(_) => {}
-                Err(_) => { error!("Could not generate analysis CSV") }
+
+            // write commit frequency analysis into database
+            for (date, frequency) in date_count.into_iter() {
+                let entry = CommitFrequency {
+                    repository_id: cloned_project.github.id,
+                    commit_date: date.and_hms(0, 0, 0),
+                    frequency,
+                };
+                match database::create_commit_frequency(entry) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        error!("Could not create frequency");
+                    }
+                }
             }
         });
     }

@@ -24,7 +24,7 @@ pub fn establish_connection() -> PgConnection {
 /* Create entries *********************************************************************************/
 pub fn create_git_repository(project: NewGitRepository) -> DatabaseResult<GitRepository> {
     let conn = establish_connection();
-    git_repository::create(&conn, &project)
+    git_repository::create(&conn, project)
 }
 
 pub fn create_commit_frequency(entry: CommitFrequency) -> DatabaseResult<CommitFrequency> {

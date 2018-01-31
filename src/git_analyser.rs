@@ -4,11 +4,11 @@ use std::fs::File;
 use std::io::{Write, BufWriter, BufRead, BufReader};
 use std::process::Command;
 use std::collections::HashMap;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, NaiveDate};
 use std::io::ErrorKind;
 
 
-pub fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String, i32>) -> Result<(), ErrorKind> {
+fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String, i32>) -> Result<(), ErrorKind> {
     let analysis_csv_file_output = File::create(&project.analysis_csv_file).unwrap();
     let mut bufwriter = BufWriter::new(analysis_csv_file_output);
     for (key, value) in datecount.iter() {
@@ -18,29 +18,24 @@ pub fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String,
     Ok(())
 }
 
-pub fn count_commits_per_day(cloned_project: &ClonedProject) -> Result<HashMap<String, i32>, ErrorKind> {
+pub fn count_commits_per_day(cloned_project: &ClonedProject) -> Result<HashMap<NaiveDate, i16>, ErrorKind> {
     let mut date_count = HashMap::new();
     let git_log_lines = read_git_log_to_vec(&cloned_project.output_log_path).unwrap();
+
     for (i, line) in git_log_lines.response.iter().enumerate() {
         let timestamp: i64 = match line.parse() {
             Ok(val) => val,
             Err(e) => {
-                error!(
-                    "Could not parse timestamp '{}' in line {}. Timestamp was skipped. Error: {}",
-                    line,
-                    i + 1,
-                    e
-                );
+                error!("Could not parse timestamp '{}' in line {}. Timestamp was skipped. Error: {}",
+                       line, i + 1, e);
                 continue;
             }
         };
-        let date = NaiveDateTime::from_timestamp(timestamp, 0)
-            .date()
-            .to_string();
+        let date = NaiveDateTime::from_timestamp(timestamp, 0).date();
         let count = date_count.entry(date).or_insert(0);
         *count += 1;
-        //info!("Date: {} -> {}", date.date(), count);
     }
+
     Ok(date_count)
 }
 
@@ -49,7 +44,7 @@ fn read_git_log_to_vec(filepath: &String) -> Result<LinesResponse<String>, Error
     let reader = BufReader::new(file);
     let mut lines: Vec<String> = Vec::new();
     let mut skipped_lines: Vec<u32> = Vec::new();
-    let mut line_num:u32 = 0;
+    let mut line_num: u32 = 0;
     for line in reader.lines() {
         line_num += 1;
         match line {
@@ -57,10 +52,10 @@ fn read_git_log_to_vec(filepath: &String) -> Result<LinesResponse<String>, Error
             Err(e) => {
                 warn!("Could not read line {} in git log. Err: {}", line_num, e);
                 skipped_lines.push(line_num);
-            },
+            }
         }
     }
-    Ok(LinesResponse {response: lines, skipped_lines:Some(skipped_lines)})
+    Ok(LinesResponse { response: lines, skipped_lines: Some(skipped_lines) })
 }
 
 /// Generate a log by calling "git log" in the specified project directory.
@@ -71,7 +66,7 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         Ok(file) => file,
         Err(_) => {
             warn!("Could not create cloned project");
-            return Err(ErrorKind::Other)
+            return Err(ErrorKind::Other);
         }
     };
     let mut bufwriter = BufWriter::new(&output_log_file);
@@ -82,16 +77,16 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         Ok(output) => output,
         Err(_) => {
             warn!("Could not create git log");
-            return Err(ErrorKind::Other)
-        },
+            return Err(ErrorKind::Other);
+        }
     };
 
     match bufwriter.write_all(&command.stdout) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(_) => {
             warn!("could not write git log to file");
-            return Err(ErrorKind::Other)
-        },
+            return Err(ErrorKind::Other);
+        }
     }
     bufwriter.flush().expect("Could not flush bufwriter");
     Ok(&cloned_project)
