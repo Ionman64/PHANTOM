@@ -3,7 +3,6 @@ extern crate project_analyser;
 use project_analyser::downloader;
 use project_analyser::git_analyser;
 use project_analyser::downloader::{GitHubProject, ClonedProject, get_home_dir_path};
-use std::path::PathBuf;
 use std::path::Path;
 
 #[test]
