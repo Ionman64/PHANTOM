@@ -2,9 +2,7 @@ extern crate preferences;
 
 use self::preferences::{AppInfo, PreferencesMap, Preferences};
 
-use std::fs::{create_dir_all, File};
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
+use std::fs::create_dir_all;
 const APP_INFO: AppInfo = AppInfo { name: env!("CARGO_PKG_NAME"), author: env!("CARGO_PKG_AUTHORS") };
 const PREF_KEY: &str = "config";
 
@@ -18,7 +16,7 @@ fn setup() -> PreferencesMap {
         .join(PREF_KEY);
     path.set_extension("prefs.json");
 
-    if (!path.exists()) {
+    if !path.exists() {
         match path.parent() {
             Some(parent) => { create_dir_all(parent).expect("Could not create config file parent directories") }
             None => {},

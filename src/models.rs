@@ -28,10 +28,14 @@ pub struct ClonedProject {
     pub analysis_csv_file: String,
 }
 
+use std::path::{Path, PathBuf};
+use downloader::get_home_dir_path;
+use std::ops::Add;
 impl ClonedProject {
     /// Helper function to create a new struct
     pub fn new(github: GitHubProject, file_path: PathBuf) -> ClonedProject {
         // TODO Validate
+
         let csv_path = Path::new(&get_home_dir_path().unwrap())
             .join("project_analyser")
             .join("analysis")

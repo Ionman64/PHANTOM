@@ -6,8 +6,7 @@ use std::io::{BufReader, BufRead};
 use std::process::Command;
 use std::str;
 use std::io::ErrorKind;
-use std::ops::Add;
-use models::{GitHubProject, NewGitHubProject};
+use models::{GitHubProject, ClonedProject, NewGitHubProject};
 
 pub struct LinesResponse <T> {
     pub response: Vec<T>,
@@ -75,27 +74,24 @@ pub fn clone_project(project: GitHubProject) -> Result<ClonedProject, ErrorKind>
         .join(project.id.to_string());
 
     if !project_path.exists() {
-        match fs::create_dir_all(&project_path) {
-            Ok(_) => {
-                info!("Project path created");
-                Ok(())
-            },
-            Err(_) => {
-                warn!("Could not create project directory");
-                Err(ErrorKind::Other)
-            }
+        if fs::create_dir_all(&project_path).is_err() {
+            warn!("Could not create project directory");
+            return Err(ErrorKind::Other)
         };
     }
+
     let cloned_project = ClonedProject::new(project, project_path);
     if check_url_http_code(200, &cloned_project.github.url).is_err() {
-        return Err(ErrorKind::Other);
+        return Err(ErrorKind::Other)
     }
+
     info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
     Command::new("git")
         .args(&["clone", &cloned_project.github.url, &cloned_project.path])
         .output()
         .expect("Could not clone project");
     info!("Downloaded {} from {}", &cloned_project.github.id, &cloned_project.github.url);
+
     Ok(cloned_project)
 }
 

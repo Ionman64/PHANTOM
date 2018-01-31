@@ -3,10 +3,8 @@ extern crate fern;
 #[macro_use]
 extern crate log;
 
-use project_analyser::schema::*;
 use project_analyser::models::*;
 
-use project_analyser::config;
 use project_analyser::database;
 use project_analyser::downloader;
 use project_analyser::thread_helper::ThreadPool;
