@@ -70,7 +70,7 @@ mod tests {
         pub fn setup_test_database() {
             use std::process::Command;
             dotenv().ok();
-            let server_url = env::var(database_url_var()).unwrap();
+            let server_url = env::var(database_server_url_var()).unwrap();
             Command::new("./scripts/setup_test_db.sh").arg(server_url).arg("test_pa").output().expect("Could not setup test database.");
         }
 
