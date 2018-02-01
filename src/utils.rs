@@ -30,20 +30,29 @@ pub fn detect_all_peaks(data_set: Vec<(f64, f64)>) -> Vec<(usize, PEAK)> {
     let mut return_vector:Vec<(usize, PEAK)> = Vec::new();
     let mut index = 1;
     let array_length = data_set.len();
-    for &(_, current) in data_set.iter().skip(index) { //[(0.0, 0.0),(1.0, 1.0),(2.0,3.0),(3.0,1.0)]
+    let mut downward_trend = false;
+    let mut upward_trend = false;
+    let mut peak_point = 0;
+    while index < array_length {
         let (x, previous) = data_set[index-1];
-        let (z, next) = data_set[index+1];
-        if (previous < current) && (current > next) {
-            return_vector.push((index, PEAK::UP));
+        let (x, current) = data_set[index];
+        if previous < current {
+            upward_trend = true;
+            if downward_trend {
+                return_vector.push((peak_point, PEAK::DOWN));
+                downward_trend = false;
+            }
+            peak_point = index;
         }
-        if (previous > current) && (current < next) {
-            return_vector.push((index, PEAK::DOWN));
+        if previous > current {
+            downward_trend = true;
+            if upward_trend {
+                return_vector.push((peak_point, PEAK::UP));
+                upward_trend = false;
+            }
+            peak_point = index;
         }
         index += 1;
-        if index == array_length-1 {
-            //last element
-            break;
-        }
     }
     return_vector
 }
