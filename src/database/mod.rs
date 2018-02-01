@@ -18,7 +18,7 @@ mod git_repository;
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    establish_connection_with_url(database_url);
+    establish_connection_with_url(database_url)
 }
 
 fn establish_connection_with_url(database_url: String) -> PgConnection{

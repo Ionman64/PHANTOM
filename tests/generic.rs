@@ -5,6 +5,12 @@ use project_analyser::git_analyser;
 use project_analyser::models::{GitRepository, ClonedProject};
 use project_analyser::downloader::get_home_dir_path;
 use std::path::Path;
+use project_analyser::utils;
+
+#[test]
+fn check_euclidean_distance_1() {
+    assert_eq!(utils::two_dimensions_euclidean_distance((1.0,1.0), (2.0,2.0)), 1.4142135623730951);
+}
 
 #[test]
 fn character_count_test_comma() {
