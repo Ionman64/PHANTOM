@@ -17,15 +17,6 @@ use project_analyser::utils::{detect_all_peaks, PEAK};
 
 
 fn main() {
-    let data_set:Vec<(f64, f64)> = vec![(0.0, 0.0),(1.0, 1.0),(2.0,3.0),(3.0,1.0),(4.0, 0.5), (5.0, 1.0)];
-    for i in detect_all_peaks(data_set).iter() {
-        let &(index, ref peak) = i;
-        match peak {
-            &PEAK::UP => println!("UP - {}", index),
-            &PEAK::DOWN => println!("DOWN - {}", index),
-        }
-    }
-    return;
     match project_analyser::setup_logger() {
         Ok(_) => {}
         Err(_) => { panic!("Cannot setup logger, Programme will terminate") }

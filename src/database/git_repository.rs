@@ -15,9 +15,6 @@ pub fn read(conn: &PgConnection, url_entry: String) -> DatabaseResult<GitReposit
         .filter(url.eq(&url_entry))
         .first(conn) {
         Ok(repository) => Ok(repository),
-        Err(e) => {
-            error!("Could not find {} in git_repository. Error:\n{}", url_entry, e);
-            Err(ErrorKind::NotFound)
-        }
+        Err(e) => Err(ErrorKind::NotFound),
     }
 }
