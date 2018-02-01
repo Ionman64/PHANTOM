@@ -20,7 +20,7 @@ impl ThreadPool {
 
         ThreadPool {
             workers,
-            sender
+            sender,
         }
     }
 
@@ -58,10 +58,10 @@ impl Worker {
                 match message {
                     Message::NewJob(job) => {
                         job.call_box();
-                    },
+                    }
                     Message::Terminate => {
                         break;
-                    },
+                    }
                 }
             }
         });
@@ -77,7 +77,7 @@ type Job = Box<FnBox + Send + 'static>;
 
 enum Message {
     NewJob(Job),
-    Terminate
+    Terminate,
 }
 
 trait FnBox {
