@@ -8,22 +8,22 @@ use std::str;
 use std::io::ErrorKind;
 use models::{GitRepository, ClonedProject, NewGitRepository};
 
-pub struct LinesResponse <T> {
+pub struct LinesResponse<T> {
     pub response: Vec<T>,
-    pub skipped_lines: Option<Vec<u32>>
+    pub skipped_lines: Option<Vec<u32>>,
 }
 
 /// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
-pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <NewGitRepository>, ErrorKind> {
+pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse<NewGitRepository>, ErrorKind> {
     let csv_file = match File::open(filepath) {
         Ok(file) => file,
-        Err(_) => {panic!("Could not open urls file")},
+        Err(_) => { panic!("Could not open urls file") }
     };
     let reader = BufReader::new(csv_file);
     let mut projects: Vec<NewGitRepository> = Vec::new();
     let skip_rows = 1;
-    let mut skipped_lines:Vec<u32> = Vec::new();
-    let mut line_num:u32 = 1;
+    let mut skipped_lines: Vec<u32> = Vec::new();
+    let mut line_num: u32 = 1;
     for line in reader.lines().skip(skip_rows) {
         line_num += 1;
         let str_line = match line {
@@ -45,18 +45,27 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse <Ne
 
         if columns.len() > 2 {
             let url = columns.get(1).unwrap().to_string();
-            projects.push(NewGitRepository::new(url));
+
+            match check_url_http_code(&[200, 301], &url) {
+                Ok(_) => {
+                    projects.push(NewGitRepository::new(url));
+                },
+                Err(_) => {},
+            }
+
+
         } else {
             warn!("Err: Line {} is not formatted correctly and has been skipped.", line_num);
-            skipped_lines.push(line_num);;
+            skipped_lines.push(line_num);
+            ;
         }
     }
-    Ok(LinesResponse { response: projects, skipped_lines:None})
+    Ok(LinesResponse { response: projects, skipped_lines: None })
 }
 
 ///Counts the number of matching characters in a String
 pub fn character_count(str_line: &String, matching_character: char) -> u32 {
-    let mut count:u32 = 0;
+    let mut count: u32 = 0;
 
     for character in str_line.chars() {
         if character == matching_character {
@@ -76,14 +85,11 @@ pub fn clone_project(project: GitRepository) -> Result<ClonedProject, ErrorKind>
     if !project_path.exists() {
         if fs::create_dir_all(&project_path).is_err() {
             warn!("Could not create project directory");
-            return Err(ErrorKind::Other)
+            return Err(ErrorKind::Other);
         };
     }
 
     let cloned_project = ClonedProject::new(project, project_path);
-    if check_url_http_code(200, &cloned_project.github.url).is_err() {
-        return Err(ErrorKind::Other)
-    }
 
     info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
     Command::new("git")
@@ -104,29 +110,28 @@ pub fn get_home_dir_path() -> Result<String, ErrorKind> {
         Ok(s) => Ok(s),
         Err(_) => {
             error!("Could not convert home dir into string.");
-            return Err(ErrorKind::Other) //("Could not convert home dir into string");
+            return Err(ErrorKind::Other); //("Could not convert home dir into string");
         }
     }
 }
 
 /// Checks whether the url exists using curl.
-pub fn check_url_http_code(expected_code: i32, url: &str) -> Result<(), ()> {
+pub fn check_url_http_code(expected_codes: &[i32], url: &str) -> Result<(), ()> {
     // curl -s -o /dev/null-I  -I -w "%{http_code}"
     let curl = match Command::new("curl")
         .args(&["-s", "-o", "/dev/null", "-I", "-w", "\"%{http_code}\"", url])
         .output() {
-            Ok(response) => response,
-            Err(_) => {return Err(())},
-        };
-
+        Ok(response) => response,
+        Err(_) => { return Err(()); }
+    };
     let http_code = utf8_to_http_code(curl.stdout)?;
-    println!("HTTP CODE {}", http_code);
-    if http_code == expected_code {
-        Ok(())
-    } else {
-        warn!("Http code does not match. Found {}, Expected {} for url {}", http_code, expected_code, url);
-        Err(())
+    for expected_code in expected_codes {
+        if http_code == *expected_code {
+            return Ok(());
+        }
     }
+    warn!("Invalid http code for {}. Found {} .Valid codes are {:?}", url, http_code, expected_codes);
+    Err(())
 }
 
 
@@ -135,15 +140,15 @@ pub fn utf8_to_http_code(data: Vec<u8>) -> Result<i32, ()> {
     let code_string = match String::from_utf8(data) {
         Ok(code_string) => {
             code_string
-        },
+        }
         Err(e) => {
             error!("Could not create string from curl's output. Treating url as not existent. Err: {}", e);
-            return Err(())
+            return Err(());
         }
     };
     let stripped_code_string = code_string.replace('"', "");
     if stripped_code_string.len() != 3 {
-       //Invalid HTTP response code
+        //Invalid HTTP response code
         error!("Invalid response code from curl");
         return Err(());
     }
@@ -151,7 +156,7 @@ pub fn utf8_to_http_code(data: Vec<u8>) -> Result<i32, ()> {
         Ok(code_i32) => code_i32,
         Err(e) => {
             error!("Could not parse http code '{}' into int. Treating url as not existent. Err: {}", code_string, e);
-            return Err(())
+            return Err(());
         }
     };
     Ok(result)
