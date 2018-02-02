@@ -1,6 +1,6 @@
 """
 Usage:
-    plotter.py <files>... [options]
+    plotter.py [--db] <files>... [options]
 
 Arguments:
     files
@@ -24,6 +24,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import csv
 from schema import Regex, SchemaError
+import database_handler as db_handler
+
 
 def convert_date_to_day(date):
     return date
@@ -41,7 +43,31 @@ def convert_date_to_year(date):
     return date.replace(month=1, day=1)
 
 
-def read_csv(path, convert_date_fun):
+def sort_by_first(x, y):
+    order = np.argsort(x)
+    x = np.array(x)[order]
+    y = np.array(y)[order]
+    return x, y
+
+
+def read_commit_frequency_from_database(repository_id,
+                                        convert_date_fun,
+                                        sort_by_first_column=True):
+    commit_frequencies = db_handler.get_commit_frequency_by_id(repository_id)
+
+    date_count = {}
+    for key in commit_frequencies:
+        date = convert_date_fun(key)
+        date_count[date] = date_count.get(date, 0) + int(
+            commit_frequencies[key])
+    x = date_count.keys()
+    y = date_count.values()
+    if sort_by_first_column:
+        x, y = sort_by_first(x, y)
+    return x, y
+
+
+def read_csv(csvfile, convert_date_fun, sort_by_first_column=True):
     date_count = {}
     with open(path) as csvfile:
         plots = csv.reader(csvfile, delimiter=',')
@@ -50,28 +76,20 @@ def read_csv(path, convert_date_fun):
             date_count[date] = date_count.get(date, 0) + int(row[1])
     x = date_count.keys()
     y = date_count.values()
-    # sort by date
-    order = np.argsort(x)
-    sorted_x = np.array(x)[order]
-    sorted_y = np.array(y)[order]
-    return sorted_x, sorted_y
+    if sort_by_first_column:
+        x, y = sort_by_first(x, y)
+    return x, y
 
 
 def plot_from_csv(handle,
-                  path,
+                  x,
+                  y,
                   time_unit,
                   shift_left,
                   accumulate,
                   normalise,
                   fmt='-',
                   label=None):
-    convert_date_fun_options = {
-        'day': convert_date_to_day,
-        'week': convert_date_to_week,
-        'month': convert_date_to_month,
-        'year': convert_date_to_year,
-    }
-    x, y = read_csv(path, convert_date_fun_options[time_unit])
 
     if accumulate:
         y = np.add.accumulate(y)
@@ -87,18 +105,28 @@ def plot_from_csv(handle,
 
 
 def plot(files, time_unit, shift_left, accumulate, normalise, hide,
-         output_file):
+         output_file, get_value_fun):
     years = YearLocator()
     months = MonthLocator()
     days = DayLocator()
     yearsFmt = mpl_dates.DateFormatter('%Y')
 
     fig, ax = plt.subplots()
-
+    convert_date_fun_options = {
+        'day': convert_date_to_day,
+        'week': convert_date_to_week,
+        'month': convert_date_to_month,
+        'year': convert_date_to_year,
+    }
     for file in files:
+
+        #x, y = read_commit_frequency_from_database(file, convert_date_fun_options[time_unit])
+        #x, y = read_csv(file, convert_date_fun_options[time_unit])
+        x, y = get_value_fun(file, convert_date_fun_options[time_unit])
         plot_from_csv(
             handle=ax,
-            path=file,
+            x=x,
+            y=y,
             time_unit=time_unit,
             shift_left=shift_left,
             accumulate=accumulate,
@@ -125,14 +153,19 @@ def plot(files, time_unit, shift_left, accumulate, normalise, hide,
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    #TODO shift left : true or false
-    #TODO accumulate: true or false
-    #TODO normalize: true or false
-    try:
-        Regex('day|week|month|year').validate(args['--time'])
-    except SchemaError as e:
-        print("Invalid argument:")
-        exit(e)
+
+    timeunit = ["day", "week", "month", "year"]
+    if not args['--time'] in timeunit:
+        print("Invalid timeunit. Use --help to get more information.")
+        exit(1)
+
+    if args['--db']:
+        print("Reading from db")
+        gvf = read_commit_frequency_from_database
+    else:
+        print("Reading from file")
+        gvf = read_csv
+
     plot(
         files=args['<files>'],
         time_unit=args['--time'],
@@ -141,4 +174,4 @@ if __name__ == '__main__':
         normalise=args['--norm'],
         hide=args['--hide'],
         output_file=args['--out'],
-    )
+        get_value_fun=gvf)
