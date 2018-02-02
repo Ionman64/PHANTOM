@@ -53,32 +53,32 @@ fn clone_project_incorrect_url_2() {
 
 #[test]
 fn check_http_code_correct_url() {
-    assert!(downloader::check_url_http_code(200, &String::from("https://github.com/bitcoin/bitcoin")).is_ok());
+    assert!(downloader::check_url_http_code(&[200], &String::from("https://github.com/bitcoin/bitcoin")).is_ok());
 }
 
 #[test]
 fn check_http_code_incorrect_url() {
-    assert!(downloader::check_url_http_code(200, &String::from("https://github.com/private/private")).is_err());
+    assert!(downloader::check_url_http_code(&[200], &String::from("https://github.com/private/private")).is_err());
 }
 
 #[test]
 fn check_http_code_incorrect_url_2() {
-    assert!(downloader::check_url_http_code(200, &String::from("https://github.com/somewhere/over/the/rainbow")).is_err());
+    assert!(downloader::check_url_http_code(&[200], &String::from("https://github.com/somewhere/over/the/rainbow")).is_err());
 }
 
 #[test]
 fn check_http_code_empty_url() {
-    assert!(downloader::check_url_http_code(200, &String::from("")).is_err());
+    assert!(downloader::check_url_http_code(&[200], &String::from("")).is_err());
 }
 
 #[test]
 fn check_http_code_null_url() {
-    assert!(downloader::check_url_http_code(200, &String::from("\0")).is_err());
+    assert!(downloader::check_url_http_code(&[200], &String::from("\0")).is_err());
 }
 
 #[test]
 fn check_http_code_garbage_url() {
-    assert!(downloader::check_url_http_code(200, &String::from("23456£$%^23456\"")).is_err());
+    assert!(downloader::check_url_http_code(&[200], &String::from("23456£$%^23456\"")).is_err());
 }
 
 #[test]

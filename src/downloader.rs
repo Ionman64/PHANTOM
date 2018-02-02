@@ -46,7 +46,7 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse<New
         if columns.len() > 2 {
             let url = columns.get(1).unwrap().to_string();
 
-            match check_url_http_code(&[200, 301], &url) {
+            match check_url_http_code(&[200, 301], &url) { // TODO use constant for valid codes
                 Ok(_) => {
                     projects.push(NewGitRepository::new(url));
                 },
@@ -82,12 +82,18 @@ pub fn clone_project(project: GitRepository) -> Result<ClonedProject, ErrorKind>
         .join(String::from("repos"))
         .join(project.id.to_string());
 
+    match check_url_http_code(&[200, 301], &project.url) { // TODO use constant for valid codes
+        Ok(_) => {},
+        Err(_) => { return Err(ErrorKind::NotFound)},
+    }
+
     if !project_path.exists() {
         if fs::create_dir_all(&project_path).is_err() {
             warn!("Could not create project directory");
             return Err(ErrorKind::Other);
         };
     }
+
 
     let cloned_project = ClonedProject::new(project, project_path);
 
@@ -125,6 +131,7 @@ pub fn check_url_http_code(expected_codes: &[i32], url: &str) -> Result<(), ()> 
         Err(_) => { return Err(()); }
     };
     let http_code = utf8_to_http_code(curl.stdout)?;
+
     for expected_code in expected_codes {
         if http_code == *expected_code {
             return Ok(());
