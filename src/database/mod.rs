@@ -279,19 +279,19 @@ mod tests {
         let commit_date3 = NaiveDate::from_ymd(2018, 3, 3).and_hms(0, 0, 0);
 
         for create_repository in repositories.iter() {
-            commit_frequency::create(&conn, CommitFrequency{
+            commit_frequency::create(&conn, CommitFrequency {
                 repository_id: create_repository.id,
                 commit_date: commit_date1.clone(),
                 frequency: 10,
             });
 
-            commit_frequency::create(&conn, CommitFrequency{
+            commit_frequency::create(&conn, CommitFrequency {
                 repository_id: create_repository.id,
                 commit_date: commit_date2.clone(),
                 frequency: 20,
             });
 
-            commit_frequency::create(&conn, CommitFrequency{
+            commit_frequency::create(&conn, CommitFrequency {
                 repository_id: create_repository.id,
                 commit_date: commit_date3.clone(),
                 frequency: 30,
@@ -302,4 +302,65 @@ mod tests {
             assert_eq!(commit_frequency::read(&conn, created_reposiotry.id, None).unwrap().len(), 3);
         }
     }
+
+    #[test]
+    #[ignore]
+    fn create_many_commit_frequencies_and_read_back_ordered_by_date() {
+        use chrono::{NaiveDate, NaiveDateTime};
+        util::setup_test_database();
+        let conn = util::establish_test_connection();
+
+        let url = String::from("https://github.com/new/repo");
+        let created_repository = git_repository::create(&conn, NewGitRepository { url: url.clone() }).unwrap();
+
+        let commit_date1 = NaiveDate::from_ymd(2018, 1, 1).and_hms(0, 0, 0);
+        let commit_date2 = NaiveDate::from_ymd(2018, 2, 2).and_hms(0, 0, 0);
+        let commit_date3 = NaiveDate::from_ymd(2018, 3, 3).and_hms(0, 0, 0);
+        let commit_date4 = NaiveDate::from_ymd(2018, 4, 4).and_hms(0, 0, 0);
+        let commit_date5 = NaiveDate::from_ymd(2018, 5, 5).and_hms(0, 0, 0);
+
+
+        // insert commit frequencies in order: 3, 1, 5, 4, 2
+        commit_frequency::create(&conn, CommitFrequency {
+            repository_id: created_repository.id,
+            commit_date: commit_date3.clone(),
+            frequency: 30,
+        });
+        commit_frequency::create(&conn, CommitFrequency {
+            repository_id: created_repository.id,
+            commit_date: commit_date1.clone(),
+            frequency: 10,
+        });
+        commit_frequency::create(&conn, CommitFrequency {
+            repository_id: created_repository.id,
+            commit_date: commit_date5.clone(),
+            frequency: 50,
+        });
+        commit_frequency::create(&conn, CommitFrequency {
+            repository_id: created_repository.id,
+            commit_date: commit_date4.clone(),
+            frequency: 40,
+        });
+        commit_frequency::create(&conn, CommitFrequency {
+            repository_id: created_repository.id,
+            commit_date: commit_date2.clone(),
+            frequency: 20,
+        });
+        // read commit frequencies in order: 1, 2, 3, 4, 5
+        let read_frequencies = commit_frequency::read(&conn, created_repository.id, None).unwrap();
+
+        assert_eq!(read_frequencies.len(), 5);
+        let read1 = &read_frequencies[0];
+        let read2 = &read_frequencies[1];
+        let read3 = &read_frequencies[2];
+        let read4 = &read_frequencies[3];
+        let read5 = &read_frequencies[4];
+
+        assert_eq!(read1.commit_date, commit_date1);
+        assert_eq!(read2.commit_date, commit_date2);
+        assert_eq!(read3.commit_date, commit_date3);
+        assert_eq!(read4.commit_date, commit_date4);
+        assert_eq!(read5.commit_date, commit_date5);
+    }
 }
+
