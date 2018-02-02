@@ -42,7 +42,7 @@ fn execute(path_to_projects_csv: String) {
     };
 
     let mut git_repositories: Vec<GitRepository> = Vec::new();
-    for project in new_repositories.into_iter().skip(297) {
+    for project in new_repositories.into_iter().take(3) {
         let url = project.url.clone();
         match database::create_git_repository(project) {
             Ok(repository) => git_repositories.push(repository),

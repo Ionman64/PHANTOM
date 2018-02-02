@@ -2,6 +2,7 @@ extern crate project_analyser;
 
 use std::env;
 use project_analyser::database;
+use project_analyser::models::CommitFrequency;
 
 ///Provides the distance between two points on a graph as represented in cartesian co-ordinates
 /// #Example
@@ -17,18 +18,18 @@ pub enum PEAK {
     DOWN
 }
 
-///Detect all the peaks in a Vec<(f64, f64)> and returns the indexes as a Vec<i64, PEAK>
+///Detect all the peaks in a Vec<(f64)> and returns the indexes as a Vec<i64, PEAK>
 /// #Example
-/// let example_data: Vec<i64, PEAK> = vec![0.0,1.0,0.0]
+/// let data_set: Vec<i64> = vec![0.0,1.0,0.0]
 ///
-/// let result: Vec<i64, PEAK> = detect_all_peaks(Vec<(f64, f64))
+/// let result: Vec<i64, PEAK> = detect_all_peaks(data_set)
 ///
 /// let (x, y) = result.get(0)
 ///
 /// assert_eq!(x, 1)
 ///
 /// assert_eq!(y, PEAK::UP)
-pub fn detect_all_peaks(data_set: Vec<(f64, f64)>) -> Vec<(usize, PEAK)> {
+pub fn detect_all_peaks(data_set: Vec<f64>) -> Vec<(usize, PEAK)> {
     if data_set.len() < 3 {
         panic!("dataset must have more than three elements for peak detection");
     }
@@ -39,8 +40,8 @@ pub fn detect_all_peaks(data_set: Vec<(f64, f64)>) -> Vec<(usize, PEAK)> {
     let mut upward_trend = false;
     let mut peak_point = 0;
     while index < array_length {
-        let (x, previous) = data_set[index-1];
-        let (x, current) = data_set[index];
+        let previous = data_set[index-1];
+        let current = data_set[index];
         if previous < current {
             upward_trend = true;
             if downward_trend {
@@ -62,21 +63,44 @@ pub fn detect_all_peaks(data_set: Vec<(f64, f64)>) -> Vec<(usize, PEAK)> {
     return_vector
 }
 
-fn get_project_data(ids: Vec<i64>) {
-    for (counter, id) in ids.into_iter().enumerate() {
-        let commit_frequency = database::read_commit_frequency(id, None);
+fn format_dates_for_peak_detection(dates_vector: &Vec<CommitFrequency>) -> Vec<(f64)> {
+    let mut result_vector: Vec<(f64)> = Vec::new();
+    for value in dates_vector.into_iter() {
+        result_vector.push(value.frequency.into());
     }
+    return result_vector;
 }
 
-fn find_peaks(args: Vec<String>) {
+fn get_project_data(id: i64) -> Vec<(String, i8)> {
+    let mut return_vector: Vec<(String, i8)> = Vec::new();
+    let commit_vector: Vec<CommitFrequency> = match database::read_commit_frequency(id, None) {
+        Ok(x) => x,
+        Err(_) => panic!("Could not find data set for {}", id),
+    };
+    let data_set = format_dates_for_peak_detection(&commit_vector);
+    for (peak_point, peak) in detect_all_peaks(data_set).into_iter() {
+        let date = commit_vector.get(peak_point).unwrap().commit_date.date().to_string();
+        match peak {
+            PEAK::UP => return_vector.push((date,1)),
+            PEAK::DOWN => return_vector.push((date,-1)),
+        }
+    }
+    return return_vector;
+}
+
+fn find_peaks(args: &[String]) {
     let mut project_ids: Vec<i64> = Vec::new();
-    for (counter, argument) in args.into_iter().enumerate().skip(2) {
+    for (counter, argument) in args.iter().enumerate() {
         project_ids.push(match argument.parse() {
             Ok(x) => x,
             Err(_) => panic!("Could not interpret {} : Programme Terminated", counter)
         });
     }
-    get_project_data(project_ids);
+    for id in project_ids {
+        for (date, peak) in get_project_data(id).into_iter() {
+            println!("{},{}", date, peak);
+        }
+    }
 }
 fn main() {
     let args: Vec<_> = env::args().collect();
@@ -85,13 +109,12 @@ fn main() {
         return;
     }
     match args[1].as_str() {
-        "--findpeaks" => find_peaks(args),
+        "--findpeaks" => find_peaks(&args[2..]),
         _ => {
             println!("Unknown argument {}", args[1]);
             return;
         },
     }
-
 }
 
 #[cfg(test)]
