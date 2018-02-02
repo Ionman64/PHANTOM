@@ -183,10 +183,9 @@ mod tests {
     #[ignore]
     fn create_many_and_read_many_git_repositories() {
         util::setup_test_database();
-        let urls = vec!["one", "two", "three", "four", "five"];
-
         let conn = util::establish_test_connection();
 
+        let urls = vec!["one", "two", "three", "four", "five"];
         for url in urls.iter() {
             git_repository::create(&conn, NewGitRepository { url: url.to_string() }).unwrap();
         }
@@ -211,9 +210,96 @@ mod tests {
         let commit_date = NaiveDate::from_ymd(2018, 1, 1).and_hms(0, 0, 0);
         let frequency = 10;
 
-        match commit_frequency::create(&conn, CommitFrequency { repository_id, commit_date, frequency }) {
-            Ok(resulted_frequency) => assert!(true),
-            Err(_) => assert!(false),
+        let created_frequency = commit_frequency::create(&conn, CommitFrequency { repository_id, commit_date, frequency });
+        assert!(created_frequency.is_ok());
+
+        let created_frequency = created_frequency.unwrap();
+        assert_eq!(repository_id, created_frequency.repository_id);
+        assert_eq!(commit_date, created_frequency.commit_date);
+        assert_eq!(frequency, created_frequency.frequency);
+    }
+
+    #[test]
+    #[ignore]
+    fn create_commit_frequencies_with_same_ids_and_dates() {
+        use chrono::{NaiveDate, NaiveDateTime};
+        util::setup_test_database();
+        let conn = util::establish_test_connection();
+
+        let url = String::from("https://github.com/new/repo1");
+        let created_repository = git_repository::create(&conn, NewGitRepository { url: url.clone() }).unwrap();
+
+        let repository_id = created_repository.id;
+        let commit_date = NaiveDate::from_ymd(2018, 1, 1).and_hms(0, 0, 0);
+        let frequency = 1;
+
+        let frequency1 = CommitFrequency { repository_id, commit_date, frequency };
+        let frequency2 = CommitFrequency { frequency: 2, ..frequency1 };
+
+        let created1 = commit_frequency::create(&conn, frequency1);
+        let created2 = commit_frequency::create(&conn, frequency2);
+
+        assert!(created1.is_ok());
+        assert!(created2.is_err());
+    }
+
+    #[test]
+    #[ignore]
+    fn create_commit_frequency_with_invalid_id() {
+        use chrono::{NaiveDate, NaiveDateTime};
+        util::setup_test_database();
+        let conn = util::establish_test_connection();
+
+        let url = String::from("https://github.com/new/repo");
+        let created_repository = git_repository::create(&conn, NewGitRepository { url: url.clone() }).unwrap();
+
+        let repository_id = created_repository.id + 1; // There should only be one valid id, by altering it must be invalid
+        let commit_date = NaiveDate::from_ymd(2018, 1, 1).and_hms(0, 0, 0);
+        let frequency = 10;
+
+        assert!(commit_frequency::create(&conn, CommitFrequency { repository_id, commit_date, frequency }).is_err());
+    }
+
+    #[test]
+    #[ignore]
+    fn create_many_and_read_many_commit_frequencies() {
+        use chrono::{NaiveDate, NaiveDateTime};
+        util::setup_test_database();
+        let conn = util::establish_test_connection();
+
+        let urls = vec!["one", "two", "three", "four", "five"];
+        let mut repositories: Vec<GitRepository> = Vec::new();
+        for url in urls.iter() {
+            repositories.push(git_repository::create(&conn, NewGitRepository { url: url.to_string() }).unwrap());
+        }
+
+
+        let commit_date1 = NaiveDate::from_ymd(2018, 1, 1).and_hms(0, 0, 0);
+        let commit_date2 = NaiveDate::from_ymd(2018, 2, 2).and_hms(0, 0, 0);
+        let commit_date3 = NaiveDate::from_ymd(2018, 3, 3).and_hms(0, 0, 0);
+
+        for create_repository in repositories.iter() {
+            commit_frequency::create(&conn, CommitFrequency{
+                repository_id: create_repository.id,
+                commit_date: commit_date1.clone(),
+                frequency: 10,
+            });
+
+            commit_frequency::create(&conn, CommitFrequency{
+                repository_id: create_repository.id,
+                commit_date: commit_date2.clone(),
+                frequency: 20,
+            });
+
+            commit_frequency::create(&conn, CommitFrequency{
+                repository_id: create_repository.id,
+                commit_date: commit_date3.clone(),
+                frequency: 30,
+            });
+        }
+
+        for created_reposiotry in repositories.iter() {
+            assert_eq!(commit_frequency::read(&conn, created_reposiotry.id, None).unwrap().len(), 3);
         }
     }
 }
