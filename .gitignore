@@ -4,3 +4,4 @@
 Cargo.lock
 output.log
 .env
+*.pyc
