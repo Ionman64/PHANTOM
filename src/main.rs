@@ -13,7 +13,6 @@ use project_analyser::git_analyser;
 use std::path::Path;
 use std::fs;
 use std::io::ErrorKind;
-use project_analyser::utils::{detect_all_peaks, PEAK};
 
 
 fn main() {
@@ -21,11 +20,6 @@ fn main() {
         Ok(_) => {}
         Err(_) => { panic!("Cannot setup logger, Programme will terminate") }
     };
-
-    {
-        database::establish_connection(); // Test connection
-    }
-
     execute(String::from("projects.csv"));
 }
 

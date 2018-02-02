@@ -16,6 +16,7 @@ pub fn read(conn: &PgConnection, id: i64, date: Option<NaiveDateTime>) -> Databa
     use schema::commit_frequency::dsl::*;
     let results: Vec<CommitFrequency> = match commit_frequency
         .filter(repository_id.eq(id))
+        .order(commit_date.asc())
         .load::<CommitFrequency>(conn) {
         Ok(frequencies) => frequencies,
         Err(_) => return Err(ErrorKind::Other),

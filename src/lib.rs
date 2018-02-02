@@ -15,7 +15,6 @@ pub mod downloader;
 pub mod git_analyser;
 pub mod config;
 pub mod database;
-pub mod utils;
 
 
 pub fn setup_logger() -> Result<(), fern::InitError> {

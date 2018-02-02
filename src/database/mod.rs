@@ -15,7 +15,7 @@ type DatabaseResult<T> = Result<T, ErrorKind>;
 mod commit_frequency;
 mod git_repository;
 
-pub fn establish_connection() -> PgConnection {
+fn establish_connection() -> PgConnection {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is undefined");
     establish_connection_with_url(database_url)

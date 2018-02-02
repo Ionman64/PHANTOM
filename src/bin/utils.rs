@@ -1,3 +1,8 @@
+extern crate project_analyser;
+
+use std::env;
+use project_analyser::database;
+
 ///Provides the distance between two points on a graph as represented in cartesian co-ordinates
 /// #Example
 /// two_dimensions_euclidean_distance((1,1), (2,2)) -> 1.41321: f64
@@ -55,4 +60,45 @@ pub fn detect_all_peaks(data_set: Vec<(f64, f64)>) -> Vec<(usize, PEAK)> {
         index += 1;
     }
     return_vector
+}
+
+fn get_project_data(ids: Vec<i64>) {
+    for (counter, id) in ids.into_iter().enumerate() {
+        let commit_frequency = database::read_commit_frequency(id, None);
+    }
+}
+
+fn find_peaks(args: Vec<String>) {
+    let mut project_ids: Vec<i64> = Vec::new();
+    for (counter, argument) in args.into_iter().enumerate().skip(2) {
+        project_ids.push(match argument.parse() {
+            Ok(x) => x,
+            Err(_) => panic!("Could not interpret {} : Programme Terminated", counter)
+        });
+    }
+    get_project_data(project_ids);
+}
+fn main() {
+    let args: Vec<_> = env::args().collect();
+    if args.len() <= 1  {
+        println!("Missing arguments");
+        return;
+    }
+    match args[1].as_str() {
+        "--findpeaks" => find_peaks(args),
+        _ => {
+            println!("Unknown argument {}", args[1]);
+            return;
+        },
+    }
+
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn check_euclidean_distance_1() {
+        assert_eq!(two_dimensions_euclidean_distance((1.0, 1.0), (2.0, 2.0)), 1.4142135623730951);
+    }
 }
