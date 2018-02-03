@@ -2,8 +2,13 @@ extern crate project_analyser;
 
 use std::env;
 use project_analyser::database;
+use std::fs::File;
+use std::io::{Write, BufWriter, BufRead, BufReader};
 use project_analyser::models::CommitFrequency;
-
+use project_analyser::downloader::get_home_dir_path;
+use std::path::Path;
+use std::fs;
+use std::ops::Add;
 ///Provides the distance between two points on a graph as represented in cartesian co-ordinates
 /// #Example
 /// two_dimensions_euclidean_distance((1,1), (2,2)) -> 1.41321: f64
@@ -97,8 +102,14 @@ fn find_peaks(args: &[String]) {
         });
     }
     for id in project_ids {
+        let file_path = Path::new(&get_home_dir_path().unwrap())
+            .join("project_analyser")
+            .join("peak_detection")
+            .join(id.to_string().add(".csv"));
+        let peak_file = File::create(file_path).unwrap();
+        let mut bufwriter = BufWriter::new(peak_file);
         for (date, peak) in get_project_data(id).into_iter() {
-            println!("{},{}", date, peak);
+            bufwriter.write_fmt(format_args!("{},{}\n", date, peak)).expect("Could not write analysis");
         }
     }
 }

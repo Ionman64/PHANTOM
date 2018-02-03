@@ -10,6 +10,7 @@ import csv
 
 #Returns
 def find_peaks(project_ids):
+    return_dict = {}
     x = []
     y = []
     try:
@@ -17,7 +18,7 @@ def find_peaks(project_ids):
     except OSError as e:
         print("Execution failed:", e, sys.stderr)
     for row in csv.reader(StringIO(retstr), delimiter=','):
-        x.append(row[0])
+        return_dict[row[1]].x.append(row[0])
         y.append(row[1])
     return x,y
 
