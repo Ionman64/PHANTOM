@@ -23,7 +23,6 @@ from matplotlib.dates import YearLocator, MonthLocator, DayLocator, DateFormatte
 from datetime import datetime, timedelta
 import numpy as np
 import csv
-from schema import Regex, SchemaError
 import database_handler as db_handler
 
 
