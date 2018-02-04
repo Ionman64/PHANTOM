@@ -15,7 +15,7 @@ Options:
     --acc               Accumulate y values
 """
 from docopt import docopt
-#plot(args['files'], args['-t'], args['-s'], args['-o'])
+# plot(args['files'], args['-t'], args['-s'], args['-o'])
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.dates as mpl_dates
@@ -49,9 +49,7 @@ def sort_by_first(x, y):
     return x, y
 
 
-def read_commit_frequency_from_database(repository_id,
-                                        convert_date_fun,
-                                        sort_by_first_column=True):
+def read_commit_frequency_from_database(repository_id, convert_date_fun, sort_by_first_column=True):
     commit_frequencies = db_handler.get_commit_frequency_by_id(repository_id)
 
     date_count = {}
@@ -80,16 +78,7 @@ def read_csv(csvfile, convert_date_fun, sort_by_first_column=True):
     return x, y
 
 
-def plot_from_csv(handle,
-                  x,
-                  y,
-                  time_unit,
-                  shift_left,
-                  accumulate,
-                  normalise,
-                  fmt='-',
-                  label=None):
-
+def plot_from_csv(handle, x, y, time_unit, shift_left, accumulate, normalise, fmt='-', label=None):
     if accumulate:
         y = np.add.accumulate(y)
     if normalise:
@@ -118,9 +107,8 @@ def plot(files, time_unit, shift_left, accumulate, normalise, hide,
         'year': convert_date_to_year,
     }
     for file in files:
-
-        #x, y = read_commit_frequency_from_database(file, convert_date_fun_options[time_unit])
-        #x, y = read_csv(file, convert_date_fun_options[time_unit])
+        # x, y = read_commit_frequency_from_database(file, convert_date_fun_options[time_unit])
+        # x, y = read_csv(file, convert_date_fun_options[time_unit])
         x, y = get_value_fun(file, convert_date_fun_options[time_unit])
         plot_from_csv(
             handle=ax,
@@ -137,7 +125,7 @@ def plot(files, time_unit, shift_left, accumulate, normalise, hide,
     ax.xaxis.set_major_locator(years)
     ax.xaxis.set_major_formatter(yearsFmt)
     ax.xaxis.set_minor_locator(months)
-    #ax.xaxis.set_minor_formatter(monthsFmt)
+    # ax.xaxis.set_minor_formatter(monthsFmt)
     ax.autoscale_view()
 
     plt.title('Number of commits over time (' + time_unit + 's)')
