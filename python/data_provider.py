@@ -3,10 +3,14 @@ This file provides methods to obtain data from CSV files and the database. While
 to convert data into a specific format. When working with datetime object consider using the DateUtil class in this file.
 """
 
+import database_handler as db_handler
+
 import csv
 import numpy
+from subprocess import check_output
 from datetime import datetime, timedelta
-import database_handler as db_handler
+from os.path import expanduser
+
 
 
 def get_from_csvs(files, convert_first=str, convert_second=int, sort_by_first=True):
@@ -14,7 +18,7 @@ def get_from_csvs(files, convert_first=str, convert_second=int, sort_by_first=Tr
     Returns the file contents as an array where the index corresponds the the index of the file specifed when calling the
     function
 
-    @file:               Path to csv file.
+    @files:              Array of paths to csv file.
 
     @convert_first_col:  Function that is applied to each element in the first column. (e.g. convert from string to date)
 
@@ -25,7 +29,7 @@ def get_from_csvs(files, convert_first=str, convert_second=int, sort_by_first=Tr
     """
     contents = []
     for file in files:
-        #contents.append(get_from_csv(file, convert_first, convert_second, sort_by_first))
+        # contents.append(get_from_csv(file, convert_first, convert_second, sort_by_first))
         map = {}
         with open(file) as csvfile:
             rows = csv.reader(csvfile, delimiter=',')
@@ -70,6 +74,20 @@ def sort_by_x(x, y):
     """ Sorts two arrays in the same way, by sorting x and then sorting y based on the order of sorting x"""
     order = numpy.argsort(x)
     return numpy.array(x)[order], numpy.array(y)[order]
+
+
+def find_peaks(data):
+    peaks = []
+    for row in data:
+        output = check_output(["../target/debug/utils", "--findpeaks"] + map(str, row[1]))
+        peaks.append((row[0], map(int, output[1:-1].split(','))))
+    return peaks
+    # The call to utils will write several files into ~/project_analyser/peak_detection where filenames are '<ID>.csv'
+    #peak_csv_paths = []
+    #for project_id in project_ids:
+    #    peak_csv_paths.append(expanduser("~") + "/project_analyser/peak_detection/" + str(project_id) + ".csv") # TODO Use path seperators to ensure compatibility!
+    #return get_from_csvs(peak_csv_paths, sort_by_first=False)
+
 
 
 class DateUtil:

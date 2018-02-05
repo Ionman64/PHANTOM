@@ -16,6 +16,7 @@ from docopt import docopt
 import data_provider as provider
 import data_processor as processor
 import matplotlib.pyplot as pyplot
+import numpy
 
 if __name__ == '__main__':
     args = docopt(__doc__)
@@ -53,25 +54,31 @@ if __name__ == '__main__':
     data = processor.process(data, accumulate=arg_acc, normalise=arg_norm, shift=arg_shift)
 
     # Plot the specified graph -----------------------------------------------------------------------------------------
-    if (args['peak']):
-        pass
-    elif args['line']:
-        pass
-    elif args['euclidean']:
-        pass
 
     fig, ax = pyplot.subplots()
     plot_fun = ax.plot_date
     if not arg_shift is None:
         plot_fun = ax.plot
+
     for (idx, row) in enumerate(data):
-        #ax.plot_date(row[0], row[1], '-')
         plot_fun(row[0], row[1], '-', label=arg_ids[idx])
 
+    if (args['peak']):
+        peaks = provider.find_peaks(data)
+        for (idx, row) in enumerate(data):
+            ups = numpy.where(numpy.array(peaks[idx][1]) == 1)[0]
+            downs = numpy.where(numpy.array(peaks[idx][1]) == -1)[0]
+            ups_data = (numpy.array(row[0])[ups], numpy.array(row[1])[ups])
+            downs_data = (numpy.array(row[0])[downs], numpy.array(row[1])[downs])
+            ax.plot(ups_data[0], ups_data[1], '^', label="Up" if idx == 0 else "", color='green')
+            ax.plot(downs_data[0], downs_data[1], 'v', label="Down" if idx == 0 else "", color='red')
+    elif args['euclidean']:
+        pass
+    # Adjust title and format ------------------------------------------------------------------------------------------
     pyplot.title('Number of commits over time (' + arg_time_unit + 's)')
     fig.autofmt_xdate()
     pyplot.legend(loc='upper left')
-
+    # Display and save figure ------------------------------------------------------------------------------------------
     if not arg_out_file is None:
         print "Save figure to ", arg_out_file
         pyplot.savefig(arg_out_file)
