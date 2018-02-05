@@ -91,3 +91,23 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
     bufwriter.flush().expect("Could not flush bufwriter");
     Ok(&cloned_project)
 }
+
+#[cfg(tests)]
+mod tests {
+    use super::*;
+    #[test]
+    fn read_commits_per_day_correct_url() {
+        let github_project = GitRepository {id:7, url:String::from("https://github.com/bitcoin/bitcoin")};
+        let home_path = get_home_dir_path().expect("Could not get home directory");
+        let project_path = Path::new(&home_path)
+            .join(String::from("project_analyser"))
+            .join(String::from("repos"))
+            .join(github_project.id.to_string());
+        let cloned_project = ClonedProject::new(github_project, project_path);
+        let result = match count_commits_per_day(&cloned_project) {
+            Ok(date_count) => true,
+            Err(_) => false,
+        };
+        assert!(result);
+    }
+}
