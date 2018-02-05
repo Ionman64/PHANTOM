@@ -1,5 +1,5 @@
 CREATE TABLE file_analysis (
-    commit_id BIGSERIAL references repository_commit,
-    file_id BIGSERIAL references commit_file,
-    PRIMARY KEY (commit_id, file_id)
+    file_id BIGINT,
+    commit_id BIGINT,
+    FOREIGN KEY (file_id, commit_id) REFERENCES commit_file(file_id, commit_id)
 );
