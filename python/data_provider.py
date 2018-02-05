@@ -51,8 +51,9 @@ def get_commit_frequencies(repository_ids, convert_date_fun, sort_by_date=True):
         @sort_by_date: Sorts the rows by the date column.
         """
     queries = []
-    for id in repository_ids:
-        commit_frequencies = db_handler.get_commit_frequency_by_id(id) # TODO Don't open a new connection each time
+    db = db_handler.get_database();
+    for repository_id in repository_ids:
+        commit_frequencies = db_handler.get_commit_frequency_by_id(db, repository_id)
         map = {}
         for key in commit_frequencies:
             date = convert_date_fun(key)
@@ -61,6 +62,7 @@ def get_commit_frequencies(repository_ids, convert_date_fun, sort_by_date=True):
             queries.append(sort_by_x(map.keys(), map.values()))
         else:
             queries.append((map.keys(), map.values()))
+    db.close()
     return queries
 
 
