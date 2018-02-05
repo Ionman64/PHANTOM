@@ -40,11 +40,12 @@ if __name__ == '__main__':
 
     # Get the data -----------------------------------------------------------------------------------------------------
     data = provider.get_commit_frequencies(args['<id>'], convert_date_functions[args["--timeunit"]])
-    print (data)
+    print (data[0][1])
 
+    print
     # Process the data -------------------------------------------------------------------------------------------------
     data = processor.process(data, accumulate=False, normalise=False, shift="left")
-    print (data)
+    print (data[0][1])
 
     # Plot the specified graph -----------------------------------------------------------------------------------------
     if (args['peak']):

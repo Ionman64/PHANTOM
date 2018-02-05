@@ -73,21 +73,26 @@ def sort_by_x(x, y):
 class DateUtil:
     """ Provides utility methods for datetime object. """
 
+    @staticmethod
     def date_to_day(date):
         """ Takes a datetime and returns it as it is."""
         return date
 
+    @staticmethod
     def date_to_week(date):
         """ Takes a datetime and sets it to the last Monday. If it is a Monday already, the date stays the same"""
         return date - timedelta(days=date.weekday())
 
+    @staticmethod
     def date_to_month(date):
         """ Takes a datetime and sets the day to 1."""
         return date.replace(day=1)
 
+    @staticmethod
     def date_to_year(date):
         """ Takes a datetime and set month and date to 1. """
         return date.replace(month=1, day=1)
 
+    @staticmethod
     def str_to_date(date_as_string, fmt='%Y-%m-%d'):
         return datetime.strptime(date_as_string, fmt)
