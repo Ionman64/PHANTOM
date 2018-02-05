@@ -31,7 +31,7 @@ pub fn create_git_repository(project: NewGitRepository) -> DatabaseResult<GitRep
     git_repository::create(&conn, project)
 }
 
-pub fn create_commit_frequency(entry: CommitFrequency) -> DatabaseResult<CommitFrequency> {
+pub fn create_commit_frequencies(entry: Vec<CommitFrequency>) -> DatabaseResult<CommitFrequency> {
     let conn = establish_connection();
     commit_frequency::create(&conn, entry)
 }

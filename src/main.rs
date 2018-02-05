@@ -42,7 +42,7 @@ fn execute(path_to_projects_csv: String) {
     };
 
     let mut git_repositories: Vec<GitRepository> = Vec::new();
-    for project in new_repositories.into_iter().take(3) {
+    for project in new_repositories.into_iter().take(5) {
         let url = project.url.clone();
         match database::create_git_repository(project) {
             Ok(repository) => git_repositories.push(repository),
@@ -51,7 +51,7 @@ fn execute(path_to_projects_csv: String) {
                 git_repositories.push(repository);
             }
             Err(_) => panic!("Problem With Database"),
-        } //TODO: REMOVE PANIC HERE
+        }
     }
 
     let csv_path = Path::new(&get_home_dir_path().unwrap())
@@ -89,17 +89,18 @@ fn execute(path_to_projects_csv: String) {
             };
 
             // write commit frequency analysis into database
+            let mut commit_frequencies:Vec<CommitFrequency> = Vec::new();
             for (date, frequency) in date_count.into_iter() {
-                let entry = CommitFrequency {
+                commit_frequencies.push(CommitFrequency {
                     repository_id: cloned_project.github.id,
                     commit_date: date.and_hms(0, 0, 0),
                     frequency,
-                };
-                match database::create_commit_frequency(entry) {
-                    Ok(_) => {}
-                    Err(_) => {
-                        error!("Could not create frequency");
-                    }
+                });
+            }
+            match database::create_commit_frequencies(commit_frequencies) {
+                Ok(_) => {}
+                Err(_) => {
+                    error!("Could not create frequencies");
                 }
             }
         });

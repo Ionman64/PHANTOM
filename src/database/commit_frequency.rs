@@ -2,7 +2,7 @@ use super::*;
 use schema::commit_frequency;
 use models::CommitFrequency;
 
-pub fn create(conn: &PgConnection, entry: CommitFrequency) -> DatabaseResult<CommitFrequency> {
+pub fn create(conn: &PgConnection, entry: Vec<CommitFrequency>) -> DatabaseResult<CommitFrequency> {
     match diesel::insert_into(commit_frequency::table)
         .values(&entry)
         .get_result(conn)
