@@ -25,7 +25,7 @@ if __name__ == '__main__':
         print("Invalid timeunit. Use --help to get more information.")
         exit(1)
 
-    valid_shift_values = ["left", "right"]
+    valid_shift_values = ["left", "right", None]
     if not args['--shift'] in valid_shift_values:
         print("Invalid shift value. Use --help to get more information.")
         exit(1)
@@ -40,9 +40,11 @@ if __name__ == '__main__':
 
     # Get the data -----------------------------------------------------------------------------------------------------
     data = provider.get_commit_frequencies(args['<id>'], convert_date_functions[args["--timeunit"]])
+    print (data)
 
     # Process the data -------------------------------------------------------------------------------------------------
-    date = processor.process(data, accumulate=False, normalise=False, shift="left")
+    data = processor.process(data, accumulate=False, normalise=False, shift="left")
+    print (data)
 
     # Plot the specified graph -----------------------------------------------------------------------------------------
     if (args['peak']):

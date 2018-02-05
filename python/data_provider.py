@@ -25,33 +25,18 @@ def get_from_csvs(files, convert_first=str, convert_second=int, sort_by_first=Tr
     """
     contents = []
     for file in files:
-        contents.append(get_from_csv(file, convert_first, convert_second, sort_by_first))
+        #contents.append(get_from_csv(file, convert_first, convert_second, sort_by_first))
+        map = {}
+        with open(file) as csvfile:
+            rows = csv.reader(csvfile, delimiter=',')
+            for row in rows:
+                x = convert_first(row[0])
+                map[x] = map.get(x, convert_second(0)) + convert_second(row[1])
+        if sort_by_first:
+            contents.append(sort_by_x(map.keys(), map.values()))
+        else:
+            contents.append((map.keys(), map.values()))
     return contents
-
-
-def get_from_csv(file, convert_first=str, convert_second=int, sort_by_first=True):
-    """
-    Reads the contents from the specified file in CSV format.
-
-    @file:               Path to csv file.
-
-    @convert_first_col:  Function that is applied to each element in the first column. (e.g. convert from string to date)
-
-    @convert_seconf_col: Function that is appied to each element in the second column. The returned value is required to be
-    compatible with the + operator. (e.g. parse to int or double)
-
-    @sort_by_first: Sort the rows by the first column.
-    """
-    map = {}
-    with open(file) as csvfile:
-        rows = csv.reader(csvfile, delimiter=',')
-        for row in rows:
-            x = convert_first(row[0])
-            map[x] = map.get(x, convert_second(0)) + convert_second(row[1])
-    if sort_by_first:
-        return sort_by_x(map.keys(), map.values())
-    else:
-        return map.keys(), map.values()
 
 
 def get_commit_frequencies(repository_ids, convert_date_fun, sort_by_date=True):
@@ -67,28 +52,16 @@ def get_commit_frequencies(repository_ids, convert_date_fun, sort_by_date=True):
         """
     queries = []
     for id in repository_ids:
-        queries.append(get_commit_frequency(id, convert_date_fun, sort_by_date))
+        commit_frequencies = db_handler.get_commit_frequency_by_id(id) # TODO Don't open a new connection each time
+        map = {}
+        for key in commit_frequencies:
+            date = convert_date_fun(key)
+            map[date] = map.get(date, 0) + int(commit_frequencies[key])
+        if sort_by_date:
+            queries.append(sort_by_x(map.keys(), map.values()))
+        else:
+            queries.append((map.keys(), map.values()))
     return queries
-
-
-def get_commit_frequency(repository_id, convert_date_fun, sort_by_date=True):
-    """
-    Queries the database for the commit frequency of the specified repository id.
-
-    @repository_id: Id of the repository.
-
-    @convert_date_fun: Function to convert the date. Must take a datetime and returns a datetime.
-
-    @sort_by_date: Sorts the rows by the date column.
-    """
-    commit_frequencies = db_handler.get_commit_frequency_by_id(repository_id)
-    map = {}
-    for key in commit_frequencies:
-        date = convert_date_fun(key)
-        map[date] = map.get(date, 0) + int(commit_frequencies[key])
-    if sort_by_date:
-        return sort_by_x(map.keys(), map.values())
-    return map.keys(), map.values()
 
 
 def sort_by_x(x, y):
