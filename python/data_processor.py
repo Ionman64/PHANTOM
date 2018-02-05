@@ -30,7 +30,7 @@ def process(data_array, accumulate=False, normalise=False, shift=None):
             "right": shift_dates_right,
         }
         if shift in shift_functions:
-            shift_functions[shift](x)
+            x = shift_functions[shift](x)
         data_array[idx] = (x, y)
     return data_array
 

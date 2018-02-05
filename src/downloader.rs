@@ -45,15 +45,7 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse<New
 
         if columns.len() > 2 {
             let url = columns.get(1).unwrap().to_string();
-
-            match check_url_http_code(&[200, 301], &url) { // TODO use constant for valid codes
-                Ok(_) => {
-                    projects.push(NewGitRepository::new(url));
-                },
-                Err(_) => {},
-            }
-
-
+            projects.push(NewGitRepository::new(url));
         } else {
             warn!("Err: Line {} is not formatted correctly and has been skipped.", line_num);
             skipped_lines.push(line_num);
