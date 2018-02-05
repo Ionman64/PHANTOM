@@ -210,7 +210,7 @@ mod tests {
         let commit_date = NaiveDate::from_ymd(2018, 1, 1).and_hms(0, 0, 0);
         let frequency = 10;
 
-        let created_frequency = commit_frequency::create(&conn, CommitFrequency { repository_id, commit_date, frequency });
+        let created_frequency = commit_frequency::create(&conn, vec![CommitFrequency { repository_id, commit_date, frequency }]);
         assert!(created_frequency.is_ok());
 
         let created_frequency = created_frequency.unwrap();
@@ -236,8 +236,8 @@ mod tests {
         let frequency1 = CommitFrequency { repository_id, commit_date, frequency };
         let frequency2 = CommitFrequency { frequency: 2, ..frequency1 };
 
-        let created1 = commit_frequency::create(&conn, frequency1);
-        let created2 = commit_frequency::create(&conn, frequency2);
+        let created1 = commit_frequency::create(&conn, vec![frequency1]);
+        let created2 = commit_frequency::create(&conn, vec![frequency2]);
 
         assert!(created1.is_ok());
         assert!(created2.is_err());
@@ -257,7 +257,7 @@ mod tests {
         let commit_date = NaiveDate::from_ymd(2018, 1, 1).and_hms(0, 0, 0);
         let frequency = 10;
 
-        assert!(commit_frequency::create(&conn, CommitFrequency { repository_id, commit_date, frequency }).is_err());
+        assert!(commit_frequency::create(&conn, vec![CommitFrequency { repository_id, commit_date, frequency }]).is_err());
     }
 
     #[test]
@@ -279,27 +279,27 @@ mod tests {
         let commit_date3 = NaiveDate::from_ymd(2018, 3, 3).and_hms(0, 0, 0);
 
         for create_repository in repositories.iter() {
-            commit_frequency::create(&conn, CommitFrequency {
+            commit_frequency::create(&conn, vec![CommitFrequency {
                 repository_id: create_repository.id,
                 commit_date: commit_date1.clone(),
                 frequency: 10,
-            });
+            }]);
 
-            commit_frequency::create(&conn, CommitFrequency {
+            commit_frequency::create(&conn, vec![CommitFrequency {
                 repository_id: create_repository.id,
                 commit_date: commit_date2.clone(),
                 frequency: 20,
-            });
+            }]);
 
-            commit_frequency::create(&conn, CommitFrequency {
+            commit_frequency::create(&conn, vec![CommitFrequency {
                 repository_id: create_repository.id,
                 commit_date: commit_date3.clone(),
                 frequency: 30,
-            });
+            }]);
         }
 
-        for created_reposiotry in repositories.iter() {
-            assert_eq!(commit_frequency::read(&conn, created_reposiotry.id, None).unwrap().len(), 3);
+        for created_repository in repositories.iter() {
+            assert_eq!(commit_frequency::read(&conn, created_repository.id, None).unwrap().len(), 3);
         }
     }
 
@@ -321,31 +321,31 @@ mod tests {
 
 
         // insert commit frequencies in order: 3, 1, 5, 4, 2
-        commit_frequency::create(&conn, CommitFrequency {
+        commit_frequency::create(&conn, vec![CommitFrequency {
             repository_id: created_repository.id,
             commit_date: commit_date3.clone(),
             frequency: 30,
-        });
-        commit_frequency::create(&conn, CommitFrequency {
+        }]);
+        commit_frequency::create(&conn, vec![CommitFrequency {
             repository_id: created_repository.id,
             commit_date: commit_date1.clone(),
             frequency: 10,
-        });
-        commit_frequency::create(&conn, CommitFrequency {
+        }]);
+        commit_frequency::create(&conn, vec![CommitFrequency {
             repository_id: created_repository.id,
             commit_date: commit_date5.clone(),
             frequency: 50,
-        });
-        commit_frequency::create(&conn, CommitFrequency {
+        }]);
+        commit_frequency::create(&conn, vec![CommitFrequency {
             repository_id: created_repository.id,
             commit_date: commit_date4.clone(),
             frequency: 40,
-        });
-        commit_frequency::create(&conn, CommitFrequency {
+        }]);
+        commit_frequency::create(&conn, vec![CommitFrequency {
             repository_id: created_repository.id,
             commit_date: commit_date2.clone(),
             frequency: 20,
-        });
+        }]);
         // read commit frequencies in order: 1, 2, 3, 4, 5
         let read_frequencies = commit_frequency::read(&conn, created_repository.id, None).unwrap();
 
