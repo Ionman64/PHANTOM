@@ -60,7 +60,7 @@ The *diesel client* is a command line tool to manage database schemas (i.e. used
 
 	$ cargo install diesel_cli --no-default-features --features "postgres"
 
-Now, *diesel* can be used from a command line **in this directory**. Then create the database by running all migrations.
+Now, *diesel* can be used from a command line. This creates the database and runs all upward migrations.
 
 	$ diesel setup
 
@@ -69,4 +69,4 @@ To make sure the project is setup correctly run the following script.
 
     $ ./scripts/test_runner.sh
 
-**Note:** The script runs all tests for the project. Some tests need to be run single-threaded, which is why using *cargo test* would produces unreliable test results. The script invokes *cargo test* with the required flags to make sure that tests are executed correctly.
+**Note:** The script runs all tests for the project. Some tests need to be run single-threaded (Such as the database), which is why using *cargo test* would produces unreliable test results. The script invokes *cargo test* with the required flags to make sure that tests are executed correctly.

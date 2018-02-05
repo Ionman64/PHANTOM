@@ -59,11 +59,6 @@ fn execute(path_to_projects_csv: String) {
         .join("analysis");
     fs::create_dir_all(&csv_path).expect("Could not create directories");
 
-    let peak_path = Path::new(&get_home_dir_path().unwrap())
-        .join("project_analyser")
-        .join("peak_detection");
-    fs::create_dir_all(&csv_path).expect("Could not create directories");
-
     let thread_pool = ThreadPool::new(75);
     for project in git_repositories.into_iter() {
         thread_pool.execute(move || {

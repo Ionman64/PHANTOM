@@ -101,6 +101,10 @@ fn find_peaks(args: &[String]) {
             Err(_) => panic!("Could not interpret {} : Programme Terminated", counter)
         });
     }
+    let peak_path = Path::new(&get_home_dir_path().unwrap())
+        .join("project_analyser")
+        .join("peak_detection");
+    fs::create_dir_all(&csv_path).expect("Could not create directories");
     for id in project_ids {
         let file_path = Path::new(&get_home_dir_path().unwrap())
             .join("project_analyser")
