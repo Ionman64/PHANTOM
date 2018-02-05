@@ -19,7 +19,7 @@ import matplotlib.pyplot as pyplot
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-
+    print args
     # Validate command line arguments ----------------------------------------------------------------------------------
     valid_timeunits = ["day", "week", "month", "year"]
     if not args['--timeunit'] in valid_timeunits:
@@ -60,8 +60,12 @@ if __name__ == '__main__':
         pass
 
     fig, ax = pyplot.subplots()
+    plot_fun = ax.plot_date
+    if not arg_shift is None:
+        plot_fun = ax.plot
     for row in data:
-        ax.plot_date(row[0], row[1], '-')
+        #ax.plot_date(row[0], row[1], '-')
+        plot_fun(row[0], row[1], '-')
 
     pyplot.title('Number of commits over time (' + arg_time_unit + 's)')
     fig.autofmt_xdate()
