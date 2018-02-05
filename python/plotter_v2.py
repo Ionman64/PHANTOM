@@ -38,14 +38,18 @@ if __name__ == '__main__':
         "year": provider.DateUtil.date_to_year,
     }
 
+    arg_ids = args['<id>']
+    arg_time_unit = args['--timeunit']
+    arg_acc = args['--acc']
+    arg_norm = args['--norm']
+    arg_shift = args['--shift']
+
     # Get the data -----------------------------------------------------------------------------------------------------
-    data = provider.get_commit_frequencies(args['<id>'], convert_date_functions[args["--timeunit"]])
-    print (data[0][1])
+    data = provider.get_commit_frequencies(arg_ids, convert_date_functions[arg_time_unit])
 
     print
     # Process the data -------------------------------------------------------------------------------------------------
-    data = processor.process(data, accumulate=False, normalise=False, shift="left")
-    print (data[0][1])
+    data = processor.process(data, accumulate=arg_acc, normalise=arg_norm, shift=arg_shift)
 
     # Plot the specified graph -----------------------------------------------------------------------------------------
     if (args['peak']):
