@@ -15,6 +15,7 @@ Options:
 from docopt import docopt
 import data_provider as provider
 import data_processor as processor
+import matplotlib.pyplot as pyplot
 
 if __name__ == '__main__':
     args = docopt(__doc__)
@@ -57,3 +58,12 @@ if __name__ == '__main__':
         pass
     elif args['euclidean']:
         pass
+
+    fig, ax = pyplot.subplots()
+    for row in data:
+        ax.plot_date(row[0], row[1], '-')
+
+    pyplot.title('Number of commits over time (' + arg_time_unit + 's)')
+    fig.autofmt_xdate()
+    pyplot.legend(loc='upper left')
+    pyplot.show()

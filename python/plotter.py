@@ -66,7 +66,7 @@ def read_commit_frequency_from_database(repository_id, convert_date_fun, sort_by
 
 def read_csv(csvfile, convert_date_fun, sort_by_first_column=True):
     date_count = {}
-    with open(path) as csvfile:
+    with open(csvfile) as csvfile:
         plots = csv.reader(csvfile, delimiter=',')
         for row in plots:
             date = convert_date_fun(datetime.strptime(row[0], '%Y-%m-%d'))
