@@ -1,6 +1,6 @@
 CREATE TABLE commit_file (
-    file_id BIGSERIAL PRIMARY KEY,
+    file_id BIGSERIAL,
     commit_id BIGSERIAL references repository_commit,
     file_path TEXT NOT NULL,
-    UNIQUE(file_id, commit_id)
+    PRIMARY KEY(file_id, commit_id)
 );
