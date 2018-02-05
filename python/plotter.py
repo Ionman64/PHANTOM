@@ -6,7 +6,7 @@ Arguments:
     -t --timeunit=<UNIT>    Time unit of the x axis. Units: day, week, month, year
 Options:
     -h --help           Show this screen.
-    -h --hide           Hide the diagram / Don't show the diagram
+    --hide           Hide the diagram / Don't show the diagram
     -o --out=<file>     Path to output file. You can specify the file format by using the desired file extension (e.g. png, pdf)
     --shift=<direction> Shift the dates of projects [values: left, right]
     --norm              Normalises all y values to be between 0 and 1
@@ -19,7 +19,6 @@ import matplotlib.pyplot as pyplot
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    print args
     # Validate command line arguments ----------------------------------------------------------------------------------
     valid_timeunits = ["day", "week", "month", "year"]
     if not args['--timeunit'] in valid_timeunits:
@@ -44,6 +43,8 @@ if __name__ == '__main__':
     arg_acc = args['--acc']
     arg_norm = args['--norm']
     arg_shift = args['--shift']
+    arg_out_file= args['--out']
+    arg_hide = args['--hide']
 
     # Get the data -----------------------------------------------------------------------------------------------------
     data = provider.get_commit_frequencies(arg_ids, convert_date_functions[arg_time_unit])
@@ -63,11 +64,16 @@ if __name__ == '__main__':
     plot_fun = ax.plot_date
     if not arg_shift is None:
         plot_fun = ax.plot
-    for row in data:
+    for (idx, row) in enumerate(data):
         #ax.plot_date(row[0], row[1], '-')
-        plot_fun(row[0], row[1], '-')
+        plot_fun(row[0], row[1], '-', label=arg_ids[idx])
 
     pyplot.title('Number of commits over time (' + arg_time_unit + 's)')
     fig.autofmt_xdate()
     pyplot.legend(loc='upper left')
-    pyplot.show()
+
+    if not arg_out_file is None:
+        print "Save figure to ", arg_out_file
+        pyplot.savefig(arg_out_file)
+    if not arg_hide:
+        pyplot.show()
