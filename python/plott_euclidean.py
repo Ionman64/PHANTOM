@@ -1,6 +1,6 @@
 """
 Usage:
-    plotter_v2.py (peak|line|euclidean) <id>... --timeunit=<UNIT> [options]
+    plotter_euclidean.py <id>... --timeunit=<UNIT> [options]
 
 Arguments:
     -t --timeunit=<UNIT>    Time unit of the x axis. Units: day, week, month, year
@@ -16,7 +16,7 @@ from docopt import docopt
 import data_provider as provider
 import data_processor as processor
 import matplotlib.pyplot as pyplot
-import numpy
+import numpy as numpy
 
 if __name__ == '__main__':
     args = docopt(__doc__)
@@ -44,51 +44,38 @@ if __name__ == '__main__':
     arg_acc = args['--acc']
     arg_norm = args['--norm']
     arg_shift = args['--shift']
-    arg_out_file= args['--out']
+    arg_out_file = args['--out']
     arg_hide = args['--hide']
 
     # Get the data -----------------------------------------------------------------------------------------------------
     data = provider.get_commit_frequencies(arg_ids, convert_date_functions[arg_time_unit])
-    
+
     # Process the data -------------------------------------------------------------------------------------------------
     data = processor.process(data, accumulate=arg_acc, normalise=arg_norm, shift=arg_shift)
 
-    # Plot the specified graph -----------------------------------------------------------------------------------------
-    fig, (ax, ax2) = pyplot.subplots(1, 2, sharex=False)
+    fig, (line, eucl) = pyplot.subplots(1, 2)
+    for id, row in enumerate(data):
+        line.plot(row[0], row[1], '-', label=arg_ids[id])
+    pyplot.subplot(line)
+    pyplot.title("Line plot")
+    pyplot.legend(loc='upper right')
 
-    ####
-    x, distances = processor.get_euclidean(data)
-    for dist in distances:
-        ax2.plot(x, dist, '-')
-    ####
+    ref = numpy.column_stack(data[0])
+    distances = []
+    for row in data[1:]:
+        comp = numpy.column_stack(row)
+        dist = []
+        m = numpy.minimum(len(ref), len(comp))
+        for idx in range(0, m):
+            dist.append(numpy.linalg.norm(comp[idx] - ref[idx]))
+        distances.append(dist)
 
-    plot_fun = ax.plot_date
-    if not arg_shift is None:
-        plot_fun = ax.plot
+    eucl.plot(data[0][0], numpy.zeros(len(data[0][0])), label=arg_ids[0])
+    for id, distance in enumerate(distances):
+        m = numpy.minimum(len(data[0][0]), len(distance))
+        eucl.plot(data[0][0][0:m], distance[0:m], label=arg_ids[id + 1])
+    pyplot.subplot(eucl)
+    pyplot.legend(loc='upper right')
+    pyplot.title("Euclidean distance")
+    pyplot.show()
 
-    for (idx, row) in enumerate(data):
-        plot_fun(row[0], row[1], '-', label=arg_ids[idx])
-
-    if (args['peak']):
-        peaks = processor.find_peaks(data)
-        for (idx, row) in enumerate(data):
-            ups = numpy.where(numpy.array(peaks[idx][1]) == 1)[0]
-            downs = numpy.where(numpy.array(peaks[idx][1]) == -1)[0]
-            ups_data = (numpy.array(row[0])[ups], numpy.array(row[1])[ups])
-            downs_data = (numpy.array(row[0])[downs], numpy.array(row[1])[downs])
-            ax.plot(ups_data[0], ups_data[1], '^', label="Up" if idx == 0 else "", color='green')
-            ax.plot(downs_data[0], downs_data[1], 'v', label="Down" if idx == 0 else "", color='red')
-    elif args['euclidean']:
-        pass
-
-
-    # Adjust title and format ------------------------------------------------------------------------------------------
-    pyplot.title('Number of commits over time (' + arg_time_unit + 's)')
-    fig.autofmt_xdate()
-    pyplot.legend(loc='upper left')
-    # Display and save figure ------------------------------------------------------------------------------------------
-    if not arg_out_file is None:
-        print "Save figure to ", arg_out_file
-        pyplot.savefig(arg_out_file)
-    if not arg_hide:
-        pyplot.show()

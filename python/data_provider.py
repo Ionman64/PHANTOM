@@ -7,9 +7,7 @@ import database_handler as db_handler
 
 import csv
 import numpy
-from subprocess import check_output
 from datetime import datetime, timedelta
-from os.path import expanduser
 
 
 
@@ -37,9 +35,9 @@ def get_from_csvs(files, convert_first=str, convert_second=int, sort_by_first=Tr
                 x = convert_first(row[0])
                 map[x] = map.get(x, convert_second(0)) + convert_second(row[1])
         if sort_by_first:
-            contents.append(sort_by_x(map.keys(), map.values()))
+            contents.append(numpy.array(sort_by_x(map.keys(), map.values())))
         else:
-            contents.append((map.keys(), map.values()))
+            contents.append(numpy.array(map.keys(), map.values()))
     return contents
 
 
@@ -63,31 +61,17 @@ def get_commit_frequencies(repository_ids, convert_date_fun, sort_by_date=True):
             date = convert_date_fun(key)
             map[date] = map.get(date, 0) + int(commit_frequencies[key])
         if sort_by_date:
-            queries.append(sort_by_x(map.keys(), map.values()))
+            queries.append(numpy.array(sort_by_x(map.keys(), map.values())))
         else:
-            queries.append((map.keys(), map.values()))
+            queries.append(numpy.array([map.keys(), map.values()]))
     db.close()
-    return queries
+    return (queries)
 
 
 def sort_by_x(x, y):
     """ Sorts two arrays in the same way, by sorting x and then sorting y based on the order of sorting x"""
     order = numpy.argsort(x)
     return numpy.array(x)[order], numpy.array(y)[order]
-
-
-def find_peaks(data):
-    peaks = []
-    for row in data:
-        output = check_output(["../target/debug/utils", "--findpeaks"] + map(str, row[1]))
-        peaks.append((row[0], map(int, output[1:-1].split(','))))
-    return peaks
-    # The call to utils will write several files into ~/project_analyser/peak_detection where filenames are '<ID>.csv'
-    #peak_csv_paths = []
-    #for project_id in project_ids:
-    #    peak_csv_paths.append(expanduser("~") + "/project_analyser/peak_detection/" + str(project_id) + ".csv") # TODO Use path seperators to ensure compatibility!
-    #return get_from_csvs(peak_csv_paths, sort_by_first=False)
-
 
 
 class DateUtil:
