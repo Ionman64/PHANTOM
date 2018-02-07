@@ -86,23 +86,25 @@ if __name__ == '__main__':
 
     pyplot.subplot(line_handle)
     pyplot.title('Number of commits over time (' + arg_time_unit + 's)')
-    pyplot.legend(loc='upper left')
+    pyplot.legend(loc='upper right')
 
     if arg_ydist:
         distances = processor.get_euclidean(data)
+
+        max_y_value = numpy.max(numpy.concatenate(data[:, 1]))
+        norm_distances = numpy.true_divide(distances[:, 1], max_y_value)
+        avg_distances = [numpy.average(row) for row in norm_distances]
+        print avg_distances
+
         for (idx, id) in enumerate(arg_ids):
-            ydist_handle.plot(distances[idx][0], distances[idx][1], '-', label=str(id))
+            ydist_handle.plot(distances[idx][0], distances[idx][1], '-', label="%i (%.2f%%)" % (idx, avg_distances[idx]*100))
         pyplot.subplot(ydist_handle)
         pyplot.title('Distance graph')
         pyplot.legend(loc='upper right')
 
-        all_y_values = numpy.concatenate(data[:, 1])
-        max_y_value = numpy.max(all_y_values)
-        print distances[:, 1]
-        norm_distances = numpy.true_divide(distances[:, 1], max_y_value)
-        print norm_distances
-        print [numpy.average(row) for row in norm_distances]
-        print max_y_value
+
+
+
 
 
     # Display and save figure ------------------------------------------------------------------------------------------
