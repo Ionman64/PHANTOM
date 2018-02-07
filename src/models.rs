@@ -1,10 +1,36 @@
-use super::schema::{git_repository, commit_frequency};
+use super::schema::{git_repository, commit_frequency, repository_commit};
 use chrono::NaiveDateTime;
 
 #[derive(Queryable)]
 pub struct GitRepository {
     pub id: i64,
     pub url: String,
+}
+
+impl NewRepositoryCommit {
+    /// Helper function to create a new struct
+    pub fn new(repository_id:i64, commit_date:NaiveDateTime, commit_hash:String) -> NewRepositoryCommit {
+        // TODO Validate
+        NewRepositoryCommit  {repository_id, commit_date, commit_hash}
+    }
+}
+
+#[derive(Queryable)]
+#[derive(Debug)]
+pub struct RepositoryCommit {
+    pub commit_id: i64,
+    pub repository_id: i64,
+    pub commit_date: NaiveDateTime,
+    pub commit_hash: String,
+}
+
+#[derive(Debug)]
+#[derive(Insertable)]
+#[table_name="repository_commit"]
+pub struct NewRepositoryCommit {
+    pub repository_id: i64,
+    pub commit_date: NaiveDateTime,
+    pub commit_hash: String,
 }
 
 #[derive(Queryable)]

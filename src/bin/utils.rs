@@ -3,7 +3,7 @@ extern crate project_analyser;
 use std::env;
 use project_analyser::database;
 use std::fs::File;
-use std::io::{Write, BufWriter, BufRead, BufReader};
+use std::io::{Write, BufWriter};
 use project_analyser::models::CommitFrequency;
 use project_analyser::downloader::get_home_dir_path;
 use std::path::Path;
