@@ -35,10 +35,10 @@ def get_from_csvs(files, convert_first=str, convert_second=int, sort_by_first=Tr
                 x = convert_first(row[0])
                 map[x] = map.get(x, convert_second(0)) + convert_second(row[1])
         if sort_by_first:
-            contents.append(numpy.array(sort_by_x(map.keys(), map.values())))
+            contents.append(sort_by_x(map.keys(), map.values()))
         else:
-            contents.append(numpy.array(map.keys(), map.values()))
-    return contents
+            contents.append([map.keys(), map.values()])
+    return numpy.array(contents)
 
 
 def get_commit_frequencies(repository_ids, convert_date_fun, sort_by_date=True):
@@ -61,17 +61,17 @@ def get_commit_frequencies(repository_ids, convert_date_fun, sort_by_date=True):
             date = convert_date_fun(key)
             map[date] = map.get(date, 0) + int(commit_frequencies[key])
         if sort_by_date:
-            queries.append(numpy.array(sort_by_x(map.keys(), map.values())))
+            queries.append(sort_by_x(map.keys(), map.values()))
         else:
-            queries.append(numpy.array([map.keys(), map.values()]))
+            queries.append([[map.keys(), map.values()]])
     db.close()
-    return (queries)
+    return numpy.array(queries)
 
 
 def sort_by_x(x, y):
     """ Sorts two arrays in the same way, by sorting x and then sorting y based on the order of sorting x"""
     order = numpy.argsort(x)
-    return numpy.array(x)[order], numpy.array(y)[order]
+    return [numpy.array(x)[order], numpy.array(y)[order]]
 
 
 class DateUtil:

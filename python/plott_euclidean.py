@@ -53,7 +53,7 @@ if __name__ == '__main__':
     # Process the data -------------------------------------------------------------------------------------------------
     data = processor.process(data, accumulate=arg_acc, normalise=arg_norm, shift=arg_shift)
 
-    fig, (line, eucl) = pyplot.subplots(1, 2)
+    fig, (line, eucl) = pyplot.subplots(1, 2, sharex=True)
     for id, row in enumerate(data):
         line.plot(row[0], row[1], '-', label=arg_ids[id])
     pyplot.subplot(line)
@@ -67,7 +67,7 @@ if __name__ == '__main__':
         dist = []
         m = numpy.minimum(len(ref), len(comp))
         for idx in range(0, m):
-            dist.append(numpy.linalg.norm(comp[idx] - ref[idx]))
+            dist.append(abs(comp[idx][1] - ref[idx][1]))
         distances.append(dist)
 
     eucl.plot(data[0][0], numpy.zeros(len(data[0][0])), label=arg_ids[0])
