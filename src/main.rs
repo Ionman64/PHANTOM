@@ -80,16 +80,16 @@ fn execute(path_to_projects_csv: String) {
                     return;
                 }
             };
-            let date_count = match git_analyser::count_commits_per_day(&cloned_project) {
+            /*let date_count = match git_analyser::count_commits_per_day(&cloned_project) {
                 Ok(date_count) => { date_count }
                 Err(_) => {
                     error!("Could not count commits");
                     return;
                 }
-            };
+            };*/
 
             // write commit frequency analysis into database
-            let mut commit_frequencies:Vec<CommitFrequency> = Vec::new();
+            /*let mut commit_frequencies:Vec<CommitFrequency> = Vec::new();
             for (date, frequency) in date_count.into_iter() {
                 commit_frequencies.push(CommitFrequency {
                     repository_id: cloned_project.github.id,
@@ -102,7 +102,7 @@ fn execute(path_to_projects_csv: String) {
                 Err(_) => {
                     error!("Could not create frequencies");
                 }
-            }
+            }*/
         });
     }
 }

@@ -97,19 +97,24 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         }
         else {
             //File Name
-            println!("{}", line);
+            //println!("{}", line);
         }
     }
-    database::create_repository_commit(repository_commits);
+    match database::create_repository_commit(repository_commits) {
+        Ok(x) => {info!("{} rows inserted into database: repository_id {}", x, cloned_project.github.id)},
+        Err(ErrorKind::AlreadyExists) => {info!("{} already exists in database", cloned_project.github.id)},
+        Err(ErrorKind::Other) => {info!("Other Error when inserting {} into database", cloned_project.github.id)},
+        Err(_) => {info!("Unknown Error when inserting {} into database", cloned_project.github.id)},
+    }
     let mut commit_frequencies:Vec<CommitFrequency> = Vec::new();
     for (commit_date, frequency) in date_count.into_iter() {
         let commit_frequency = CommitFrequency {repository_id:cloned_project.github.id, commit_date, frequency};
         commit_frequencies.push(commit_frequency);
     }
-    match database::create_commit_frequencies(commit_frequencies) {
+    /*match database::create_commit_frequencies(commit_frequencies) {
         Ok(_) => {},
         Err(_) => {return Err(ErrorKind::Other)}
-    }
+    }*/
     Ok(&cloned_project)
 }
 
