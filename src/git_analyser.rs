@@ -1,11 +1,12 @@
 use downloader::LinesResponse;
-use models::ClonedProject;
+use models::{ClonedProject, CommitFrequency, NewRepositoryCommit};
 use std::fs::File;
 use std::io::{Write, BufWriter, BufRead, BufReader};
 use std::process::Command;
 use std::collections::HashMap;
 use chrono::{NaiveDateTime, NaiveDate};
 use std::io::ErrorKind;
+use database;
 
 
 fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String, i32>) -> Result<(), ErrorKind> {
@@ -61,18 +62,10 @@ fn read_git_log_to_vec(filepath: &String) -> Result<LinesResponse<String>, Error
 /// Generate a log by calling "git log" in the specified project directory.
 /// Results with the path to the log file.
 pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject, ErrorKind> {
-    //TODO::change this to main separator
-    let output_log_file = match File::create(&cloned_project.output_log_path) {
-        Ok(file) => file,
-        Err(_) => {
-            warn!("Could not create cloned project");
-            return Err(ErrorKind::Other);
-        }
-    };
-    let mut bufwriter = BufWriter::new(&output_log_file);
-
-    let command = match Command::new("git")
-        .args(&["--git-dir", &cloned_project.input_log_path, "log", "--format=%ct"])
+    let mut repository_commits:Vec<NewRepositoryCommit> = Vec::new();
+    let mut date_count = HashMap::new();
+    let git_files_and_dates_command = match Command::new("git")
+        .args(&["--git-dir", &cloned_project.input_log_path, "log", "--name-status", "--format=\">>>>%H,%ct\""])
         .output() {
         Ok(output) => output,
         Err(_) => {
@@ -80,15 +73,43 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             return Err(ErrorKind::Other);
         }
     };
-
-    match bufwriter.write_all(&command.stdout) {
-        Ok(_) => {}
-        Err(_) => {
-            warn!("could not write git log to file");
-            return Err(ErrorKind::Other);
+    let output = git_files_and_dates_command.stdout;
+    let output_string = match String::from_utf8(output) {
+        Ok(x) => x,
+        Err(_) => return Err(ErrorKind::Other),
+    };
+    let commits_to_files: Vec<(String, Vec<String>)> = Vec::new();
+    for line in output_string.split('\n').collect::<Vec<&str>>() {
+        if line.contains(">>>>") {
+            //Commit Hash and Timestamp
+            let mut line_replace = str::replace(line, ">>>>", "");
+            line_replace = str::replace(line_replace.as_str(), '"', "");
+            let parts = line_replace.split(",").collect::<Vec<&str>>();
+            let commit_hash = String::from(parts[0]);
+            let timestamp = match parts[1].parse() {
+                Ok(x) => {x},
+                Err(_) => {return Err(ErrorKind::InvalidInput)}
+            };
+            let date = NaiveDateTime::from_timestamp(timestamp, 0);
+            let count = date_count.entry(date).or_insert(0);
+            *count += 1;
+            repository_commits.push(NewRepositoryCommit::new(cloned_project.github.id, date, commit_hash));
+        }
+        else {
+            //File Name
+            println!("{}", line);
         }
     }
-    bufwriter.flush().expect("Could not flush bufwriter");
+    database::create_repository_commit(repository_commits);
+    let mut commit_frequencies:Vec<CommitFrequency> = Vec::new();
+    for (commit_date, frequency) in date_count.into_iter() {
+        let commit_frequency = CommitFrequency {repository_id:cloned_project.github.id, commit_date, frequency};
+        commit_frequencies.push(commit_frequency);
+    }
+    match database::create_commit_frequencies(commit_frequencies) {
+        Ok(_) => {},
+        Err(_) => {return Err(ErrorKind::Other)}
+    }
     Ok(&cloned_project)
 }
 
