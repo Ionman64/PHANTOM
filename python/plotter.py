@@ -85,7 +85,7 @@ if __name__ == '__main__':
         leftshifted_x = [(group.index[idx] - group.index[0]).days for idx in range(len(group.index[:-1]))]
         leftshifted = pd.Series(data=group.values[:-1], index=leftshifted_x)
         leftshifted.plot(label=key, legend=True, ax=ax['left-line'])
-        leftshifted.rolling(window=5).mean().plot(label=key, legend=False, color=ax['left-line'].lines[-1].get_color(), ax=ax['left-line'])
+        leftshifted.rolling(window=5).mean().plot(label=key, legend=False, color=ax['left-line'].lines[-1].get_color(), style='--', ax=ax['left-line'])
         # normalised
         norm_leftshifted = (leftshifted - leftshifted.min()) / (leftshifted.max() - leftshifted.min())
         norm_leftshifted.plot(legend=True, label=key, ax=ax['left-norm'], )
