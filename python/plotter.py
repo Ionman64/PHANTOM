@@ -65,9 +65,11 @@ if __name__ == '__main__':
         con=engine,
         index_col='commit_date')
 
+    frame['year'] = frame.index.year
+
     fig, ax = plt.subplots()
     for key, group in frame.groupby('repository_id'):
-        ax = group['frequency'].plot(ax=ax,label=key)
+        ax = group.groupby('year').sum()['frequency'].plot(ax=ax,label=key)
         print "Analysis of %s" % key
         print group['frequency'].describe()
 
