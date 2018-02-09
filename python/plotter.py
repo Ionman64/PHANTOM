@@ -16,10 +16,14 @@ Options:
 """
 from docopt import docopt
 from utils import data_processor as processor, data_provider as provider, data_visualiser as visualiser
-import matplotlib.pyplot as pyplot
-import numpy
+import numpy as np
+
+import matplotlib.pyplot as plt
+import pandas as pd
+from sqlalchemy import create_engine
 
 if __name__ == '__main__':
+    """
     args = docopt(__doc__)
     # Validate command line arguments ----------------------------------------------------------------------------------
     valid_timeunits = ["day", "week", "month", "year"]
@@ -53,45 +57,21 @@ if __name__ == '__main__':
     if arg_ydist and not arg_shift == "left":
         print "Y distance calculation only works with left-shifted data. Please set '--shift left'"
         exit(1)
+    """
 
-    # Get the data -----------------------------------------------------------------------------------------------------
-    data = provider.get_commit_frequencies(arg_ids, convert_date_functions[arg_time_unit])
+    engine = create_engine("postgres://postgres:0000@localhost/project_analyser")
+    frame = pd.read_sql_query(
+        'SELECT * FROM commit_frequency WHERE repository_id IN (2) ORDER BY commit_date',
+        con=engine,
+        index_col='commit_date')
 
-    # Process the data -------------------------------------------------------------------------------------------------
-    data = processor.process(data, accumulate=arg_acc, normalise=arg_norm, shift=arg_shift)
+    fig, ax = plt.subplots()
+    for key, group in frame.groupby('repository_id'):
+        ax = group['frequency'].plot(ax=ax,label=key)
+        print "Analysis of %s" % key
+        print group['frequency'].describe()
 
-    # Plot the specified graph -----------------------------------------------------------------------------------------
+    plt.legend(loc='best')
+    plt.show()
 
-    ## Line graph ##
-    if not arg_ydist:
-        fig, line_handle = pyplot.subplots()
-    else:
-        fig, (line_handle, ydist_handle) = pyplot.subplots(2, 1, sharey=True, sharex=True)
-    visualiser.plot_line_graph(line_handle, data, arg_ids, arg_shift is None)
-    ## Peak markers ##
-    if (arg_peak):
-        peaks = processor.find_peaks(data)
-        visualiser.plot_peaks(line_handle, data, peaks, arg_shift is None)
 
-    pyplot.subplot(line_handle)
-    pyplot.title('Number of commits over time (' + arg_time_unit + 's)')
-    pyplot.legend(loc='upper right')
-
-    ## Euclidean distances/"--ydist" graph ##
-    if arg_ydist:
-        distances, avg_distances = processor.get_euclidean(data)
-        assert (len(arg_ids) == len(avg_distances))
-        labels = ["%s (%.0f%%)" % (arg_ids[idx], avg_distances[idx]*100) for idx in range(len(avg_distances))]
-        visualiser.plot_line_graph(ydist_handle, data, labels, x_as_dates=False)
-
-        pyplot.subplot(ydist_handle)
-        pyplot.title('Distance graph')
-        pyplot.legend(loc='upper right')
-
-    # Display and save figure ------------------------------------------------------------------------------------------
-    pyplot.tight_layout()
-    if not arg_out_file is None:
-        print "Save figure to ", arg_out_file
-        pyplot.savefig(arg_out_file)
-    if not arg_hide:
-        pyplot.show()
