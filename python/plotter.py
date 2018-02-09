@@ -56,16 +56,21 @@ if __name__ == '__main__':
         'SELECT * FROM commit_frequency WHERE repository_id IN (%s) ORDER BY commit_date' % str(arg_ids)[1:-1],
         con=engine,
         index_col='commit_date')
-    fig, ax = plt.subplots(2, 2)
-    ax = { 'line': ax[0][0], 'norm': ax[1][0], 'acc': ax[0][1], 'left': ax[1][1]}
+    fig1, ax1 = plt.subplots(3, sharex=True)
+    fig2, ax2 = plt.subplots(3, sharex=True)
+    ax = { 'line': ax1[0], 'norm': ax1[1], 'acc': ax1[2], 'left-line': ax2[0], 'left-norm': ax2[1], 'left-acc': ax2[2]}
     ax['line'].set_ylabel("frequency")
-    ax['norm'].set_ylabel("normalised frequency")
-    ax['acc'].set_ylabel("accumulated frequency")
-    ax['left'].set_ylabel("frequency")
-
+    ax['norm'].set_ylabel("norm. frequency")
+    ax['acc'].set_ylabel("acc. frequency")
+    ax['left-line'].set_ylabel("frequency")
+    ax['left-norm'].set_ylabel("norm. frequency")
+    ax['left-acc'].set_ylabel("acc. frequency")
+    fig1.suptitle("Commit frequency over time")
+    fig2.suptitle("Commit frequency over time delta")
     for key, group in frame.groupby('repository_id'):
         group = group.frequency.resample(arg_time_unit).sum()
-        # line + rolling mean
+        ## DATES
+        # line
         group.plot(y='frequency', label=key, style='-', legend=True, ax=ax['line'])
         group.rolling(window=5).mean().plot(y='frequency', color=ax['line'].lines[-1].get_color(), style='--', ax=ax['line'],)
         # normalised
@@ -75,13 +80,18 @@ if __name__ == '__main__':
         # accumulated
         acc_group = group.agg(np.add.accumulate)
         acc_group.plot(y='frequency', label=key, legend=True, ax=ax['acc'])
-        # time delta
+        ## TIME DELTA
+        # line
         leftshifted_x = [(group.index[idx] - group.index[0]).days for idx in range(len(group.index[:-1]))]
-        series_leftshifted = pd.Series(data=group.values[:-1], index=leftshifted_x)
-        series_leftshifted.plot(label=key, legend=True, ax=ax['left'])
+        leftshifted = pd.Series(data=group.values[:-1], index=leftshifted_x)
+        leftshifted.plot(label=key, legend=True, ax=ax['left-line'])
+        leftshifted.rolling(window=5).mean().plot(label=key, legend=False, color=ax['left-line'].lines[-1].get_color(), ax=ax['left-line'])
+        # normalised
+        norm_leftshifted = (leftshifted - leftshifted.min()) / (leftshifted.max() - leftshifted.min())
+        norm_leftshifted.plot(legend=True, label=key, ax=ax['left-norm'], )
+        # accumulated
+        leftshifted.agg(np.add.accumulate).plot(legend=True, label=key, ax=ax['left-acc'])
 
-
-    plt.tight_layout()
     plt.show()
 
 
