@@ -22,6 +22,23 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sqlalchemy import create_engine
 
+
+def plot_line(series, key, ax, rolling_mean=True):
+    series.plot(label=key, style='-', legend=True, ax=ax)
+    if rolling_mean:
+        series.rolling(window=5).mean().plot(color=ax.lines[-1].get_color(), style='--', ax=ax)
+
+
+def plot_line_normalised(series, key, ax, rolling_mean=True):
+    normed = (series - series.min()) / (series.max() - series.min())
+    plot_line(normed, key, ax, rolling_mean)
+
+
+def plot_line_accumulated(series, key, ax):
+    acc = series.agg(np.add.accumulate)
+    plot_line_normalised(acc, key, ax, rolling_mean=False)
+
+
 if __name__ == '__main__':
     args = docopt(__doc__)
 
@@ -56,9 +73,10 @@ if __name__ == '__main__':
         'SELECT * FROM commit_frequency WHERE repository_id IN (%s) ORDER BY commit_date' % str(arg_ids)[1:-1],
         con=engine,
         index_col='commit_date')
+
     fig1, ax1 = plt.subplots(3, sharex=True)
     fig2, ax2 = plt.subplots(3, sharex=True)
-    ax = { 'line': ax1[0], 'norm': ax1[1], 'acc': ax1[2], 'left-line': ax2[0], 'left-norm': ax2[1], 'left-acc': ax2[2]}
+    ax = {'line': ax1[0], 'norm': ax1[1], 'acc': ax1[2], 'left-line': ax2[0], 'left-norm': ax2[1], 'left-acc': ax2[2]}
     ax['line'].set_ylabel("frequency")
     ax['norm'].set_ylabel("norm. frequency")
     ax['acc'].set_ylabel("acc. frequency")
@@ -67,31 +85,22 @@ if __name__ == '__main__':
     ax['left-acc'].set_ylabel("acc. frequency")
     fig1.suptitle("Commit frequency over time")
     fig2.suptitle("Commit frequency over time delta")
+
+    # frame.groupby('repository_id')['frequency']:
+
     for key, group in frame.groupby('repository_id'):
+        ## Plot over date
         group = group.frequency.resample(arg_time_unit).sum()
-        ## DATES
-        # line
-        group.plot(y='frequency', label=key, style='-', legend=True, ax=ax['line'])
-        group.rolling(window=5).mean().plot(y='frequency', color=ax['line'].lines[-1].get_color(), style='--', ax=ax['line'],)
-        # normalised
-        norm_group = (group - group.min()) / (group.max() - group.min())
-        norm_group.plot(y='frequency', label=key, legend=True, ax=ax['norm'])
-        norm_group.rolling(window=5).mean().plot(y='frequency',color=ax['norm'].lines[-1].get_color(), style='--',  ax=ax['norm'])
-        # accumulated
-        acc_group = group.agg(np.add.accumulate)
-        acc_group.plot(y='frequency', label=key, legend=True, ax=ax['acc'])
-        ## TIME DELTA
-        # line
+
+        plot_line(group, key, ax['line'])
+        plot_line_normalised(group, key, ax['norm'])
+        plot_line_accumulated(group, key, ax['acc'])
+        ## Plot over time delta
         leftshifted_x = [(group.index[idx] - group.index[0]).days for idx in range(len(group.index[:-1]))]
         leftshifted = pd.Series(data=group.values[:-1], index=leftshifted_x)
-        leftshifted.plot(label=key, legend=True, ax=ax['left-line'])
-        leftshifted.rolling(window=5).mean().plot(label=key, legend=False, color=ax['left-line'].lines[-1].get_color(), style='--', ax=ax['left-line'])
-        # normalised
-        norm_leftshifted = (leftshifted - leftshifted.min()) / (leftshifted.max() - leftshifted.min())
-        norm_leftshifted.plot(legend=True, label=key, ax=ax['left-norm'], )
-        # accumulated
-        leftshifted.agg(np.add.accumulate).plot(legend=True, label=key, ax=ax['left-acc'])
+
+        plot_line(leftshifted, key, ax['left-line'])
+        plot_line_normalised(leftshifted, key, ax['left-norm'])
+        plot_line_accumulated(leftshifted, key, ax['left-acc'])
 
     plt.show()
-
-
