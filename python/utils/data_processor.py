@@ -92,4 +92,10 @@ def get_euclidean(data):
         for idx in range(0, m):
             dist[idx] = (abs(comp[idx][1] - ref[idx][1]))
         distances.append((x_values[0:m], numpy.array(dist)))
-    return numpy.array(distances)
+    distances = numpy.array(distances)
+
+    max_y_value = numpy.max(numpy.concatenate(data[:, 1]))
+    norm_distances = numpy.true_divide(distances[:, 1], max_y_value)
+    avg_distances = [numpy.average(row) for row in norm_distances]
+
+    return distances, avg_distances

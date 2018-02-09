@@ -15,7 +15,7 @@ Options:
     --ydist             Calculate the distance on the y-axis between the first project and all other projects
 """
 from docopt import docopt
-from utils import data_processor as processor, data_provider as provider
+from utils import data_processor as processor, data_provider as provider, data_visualiser as visualiser
 import matplotlib.pyplot as pyplot
 import numpy
 
@@ -61,50 +61,32 @@ if __name__ == '__main__':
     data = processor.process(data, accumulate=arg_acc, normalise=arg_norm, shift=arg_shift)
 
     # Plot the specified graph -----------------------------------------------------------------------------------------
+
+    ## Line graph ##
     if not arg_ydist:
         fig, line_handle = pyplot.subplots()
     else:
         fig, (line_handle, ydist_handle) = pyplot.subplots(2, 1, sharey=True, sharex=True)
-
-    plot_fun = line_handle.plot
-    if not arg_shift:
-        plot_fun = line_handle.plot_date
-
-    for (idx, row) in enumerate(data):
-        plot_fun(row[0], row[1], '-', label=arg_ids[idx])
-
+    visualiser.plot_line_graph(line_handle, data, arg_ids, arg_shift is None)
+    ## Peak markers ##
     if (arg_peak):
         peaks = processor.find_peaks(data)
-        for (idx, row) in enumerate(data):
-            ups = numpy.where(numpy.array(peaks[idx][1]) == 1)[0]
-            downs = numpy.where(numpy.array(peaks[idx][1]) == -1)[0]
-            ups_data = (numpy.array(row[0])[ups], numpy.array(row[1])[ups])
-            downs_data = (numpy.array(row[0])[downs], numpy.array(row[1])[downs])
-            plot_fun(ups_data[0], ups_data[1], '^', label="Up" if idx == 0 else "", color='green')
-            plot_fun(downs_data[0], downs_data[1], 'v', label="Down" if idx == 0 else "", color='red')
+        visualiser.plot_peaks(line_handle, data, peaks, arg_shift is None)
 
     pyplot.subplot(line_handle)
     pyplot.title('Number of commits over time (' + arg_time_unit + 's)')
     pyplot.legend(loc='upper right')
 
+    ## Euclidean distances/"--ydist" graph ##
     if arg_ydist:
-        distances = processor.get_euclidean(data)
+        distances, avg_distances = processor.get_euclidean(data)
+        assert (len(arg_ids) == len(avg_distances))
+        labels = ["%s (%.0f%%)" % (arg_ids[idx], avg_distances[idx]*100) for idx in range(len(avg_distances))]
+        visualiser.plot_line_graph(ydist_handle, data, labels, x_as_dates=False)
 
-        max_y_value = numpy.max(numpy.concatenate(data[:, 1]))
-        norm_distances = numpy.true_divide(distances[:, 1], max_y_value)
-        avg_distances = [numpy.average(row) for row in norm_distances]
-        print avg_distances
-
-        for (idx, id) in enumerate(arg_ids):
-            ydist_handle.plot(distances[idx][0], distances[idx][1], '-', label="%s (%.2f%%)" % (id, avg_distances[idx]*100))
         pyplot.subplot(ydist_handle)
         pyplot.title('Distance graph')
         pyplot.legend(loc='upper right')
-
-
-
-
-
 
     # Display and save figure ------------------------------------------------------------------------------------------
     pyplot.tight_layout()
