@@ -15,8 +15,7 @@ Options:
     --ydist             Calculate the distance on the y-axis between the first project and all other projects
 """
 from docopt import docopt
-import data_provider as provider
-import data_processor as processor
+from utils import data_processor as processor, data_provider as provider
 import matplotlib.pyplot as pyplot
 import numpy
 
@@ -97,7 +96,7 @@ if __name__ == '__main__':
         print avg_distances
 
         for (idx, id) in enumerate(arg_ids):
-            ydist_handle.plot(distances[idx][0], distances[idx][1], '-', label="%i (%.2f%%)" % (idx, avg_distances[idx]*100))
+            ydist_handle.plot(distances[idx][0], distances[idx][1], '-', label="%s (%.2f%%)" % (id, avg_distances[idx]*100))
         pyplot.subplot(ydist_handle)
         pyplot.title('Distance graph')
         pyplot.legend(loc='upper right')
