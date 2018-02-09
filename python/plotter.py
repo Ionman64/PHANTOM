@@ -3,7 +3,7 @@ Usage:
     plotter_v2.py <id>... --timeunit=<UNIT> [options]
 
 Arguments:
-    -t --timeunit=<UNIT>    Time unit of the x axis. Units: day, week, month, year
+    -t --timeunit=<UNIT> Resample the data as by day, week, month, quarter, year(annual)[values: D, W, M, Q, A]
 Options:
     -h --help           Show this screen.
     --hide              Hide the diagram / Don't show the diagram
@@ -23,29 +23,10 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 if __name__ == '__main__':
-    """
     args = docopt(__doc__)
-    # Validate command line arguments ----------------------------------------------------------------------------------
-    valid_timeunits = ["day", "week", "month", "year"]
-    if not args['--timeunit'] in valid_timeunits:
-        print("Invalid timeunit. Use --help to get more information.")
-        exit(1)
-
-    valid_shift_values = ["left", "right", "peak", None]
-    if not args['--shift'] in valid_shift_values:
-        print("Invalid shift value. Use --help to get more information.")
-        exit(1)
-
-    # Process command line arguments -----------------------------------------------------------------------------------
-    convert_date_functions = {
-        "day": provider.DateUtil.date_to_day,
-        "week": provider.DateUtil.date_to_week,
-        "month": provider.DateUtil.date_to_month,
-        "year": provider.DateUtil.date_to_year,
-    }
 
     arg_ids = args['<id>']
-    arg_time_unit = args['--timeunit']
+    arg_time_unit = args['--timeunit'].upper()
     arg_acc = args['--acc']
     arg_norm = args['--norm']
     arg_shift = args['--shift']
@@ -54,26 +35,53 @@ if __name__ == '__main__':
     arg_ydist = args['--ydist']
     arg_peak = args['--peak']
 
+    # Validate command line arguments ----------------------------------------------------------------------------------
+    valid_timeunits = ["D", "W", "M", "Q", "A"]
+    if not arg_time_unit in valid_timeunits:
+        print("Invalid timeunit. Use --help to get more information.")
+        exit(1)
+
+    valid_shift_values = ["left", "right", "peak", None]
+    if not args['--shift'] in valid_shift_values:
+        print("Invalid shift value. Use --help to get more information.")
+        exit(1)
+
     if arg_ydist and not arg_shift == "left":
         print "Y distance calculation only works with left-shifted data. Please set '--shift left'"
         exit(1)
-    """
 
+    # get data
     engine = create_engine("postgres://postgres:0000@localhost/project_analyser")
     frame = pd.read_sql_query(
-        'SELECT * FROM commit_frequency WHERE repository_id IN (2) ORDER BY commit_date',
+        'SELECT * FROM commit_frequency WHERE repository_id IN (%s) ORDER BY commit_date' % str(arg_ids)[1:-1],
         con=engine,
         index_col='commit_date')
+    fig, ax = plt.subplots(2, 2)
+    ax = { 'line': ax[0][0], 'norm': ax[1][0], 'acc': ax[0][1], 'left': ax[1][1]}
+    ax['line'].set_ylabel("frequency")
+    ax['norm'].set_ylabel("normalised frequency")
+    ax['acc'].set_ylabel("accumulated frequency")
+    ax['left'].set_ylabel("frequency")
 
-    frame['year'] = frame.index.year
-
-    fig, ax = plt.subplots()
     for key, group in frame.groupby('repository_id'):
-        ax = group.groupby('year').sum()['frequency'].plot(ax=ax,label=key)
-        print "Analysis of %s" % key
-        print group['frequency'].describe()
+        group = group.frequency.resample(arg_time_unit).sum()
+        # line + rolling mean
+        group.plot(y='frequency', label=key, style='-', legend=True, ax=ax['line'])
+        group.rolling(window=5).mean().plot(y='frequency', color=ax['line'].lines[-1].get_color(), style='--', ax=ax['line'],)
+        # normalised
+        norm_group = (group - group.min()) / (group.max() - group.min())
+        norm_group.plot(y='frequency', label=key, legend=True, ax=ax['norm'])
+        norm_group.rolling(window=5).mean().plot(y='frequency',color=ax['norm'].lines[-1].get_color(), style='--',  ax=ax['norm'])
+        # accumulated
+        acc_group = group.agg(np.add.accumulate)
+        acc_group.plot(y='frequency', label=key, legend=True, ax=ax['acc'])
+        # time delta
+        leftshifted_x = [(group.index[idx] - group.index[0]).days for idx in range(len(group.index[:-1]))]
+        series_leftshifted = pd.Series(data=group.values[:-1], index=leftshifted_x)
+        series_leftshifted.plot(label=key, legend=True, ax=ax['left'])
 
-    plt.legend(loc='best')
+
+    plt.tight_layout()
     plt.show()
 
 
