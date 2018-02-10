@@ -97,6 +97,8 @@ if __name__ == '__main__':
     fig_leftshift = plt.figure(figsize=(10, 10))
     fig_rightshift = plt.figure(figsize=(10, 10))
     fig_max_peak = plt.figure(figsize=(10, 10))
+    fig_max_peak_le_ge_zero = plt.figure(figsize=(5, 5))
+    # axes map
     ax = {
         'line': plt.subplot2grid((3, 2), (0, 0), colspan=2, fig=fig_dates),
         'norm': plt.subplot2grid((3, 2), (1, 0), colspan=2, fig=fig_dates),
@@ -114,7 +116,9 @@ if __name__ == '__main__':
         'max-peak-norm': plt.subplot2grid((3, 2), (1, 0), colspan=2, fig=fig_max_peak),
         'max-peak-acc': plt.subplot2grid((3, 2), (2, 0), colspan=1, fig=fig_max_peak),
         'max-peak-acc-norm': plt.subplot2grid((3, 2), (2, 1), colspan=1, fig=fig_max_peak),
+        'max-peak-le-ge-zero': plt.subplot2grid((1, 1), (0, 0), fig=fig_max_peak_le_ge_zero),
     }
+    # y-axis labels
     ax['line'].set_ylabel("frequency")
     ax['norm'].set_ylabel("norm.")
     ax['acc'].set_ylabel("acc.")
@@ -134,6 +138,7 @@ if __name__ == '__main__':
     ax['max-peak-norm'].set_ylabel("norm.")
     ax['max-peak-acc'].set_ylabel("acc.")
     ax['max-peak-acc-norm'].set_ylabel("acc. norm.")
+    # figure titles
     fig_dates.suptitle("Commit frequency")
     fig_leftshift.suptitle("Commit frequency (left shifted)")
     fig_rightshift.suptitle("Commit frequency (right shifted)")
@@ -141,6 +146,7 @@ if __name__ == '__main__':
 
     style_line = '-'
     style_rolling_mean = '--'
+    pid_frame = pd.DataFrame(index=frame['repository_id'].unique()).sort_index()
     for key, group in frame.groupby('repository_id'):
         group = group.frequency.resample(arg_time_unit).sum()
         populate_figure(group, ax_line=ax['line'], ax_norm=ax['norm'], ax_acc=ax['acc'], ax_acc_norm=ax['acc-norm'])
@@ -158,5 +164,15 @@ if __name__ == '__main__':
         max_peakshifted = pd.Series(data=group.values[:-1], index=max_peakshifted_x)
         populate_figure(max_peakshifted, ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'], ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
 
+        # percentage before and after max peak
+        pid_frame.at[key, 'le0-entries'] = np.multiply(np.true_divide(len(np.where(max_peakshifted.index < 0)[0]), len(max_peakshifted.index)), 100)
+        pid_frame.at[key, 'ge0-entries'] = np.multiply(np.true_divide(len(np.where(max_peakshifted.index > 0)[0]), len(max_peakshifted.index)), 100)
+        des_label = ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']
+        for idx, des in enumerate(group.describe()):
+            pid_frame.loc[key, des_label[idx]] = des
 
-    plt.show()
+    print pid_frame
+
+
+    if not arg_hide:
+        plt.show()
