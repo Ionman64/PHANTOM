@@ -22,18 +22,35 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sqlalchemy import create_engine
 
+
 def euclidean_distance(series):
     N = len(series)
     dist_matrix = np.zeros((N, N))
-    x = 1
+
     for i in range(N):
         for j in range(N):
-            if i == j:
+            if i <= j:
                 continue
-            dist_matrix[i, j] = x
-            dist_matrix[j, i] = x
-            x = x + 1
-    print dist_matrix
+            eucl = __get_euclidean__(series[i], series[j])
+            dist_matrix[i, j] = eucl
+            dist_matrix[j, i] = eucl
+    return dist_matrix
+
+
+def __get_euclidean__(series1, series2):
+    """
+    Calculates the euclidean distance between the values of the two series. Compares points in order, not by similarity
+    on the x-axis (i.e. index). Than the values are normed by the max value of both series and finally the average is return.
+    :param series1:
+    :param series2:
+    :return: The similarity in percent.
+    """
+    shared_length = min(len(series1.values), len(series2.values))
+    values1 = series1.values[:shared_length]
+    value2 = series2.values[:shared_length]
+    dist_vector = np.absolute(values1 - value2)
+    normed_dist_vector = np.true_divide(dist_vector, np.max(np.concatenate((values1, value2))))
+    return 1 - np.average(normed_dist_vector)
 
 
 def populate_figure(group, ax_line, ax_norm, ax_acc, ax_acc_norm, style_line="-", style_rolling_mean='--',
@@ -202,7 +219,8 @@ if __name__ == '__main__':
         pid_series.append(group)
 
     pid_frame[['pre-peak-portion', 'post-peak-portion']].plot(kind='bar', legend=True, ax=ax['max-peak-le-ge-zero'])
-    pid_frame[['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']].plot(kind='bar', legend=True, ax=ax['descriptions'])
+    pid_frame[['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']].plot(kind='bar', legend=True,
+                                                                                ax=ax['descriptions'])
 
     euclidean_distance(pid_series)
 
