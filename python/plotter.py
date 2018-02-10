@@ -22,6 +22,19 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sqlalchemy import create_engine
 
+def euclidean_distance(series):
+    N = len(series)
+    dist_matrix = np.zeros((N, N))
+    x = 1
+    for i in range(N):
+        for j in range(N):
+            if i == j:
+                continue
+            dist_matrix[i, j] = x
+            dist_matrix[j, i] = x
+            x = x + 1
+    print dist_matrix
+
 
 def populate_figure(group, ax_line, ax_norm, ax_acc, ax_acc_norm, style_line="-", style_rolling_mean='--',
                     window_size_rolling_mean=5, ):
@@ -86,18 +99,19 @@ if __name__ == '__main__':
         print "Y distance calculation only works with left-shifted data. Please set '--shift left'"
         exit(1)
 
-    # get data
+    # get data ---------------------------------------------------------------------------------------------------------
     engine = create_engine("postgres://postgres:0000@localhost/project_analyser")
     frame = pd.read_sql_query(
         'SELECT * FROM commit_frequency WHERE repository_id IN (%s) ORDER BY commit_date' % str(arg_ids)[1:-1],
         con=engine,
         index_col='commit_date')
 
+    # setup figures and axes -------------------------------------------------------------------------------------------
     fig_dates = plt.figure(figsize=(10, 10))
     fig_leftshift = plt.figure(figsize=(10, 10))
     fig_rightshift = plt.figure(figsize=(10, 10))
     fig_max_peak = plt.figure(figsize=(10, 10))
-    fig_max_peak_le_ge_zero = plt.figure(figsize=(5, 5))
+    fig_other = plt.figure(figsize=(5, 5))
     # axes map
     ax = {
         'line': plt.subplot2grid((3, 2), (0, 0), colspan=2, fig=fig_dates),
@@ -116,9 +130,10 @@ if __name__ == '__main__':
         'max-peak-norm': plt.subplot2grid((3, 2), (1, 0), colspan=2, fig=fig_max_peak),
         'max-peak-acc': plt.subplot2grid((3, 2), (2, 0), colspan=1, fig=fig_max_peak),
         'max-peak-acc-norm': plt.subplot2grid((3, 2), (2, 1), colspan=1, fig=fig_max_peak),
-        'max-peak-le-ge-zero': plt.subplot2grid((1, 1), (0, 0), fig=fig_max_peak_le_ge_zero),
+        'max-peak-le-ge-zero': plt.subplot2grid((2, 1), (0, 0), fig=fig_other),
+        'descriptions': plt.subplot2grid((2, 1), (1, 0), fig=fig_other),
     }
-    # y-axis labels
+
     ax['line'].set_ylabel("frequency")
     ax['norm'].set_ylabel("norm.")
     ax['acc'].set_ylabel("acc.")
@@ -141,42 +156,55 @@ if __name__ == '__main__':
     #
     ax['max-peak-le-ge-zero'].set_ylabel("portion in %")
     ax['max-peak-le-ge-zero'].set_xlabel("project ID")
+    #
+
     # figure titles
     fig_dates.suptitle("Commit frequency")
     fig_leftshift.suptitle("Commit frequency (left shifted)")
     fig_rightshift.suptitle("Commit frequency (right shifted)")
     fig_max_peak.suptitle("Commit frequency (max peak shifted)")
-    fig_max_peak_le_ge_zero.suptitle("Commit portion pre and post max peak")
+    fig_other.suptitle("Other plots")
 
+    # plot everything --------------------------------------------------------------------------------------------------
     style_line = '-'
     style_rolling_mean = '--'
     pid_frame = pd.DataFrame(index=frame['repository_id'].unique()).sort_index()
+    pid_series = []
     for key, group in frame.groupby('repository_id'):
         group = group.frequency.resample(arg_time_unit).sum()
         populate_figure(group, ax_line=ax['line'], ax_norm=ax['norm'], ax_acc=ax['acc'], ax_acc_norm=ax['acc-norm'])
 
         leftshifted_x = [(group.index[idx] - group.index[0]).days for idx in range(len(group.index[:-1]))]
         leftshifted = pd.Series(data=group.values[:-1], index=leftshifted_x)
-        populate_figure(leftshifted, ax_line=ax['left-line'], ax_norm=ax['left-norm'], ax_acc=ax['left-acc'], ax_acc_norm=ax['left-acc-norm'])
+        populate_figure(leftshifted, ax_line=ax['left-line'], ax_norm=ax['left-norm'], ax_acc=ax['left-acc'],
+                        ax_acc_norm=ax['left-acc-norm'])
 
         rightshifted_x = [leftshifted_x[idx] - leftshifted_x[-1] for idx in range(len(leftshifted_x))]
         rightshifted = pd.Series(data=group.values[:-1], index=rightshifted_x)
-        populate_figure(rightshifted, ax_line=ax['right-line'], ax_norm=ax['right-norm'], ax_acc=ax['right-acc'], ax_acc_norm=ax['right-acc-norm'])
+        populate_figure(rightshifted, ax_line=ax['right-line'], ax_norm=ax['right-norm'], ax_acc=ax['right-acc'],
+                        ax_acc_norm=ax['right-acc-norm'])
 
         max_peak = np.argmax(group.values)
         max_peakshifted_x = [leftshifted_x[idx] - leftshifted_x[max_peak] for idx in range(len(leftshifted_x))]
         max_peakshifted = pd.Series(data=group.values[:-1], index=max_peakshifted_x)
-        populate_figure(max_peakshifted, ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'], ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
+        populate_figure(max_peakshifted, ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
+                        ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
 
         # percentage before and after max peak
-        pid_frame.at[key, 'pre-peak-portion'] = np.multiply(np.true_divide(len(np.where(max_peakshifted.index < 0)[0]), len(max_peakshifted.index)), 100)
-        pid_frame.at[key, 'post-peak-portion'] = np.multiply(np.true_divide(len(np.where(max_peakshifted.index > 0)[0]), len(max_peakshifted.index)), 100)
+        pid_frame.at[key, 'pre-peak-portion'] = np.multiply(
+            np.true_divide(len(np.where(max_peakshifted.index < 0)[0]), len(max_peakshifted.index)), 100)
+        pid_frame.at[key, 'post-peak-portion'] = np.multiply(
+            np.true_divide(len(np.where(max_peakshifted.index > 0)[0]), len(max_peakshifted.index)), 100)
         des_label = ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']
         for idx, des in enumerate(group.describe()):
             pid_frame.loc[key, des_label[idx]] = des
 
+        pid_series.append(group)
 
-    pid_frame[['pre-peak-portion', 'post-peak-portion']].plot(kind='bar', label=['pre', 'post'], legend=True, ax=ax['max-peak-le-ge-zero'])
+    pid_frame[['pre-peak-portion', 'post-peak-portion']].plot(kind='bar', legend=True, ax=ax['max-peak-le-ge-zero'])
+    pid_frame[['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']].plot(kind='bar', legend=True, ax=ax['descriptions'])
+
+    euclidean_distance(pid_series)
 
     if not arg_hide:
         plt.show()
