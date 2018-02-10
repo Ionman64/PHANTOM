@@ -138,11 +138,15 @@ if __name__ == '__main__':
     ax['max-peak-norm'].set_ylabel("norm.")
     ax['max-peak-acc'].set_ylabel("acc.")
     ax['max-peak-acc-norm'].set_ylabel("acc. norm.")
+    #
+    ax['max-peak-le-ge-zero'].set_ylabel("portion in %")
+    ax['max-peak-le-ge-zero'].set_xlabel("project ID")
     # figure titles
     fig_dates.suptitle("Commit frequency")
     fig_leftshift.suptitle("Commit frequency (left shifted)")
     fig_rightshift.suptitle("Commit frequency (right shifted)")
     fig_max_peak.suptitle("Commit frequency (max peak shifted)")
+    fig_max_peak_le_ge_zero.suptitle("Commit portion pre and post max peak")
 
     style_line = '-'
     style_rolling_mean = '--'
@@ -165,14 +169,14 @@ if __name__ == '__main__':
         populate_figure(max_peakshifted, ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'], ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
 
         # percentage before and after max peak
-        pid_frame.at[key, 'le0-entries'] = np.multiply(np.true_divide(len(np.where(max_peakshifted.index < 0)[0]), len(max_peakshifted.index)), 100)
-        pid_frame.at[key, 'ge0-entries'] = np.multiply(np.true_divide(len(np.where(max_peakshifted.index > 0)[0]), len(max_peakshifted.index)), 100)
+        pid_frame.at[key, 'pre-peak-portion'] = np.multiply(np.true_divide(len(np.where(max_peakshifted.index < 0)[0]), len(max_peakshifted.index)), 100)
+        pid_frame.at[key, 'post-peak-portion'] = np.multiply(np.true_divide(len(np.where(max_peakshifted.index > 0)[0]), len(max_peakshifted.index)), 100)
         des_label = ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']
         for idx, des in enumerate(group.describe()):
             pid_frame.loc[key, des_label[idx]] = des
 
-    print pid_frame
 
+    pid_frame[['pre-peak-portion', 'post-peak-portion']].plot(kind='bar', label=['pre', 'post'], legend=True, ax=ax['max-peak-le-ge-zero'])
 
     if not arg_hide:
         plt.show()
