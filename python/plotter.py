@@ -364,4 +364,6 @@ if __name__ == '__main__':
     ax['max-peak-le-ge-zero'].legend(patches, ['before', 'after'], ncol=2, loc='best', title="Commit portion max peak")
 
     ax['descriptions'].set_xticklabels(arg_ids, rotation=0)
-    plt.show()
+
+    if not arg_hide:
+        plt.show()
