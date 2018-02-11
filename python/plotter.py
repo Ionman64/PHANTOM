@@ -191,11 +191,6 @@ if __name__ == '__main__':
         'max-peak': plt.figure(figsize=(10, 10)),
         'other': plt.figure(figsize=(5, 5)),
     }
-    figure_keys = []
-    for k in fig:
-        if not fig[k] == None:
-            figure_keys.append(k)
-    print figure_keys
     # axes map
     ax = {
         'line': plt.subplot2grid((4, 3), (0, 0), colspan=3, fig=fig['date']),
@@ -356,7 +351,7 @@ if __name__ == '__main__':
 
     # as every figure has multiple axes with the same lines (i.e. the projects/ids) a one legend is drawed manually,
     # instead of having multiple legends with the same content in each axes
-    for key in figure_keys:
+    for key in fig.keys():
         if key == 'other':
             fig[key].legend(bbox_to_anchor=[0, 0], loc='lower left', ncol=4)
         elif key in ['date', 'left', 'right', 'max-peak']:
