@@ -163,9 +163,9 @@ if __name__ == '__main__':
     # arg_ydist = args['--ydist']
     # arg_peak = args['--peak']
     arg_rollingmean = args['--rollingmean']
-    arg_window = 0 if args['--window'] == None else int(args['--window'])
+    arg_window = -1 if args['--window'] == None else int(args['--window'])
 
-    if arg_rollingmean and arg_window == None:
+    if arg_rollingmean and arg_window == -1:
         arg_window = {"D": 14, "W": 4, "M": 3, "Q": 4, "A": 2}[arg_time_unit]
         print "No window for rolling mean specified. Default window size for time unit is %s." % arg_window
     # Validate command line arguments ----------------------------------------------------------------------------------
