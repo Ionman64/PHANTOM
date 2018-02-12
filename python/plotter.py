@@ -13,11 +13,11 @@ Options:
     -o --out=<file>     Path to output file. (e.g. fig.png, fig.pdf)
 
 """
-from docopt import docopt
-from utils import data_processor as processor, data_provider as provider, data_visualiser as visualiser
+from utils.pyplot_styler import get_fig_and_ax_map
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from docopt import docopt
 from sqlalchemy import create_engine
 from subprocess import check_output
 
@@ -32,14 +32,18 @@ def euclidean_distance(pid_series, series_was_shifted_to, norm=False, acc=False,
 
     N = len(pids)
     dist_matrix = np.zeros((N, N))
+    #max_distance = 0
     for i in range(N):
         for j in range(N):
             if i <= j:
                 continue
-            eucl = np.round(np.average(__get_euclidean__(series[i], series[j], series_was_shifted_to)),
-                            decimals=round_to_decimals)
+            dist_vector = __get_euclidean__(series[i], series[j], series_was_shifted_to)
+            #max_distance = max(max_distance, np.max(dist_vector))
+            eucl = np.average(dist_vector)
             dist_matrix[i, j] = eucl
             dist_matrix[j, i] = eucl
+
+    #dist_matrix = np.round(np.true_divide(dist_matrix, max_distance), decimals=round_to_decimals)
     df = pd.DataFrame(dist_matrix, index=pids, columns=pids)
     return df
 
@@ -120,7 +124,8 @@ def populate_figure_with_euclidean(pid_series, series_was_shifted_to,
     euclidean_distance(pid_series, series_was_shifted_to, acc=True).plot(kind='bar', legend=False, ax=ax_acc_euclidean)
     euclidean_distance(pid_series, series_was_shifted_to, acc=True, norm=True).plot(kind='bar', legend=False,
                                                                                     ax=ax_acc_norm_euclidean)
-
+def populate_axes_with_euclidean(pid_series, series_was_shifted_to, axes):
+    euclidean_distance(pid_series, series_was_shifted_to).plot(kind='bar', legend=False, ax=axes)
 
 def last_color(axes):
     return axes.lines[-1].get_color()
@@ -162,8 +167,8 @@ def maxpeakshift_series(series, leftshifted_x=None):
 
 
 if __name__ == '__main__':
+    # setup command line arguments -------------------------------------------------------------------------------------
     args = docopt(__doc__)
-
     arg_ids = args['<id>']
     arg_time_unit = args['--timeunit'].upper()
     arg_out_file = args['--out']
@@ -171,11 +176,10 @@ if __name__ == '__main__':
     arg_mark_peaks = args['--mark-peaks']
     arg_rollingmean = args['--rollingmean']
     arg_window = -1 if args['--window'] == None else int(args['--window'])
-
+    # Validate command line arguments ----------------------------------------------------------------------------------
     if arg_rollingmean and arg_window == -1:
         arg_window = {"D": 14, "W": 4, "M": 3, "Q": 4, "A": 2}[arg_time_unit]
         print "No window for rolling mean specified. Default window size for time unit is %s." % arg_window
-    # Validate command line arguments ----------------------------------------------------------------------------------
     valid_timeunits = ["D", "W", "M", "Q", "A"]
     if not arg_time_unit in valid_timeunits:
         print("Invalid timeunit. Use --help to get more information.")
@@ -189,106 +193,9 @@ if __name__ == '__main__':
         'SELECT * FROM commit_frequency WHERE repository_id IN (%s) ORDER BY commit_date' % str(arg_ids)[1:-1],
         con=engine,
         index_col='commit_date')
-
     # setup figures and axes -------------------------------------------------------------------------------------------
-    fig = {
-        'date': plt.figure(figsize=(10, 10)),
-        'left': plt.figure(figsize=(10, 10)),
-        'right': plt.figure(figsize=(10, 10)),
-        'max-peak': plt.figure(figsize=(10, 10)),
-    }
-    # axes map
-    ax = {
-        'date-line': plt.subplot2grid((4, 3), (0, 0), colspan=3, fig=fig['date']),
-        'date-norm': plt.subplot2grid((4, 3), (1, 0), colspan=3, fig=fig['date']),
-        'date-acc': plt.subplot2grid((4, 3), (2, 0), colspan=3, fig=fig['date']),
-        'date-acc-norm': plt.subplot2grid((4, 3), (3, 0), colspan=3, fig=fig['date']),
-        #
-        'left-line': plt.subplot2grid((4, 3), (0, 0), colspan=2, fig=fig['left']),
-        'left-line-euclidean': plt.subplot2grid((4, 3), (0, 2), colspan=1, fig=fig['left']),
-        'left-norm': plt.subplot2grid((4, 3), (1, 0), colspan=2, fig=fig['left']),
-        'left-norm-euclidean': plt.subplot2grid((4, 3), (1, 2), colspan=1, fig=fig['left']),
-        'left-acc': plt.subplot2grid((4, 3), (2, 0), colspan=2, fig=fig['left']),
-        'left-acc-euclidean': plt.subplot2grid((4, 3), (2, 2), colspan=1, fig=fig['left']),
-        'left-acc-norm': plt.subplot2grid((4, 3), (3, 0), colspan=2, fig=fig['left']),
-        'left-acc-norm-euclidean': plt.subplot2grid((4, 3), (3, 2), colspan=1, fig=fig['left']),
-        #
-        'right-line': plt.subplot2grid((4, 3), (0, 0), colspan=2, fig=fig['right']),
-        'right-line-euclidean': plt.subplot2grid((4, 3), (0, 2), colspan=1, fig=fig['right']),
-        'right-norm': plt.subplot2grid((4, 3), (1, 0), colspan=2, fig=fig['right']),
-        'right-norm-euclidean': plt.subplot2grid((4, 3), (1, 2), colspan=1, fig=fig['right']),
-        'right-acc': plt.subplot2grid((4, 3), (2, 0), colspan=2, fig=fig['right']),
-        'right-acc-euclidean': plt.subplot2grid((4, 3), (2, 2), colspan=1, fig=fig['right']),
-        'right-acc-norm': plt.subplot2grid((4, 3), (3, 0), colspan=2, fig=fig['right']),
-        'right-acc-norm-euclidean': plt.subplot2grid((4, 3), (3, 2), colspan=1, fig=fig['right']),
-        #
-        'max-peak-line': plt.subplot2grid((5, 3), (0, 0), colspan=2, fig=fig['max-peak']),
-        'max-peak-line-euclidean': plt.subplot2grid((5, 3), (0, 2), colspan=1, fig=fig['max-peak']),
-        'max-peak-norm': plt.subplot2grid((5, 3), (1, 0), colspan=2, fig=fig['max-peak']),
-        'max-peak-norm-euclidean': plt.subplot2grid((5, 3), (1, 2), colspan=1, fig=fig['max-peak']),
-        'max-peak-le-ge-zero': plt.subplot2grid((5, 3), (2, 0), colspan=3, fig=fig['max-peak']),
-        'max-peak-acc': plt.subplot2grid((5, 3), (3, 0), colspan=2, fig=fig['max-peak']),
-        'max-peak-acc-euclidean': plt.subplot2grid((5, 3), (3, 2), colspan=1, fig=fig['max-peak']),
-        'max-peak-acc-norm': plt.subplot2grid((5, 3), (4, 0), colspan=2, fig=fig['max-peak']),
-        'max-peak-acc-norm-euclidean': plt.subplot2grid((5, 3), (4, 2), colspan=1, fig=fig['max-peak']),
-    }
-    # axes styling
-    ax['date-line'].set_ylabel("frequency")
-    ax['date-norm'].set_ylabel("norm.")
-    ax['date-acc'].set_ylabel("acc.")
-    ax['date-acc-norm'].set_ylabel("acc. norm.")
-    #
-    ax['left-line'].set_ylabel("frequency")
-    ax['left-norm'].set_ylabel("norm.")
-    ax['left-acc'].set_ylabel("acc.")
-    ax['left-acc-norm'].set_ylabel("acc. norm.")
-    ax['left-line-euclidean'].set_ylabel("avg. distance")
-    ax['left-line-euclidean'].yaxis.tick_right()
-    ax['left-norm-euclidean'].set_ylabel("avg. distance")
-    ax['left-norm-euclidean'].yaxis.tick_right()
-    ax['left-acc-euclidean'].set_ylabel("avg. distance")
-    ax['left-acc-euclidean'].yaxis.tick_right()
-    ax['left-acc-norm-euclidean'].set_ylabel("avg. distance")
-    ax['left-acc-norm-euclidean'].yaxis.tick_right()
-    #
-    ax['right-line'].set_ylabel("frequency")
-    ax['right-norm'].set_ylabel("norm.")
-    ax['right-acc'].set_ylabel("acc.")
-    ax['right-acc-norm'].set_ylabel("acc. norm.")
-
-    ax['right-line-euclidean'].set_ylabel("avg. distance")
-    ax['right-line-euclidean'].yaxis.tick_right()
-    ax['right-norm-euclidean'].set_ylabel("avg. distance")
-    ax['right-norm-euclidean'].yaxis.tick_right()
-    ax['right-acc-euclidean'].set_ylabel("avg. distance")
-    ax['right-acc-euclidean'].yaxis.tick_right()
-    ax['right-acc-norm-euclidean'].set_ylabel("avg. distance")
-    ax['right-acc-norm-euclidean'].yaxis.tick_right()
-    #
-    ax['max-peak-line'].set_ylabel("frequency")
-    ax['max-peak-norm'].set_ylabel("norm.")
-    ax['max-peak-acc'].set_ylabel("acc.")
-    ax['max-peak-acc-norm'].set_ylabel("acc. norm.")
-
-    ax['max-peak-line-euclidean'].set_ylabel("avg. distance")
-    ax['max-peak-line-euclidean'].yaxis.tick_right()
-    ax['max-peak-norm-euclidean'].set_ylabel("avg. distance")
-    ax['max-peak-norm-euclidean'].yaxis.tick_right()
-    ax['max-peak-acc-euclidean'].set_ylabel("avg. distance")
-    ax['max-peak-acc-euclidean'].yaxis.tick_right()
-    ax['max-peak-acc-norm-euclidean'].set_ylabel("avg. distance")
-    ax['max-peak-acc-norm-euclidean'].yaxis.tick_right()
-    #
-    ax['max-peak-le-ge-zero'].set_ylabel("portion in %")
-    ax['max-peak-le-ge-zero'].set_xlabel("project ID")
-    # figure titles
-    grouped_by = {"D": "day", "W": "week", "M": "month", "Q": "quarter", "A": "year"}[arg_time_unit]
-
-    fig['date'].suptitle("Commit frequency grouped by %s" % grouped_by)
-    fig['left'].suptitle("Commit frequency (left shifted) grouped by %s" % grouped_by)
-    fig['right'].suptitle("Commit frequency (right shifted) grouped by %s" % grouped_by)
-    fig['max-peak'].suptitle("Commit frequency (max peak shifted) grouped by %s" % grouped_by)
-    # plot everything --------------------------------------------------------------------------------------------------
+    fig, ax = get_fig_and_ax_map(arg_time_unit, arg_rollingmean, arg_window)
+    # setup data structures to store information -----------------------------------------------------------------------
     pid_frame = pd.DataFrame(
         index=frame['repository_id'].unique()).sort_index()  # This frame stores information about projects
     shifted_pid_series = {
@@ -299,6 +206,12 @@ if __name__ == '__main__':
         'right': {},
         'max-peak': {}
     }
+    peak_pid_series = {
+        'time-between-all-peaks': {},
+        'time-between-up-peaks': {},
+        'time-between-down-peaks': {},
+    }
+    # plot everything --------------------------------------------------------------------------------------------------
     for key, group in frame.groupby('repository_id'):
         ### transform and store series in different shifted formats
         group = group.frequency.resample(arg_time_unit).sum()
@@ -314,19 +227,30 @@ if __name__ == '__main__':
         shifted_pid_series['right'][key] = rightshifted
         shifted_pid_series['max-peak'][key] = max_peakshifted
         ### plotting of figure for each format
-        peaks = peak_analysis(group) if arg_mark_peaks else None
-        populate_figure(group, peak_series=peaks,
+        peaks = peak_analysis(group)
+        populate_figure(group, peak_series=peaks if arg_mark_peaks else None,
                         ax_line=ax['date-line'], ax_norm=ax['date-norm'],
-                        ax_acc=ax['date-acc'], ax_acc_norm=ax['date-acc-norm'],)
-        populate_figure(leftshifted, peak_series=peaks,
+                        ax_acc=ax['date-acc'], ax_acc_norm=ax['date-acc-norm'], )
+        populate_figure(leftshifted, peak_series=peaks if arg_mark_peaks else None,
                         ax_line=ax['left-line'], ax_norm=ax['left-norm'],
                         ax_acc=ax['left-acc'], ax_acc_norm=ax['left-acc-norm'])
-        populate_figure(rightshifted, peak_series=peaks,
+        populate_figure(rightshifted, peak_series=peaks if arg_mark_peaks else None,
                         ax_line=ax['right-line'], ax_norm=ax['right-norm'],
                         ax_acc=ax['right-acc'], ax_acc_norm=ax['right-acc-norm'])
-        populate_figure(max_peakshifted, peak_series=peaks,
+        populate_figure(max_peakshifted, peak_series=peaks if arg_mark_peaks else None,
                         ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
                         ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
+        ### time between peaks
+        for (peak_condition, tbp_axes_key) in [
+            (peaks.values == 1, 'time-between-up-peaks'),
+            (peaks.values == -1, 'time-between-down-peaks'),
+            (peaks.values != 0, 'time-between-all-peaks'),
+        ]:
+            peak_times = leftshifted[peak_condition].index
+            time_between_peaks = [peak_times[0]] + [peak_times[idx] - peak_times[idx - 1] for idx in range(1, len(peak_times))]
+            peak_series = pd.Series(data=time_between_peaks)
+            peak_series.plot(ax=ax[tbp_axes_key])
+            peak_pid_series[tbp_axes_key][key] = peak_series
 
         ### percentage before and after max peak
         pid_frame.at[key, 'pre-peak-portion'] = np.multiply(
@@ -334,18 +258,12 @@ if __name__ == '__main__':
         pid_frame.at[key, 'post-peak-portion'] = np.multiply(
             np.true_divide(len(np.where(max_peakshifted.index > 0)[0]), len(max_peakshifted.index)), 100)
 
-        ### statistical description
-        des_label = ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']
-        for idx, des in enumerate(group.describe()):
-            pid_frame.loc[key, des_label[idx]] = des
-
     ### portion before and after the maximum peak
     portion_ax = pid_frame[['pre-peak-portion', 'post-peak-portion']].plot(kind='bar', legend=False,
                                                                            ax=ax['max-peak-le-ge-zero'])
-    # annotate bars with value
-    # for patch in portion_ax.patches:
-    #    ax['max-peak-le-ge-zero'].annotate("%2.f" % np.round(patch.get_height(), decimals=2), (patch.get_x() + patch.get_width()/2, patch.get_height() - 10), rotation=90)
+
     ### euclidean distance
+    # for normal plots
     for prefix in ['left', 'right', 'max-peak']:
         populate_figure_with_euclidean(pid_series=shifted_pid_series[prefix],
                                        series_was_shifted_to=prefix,
@@ -353,19 +271,24 @@ if __name__ == '__main__':
                                        ax_norm_euclidean=ax['%s-norm-euclidean' % prefix],
                                        ax_acc_euclidean=ax['%s-acc-euclidean' % prefix],
                                        ax_acc_norm_euclidean=ax['%s-acc-norm-euclidean' % prefix])
-
+    # for time between peak plots
+    for key in peak_pid_series:
+        pid_series = peak_pid_series[key]
+        axes = ax["%s-euclidean" % key]
+        populate_axes_with_euclidean(pid_series, 'left', axes)
+    # ------------------------------------------------------------------------------------------------------------------
     # as every figure has multiple axes with the same lines (i.e. the projects/ids) a one legend is drawed manually,
     # instead of having multiple legends with the same content in each axes
     for key in fig.keys():
-        if key in ['date', 'left', 'right', 'max-peak']:
+        if key in ['date', 'left', 'right', 'max-peak', 'time-between-peaks']:
             lines = fig[key].axes[0].lines
             fig[key].legend(lines, arg_ids, bbox_to_anchor=[0, 0], loc='lower left', ncol=min(len(arg_ids), 8))
         else:
             print "[Warning] No custom legend for figure key '%s'." % key
-
+    # some more styling at the end, that requires the axes to be filled with lines etc. already
     patches, labels = ax['max-peak-le-ge-zero'].get_legend_handles_labels()
     ax['max-peak-le-ge-zero'].legend(patches, ['before', 'after'], ncol=2, loc='best', title="Commit portion max peak")
     ax['max-peak-le-ge-zero'].set_xticklabels(arg_ids, rotation=0)
-
+    # hide or show plots -----------------------------------------------------------------------------------------------
     if not arg_hide:
         plt.show()
