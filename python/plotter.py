@@ -91,7 +91,7 @@ def peak_analysis(series, path_to_utils_binary="../target/debug/utils", utils_bi
 
 
 def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
-                    style_line="-", highlight_peaks=False, style_peak_up='^g', style_peak_down='vr'):
+                    style_line="-", peak_series=None, style_peak_up='^g', style_peak_down='vr'):
     # line
     ax = series.plot(label=key, style=style_line, ax=ax_line)
     # norm
@@ -104,8 +104,7 @@ def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
     acc_norm_series = normalise_series(accumulate_series(series))
     acc_norm_series.plot(label=key, style=style_line, ax=ax_acc_norm)
     # peak highlighting
-    if highlight_peaks:
-        peak_series = peak_analysis(series)
+    if not type(peak_series) == type(None):
         peak_up_idx = peak_series.values == 1
         peak_down_idx = peak_series.values == -1
         for (shifted_series, shifted_ax) in [(series, ax_line), (norm_series, ax_norm)]:
@@ -315,16 +314,17 @@ if __name__ == '__main__':
         shifted_pid_series['right'][key] = rightshifted
         shifted_pid_series['max-peak'][key] = max_peakshifted
         ### plotting of figure for each format
-        populate_figure(group, highlight_peaks=arg_mark_peaks,
+        peaks = peak_analysis(group) if arg_mark_peaks else None
+        populate_figure(group, peak_series=peaks,
                         ax_line=ax['date-line'], ax_norm=ax['date-norm'],
                         ax_acc=ax['date-acc'], ax_acc_norm=ax['date-acc-norm'],)
-        populate_figure(leftshifted, highlight_peaks=arg_mark_peaks,
+        populate_figure(leftshifted, peak_series=peaks,
                         ax_line=ax['left-line'], ax_norm=ax['left-norm'],
                         ax_acc=ax['left-acc'], ax_acc_norm=ax['left-acc-norm'])
-        populate_figure(rightshifted, highlight_peaks=arg_mark_peaks,
+        populate_figure(rightshifted, peak_series=peaks,
                         ax_line=ax['right-line'], ax_norm=ax['right-norm'],
                         ax_acc=ax['right-acc'], ax_acc_norm=ax['right-acc-norm'])
-        populate_figure(max_peakshifted, highlight_peaks=arg_mark_peaks,
+        populate_figure(max_peakshifted, peak_series=peaks,
                         ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
                         ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
 
