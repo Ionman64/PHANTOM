@@ -82,16 +82,12 @@ def __get_euclidean__(series1, series2, series_was_shifted_to):
     return dist_vector
 
 
-def peak_analysis(pid_series, path_to_utils_binary="../target/debug/utils", utils_binary_flags=["--findpeaks"], col_name_values='values', col_name_peaks='peaks'):
-    pid_value_peak_frame = {}
-    for key in pid_series: # TODO optimise by passing multiple series values at the same time
-        series = pid_series[key]
-        output = check_output([path_to_utils_binary] + utils_binary_flags + map(str, series.values))
-        output_as_array = map(int, output[1:-1].split(','))
-        df = pd.DataFrame(data={col_name_values: series.values, col_name_peaks:output_as_array}, index=series.index)
-        pid_value_peak_frame[key] = df
-        print df
-    return pid_value_peak_frame
+def peak_analysis(series, path_to_utils_binary="../target/debug/utils", utils_binary_flags=["--findpeaks"]):
+    #TODO optimise by passing multiple series values at the same time
+    output = check_output([path_to_utils_binary] + utils_binary_flags + map(str, series.values))
+    output_as_array = map(int, output[1:-1].split(','))
+    peak_series = pd.Series(data=output_as_array)
+    return peak_series
 
 def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
                     style_line="-", style_rolling_mean='--',
@@ -99,18 +95,23 @@ def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
     ax = series.plot(label=key, style=style_line, ax=ax_line)
     # rolling_mean_for_series(group).plot(label=key, style=style_rolling_mean, color=last_color(ax_line), ax=ax_line)
 
-    norm_group = normalise_series(series)
-    norm_group.plot(label=key, style=style_line, ax=ax_norm)
+    norm_series = normalise_series(series)
+    norm_series.plot(label=key, style=style_line, ax=ax_norm)
     # rolling_mean_for_series(norm_group).plot(label=key, style=style_rolling_mean, color=last_color(ax_norm), ax=ax_norm)
 
-    acc_group = accumulate_series(series)
-    acc_group.plot(label=key, style=style_line, ax=ax_acc)
+    acc_series = accumulate_series(series)
+    acc_series.plot(label=key, style=style_line, ax=ax_acc)
 
-    norm_acc_group = normalise_series(accumulate_series(series))
-    norm_acc_group.plot(label=key, style=style_line, ax=ax_acc_norm)
+    norm_acc_series = normalise_series(accumulate_series(series))
+    norm_acc_series.plot(label=key, style=style_line, ax=ax_acc_norm)
 
-    # lines, labels = ax.get_legend_handles_labels()
-    # ax.legend(loc="lower center")
+
+    peak_series = peak_analysis(series)
+    peak_up_idx = peak_series.values == 1
+    peak_down_idx = peak_series.values == -1
+    for (shifted_series, shifted_ax) in [(series, ax_line), (norm_series, ax_norm)]:
+        shifted_series[peak_up_idx].plot(ax=shifted_ax, style='^g')
+        shifted_series[peak_down_idx].plot(ax=shifted_ax, style='vr',)
 
 
 def populate_figure_with_euclidean(pid_series, series_was_shifted_to,
@@ -140,26 +141,26 @@ def normalise_series(series):
 
 
 def leftshift_series(series, return_shifted_x=False):
-    leftshifted_x = [(series.index[idx] - series.index[0]).days for idx in range(len(series.index[:-1]))]
+    leftshifted_x = [(series.index[idx] - series.index[0]).days for idx in range(len(series.index))]
     if not return_shifted_x:
-        return pd.Series(data=series.values[:-1], index=leftshifted_x)
+        return pd.Series(data=series.values, index=leftshifted_x)
     else:
-        return pd.Series(data=series.values[:-1], index=leftshifted_x), leftshifted_x
+        return pd.Series(data=series.values, index=leftshifted_x), leftshifted_x
 
 
 def rightshift_series(series, leftshifted_x=None):
     if leftshifted_x == None:
-        leftshifted_x = [(series.index[idx] - series.index[0]).days for idx in range(len(series.index[:-1]))]
+        _, leftshifted_x = leftshift_series(series, return_shifted_x=True)
     rightshifted_x = [leftshifted_x[idx] - leftshifted_x[-1] for idx in range(len(leftshifted_x))]
-    return pd.Series(data=group.values[:-1], index=rightshifted_x)
+    return pd.Series(data=group.values, index=rightshifted_x)
 
 
 def maxpeakshift_series(series, leftshifted_x=None):
     if leftshifted_x == None:
-        leftshifted_x = [(series.index[idx] - series.index[0]).days for idx in range(len(series.index[:-1]))]
+        _, leftshifted_x = leftshift_series(series, return_shifted_x=True)
     max_peak = np.argmax(series.values)
     max_peakshifted_x = [leftshifted_x[idx] - leftshifted_x[max_peak] for idx in range(len(leftshifted_x))]
-    return pd.Series(data=series.values[:-1], index=max_peakshifted_x)
+    return pd.Series(data=series.values, index=max_peakshifted_x)
 
 
 if __name__ == '__main__':
@@ -346,18 +347,6 @@ if __name__ == '__main__':
     ### portion before and after the maximum peak
     portion_ax = pid_frame[['pre-peak-portion', 'post-peak-portion']].plot(kind='bar', legend=False,
                                                                            ax=ax['max-peak-le-ge-zero'])
-
-    for prefix in ['date', 'left', 'right', 'max-peak']:
-        pid_value_peak_frame = peak_analysis(shifted_pid_series['date'])
-        for key in pid_value_peak_frame:
-            df = pid_value_peak_frame[key]
-            up_series = df[df['peaks'] == 1]['values']
-            down_series = df[df['peaks'] == -1]['values']
-
-            up_series.plot(ax=ax['date-line'], style='^g')
-            down_series.plot(ax=ax['date-line'], style='vr',)
-
-
     # annotate bars with value
     # for patch in portion_ax.patches:
     #    ax['max-peak-le-ge-zero'].annotate("%2.f" % np.round(patch.get_height(), decimals=2), (patch.get_x() + patch.get_width()/2, patch.get_height() - 10), rotation=90)
