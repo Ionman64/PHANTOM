@@ -197,7 +197,6 @@ if __name__ == '__main__':
         'left': plt.figure(figsize=(10, 10)),
         'right': plt.figure(figsize=(10, 10)),
         'max-peak': plt.figure(figsize=(10, 10)),
-        'other': plt.figure(figsize=(5, 5)),
     }
     # axes map
     ax = {
@@ -233,8 +232,6 @@ if __name__ == '__main__':
         'max-peak-acc-euclidean': plt.subplot2grid((5, 3), (3, 2), colspan=1, fig=fig['max-peak']),
         'max-peak-acc-norm': plt.subplot2grid((5, 3), (4, 0), colspan=2, fig=fig['max-peak']),
         'max-peak-acc-norm-euclidean': plt.subplot2grid((5, 3), (4, 2), colspan=1, fig=fig['max-peak']),
-        #
-        'descriptions': plt.subplot2grid((1, 1), (0, 0), fig=fig['other']),
     }
     # axes styling
     ax['date-line'].set_ylabel("frequency")
@@ -285,7 +282,6 @@ if __name__ == '__main__':
     #
     ax['max-peak-le-ge-zero'].set_ylabel("portion in %")
     ax['max-peak-le-ge-zero'].set_xlabel("project ID")
-    #
     # figure titles
     grouped_by = {"D": "day", "W": "week", "M": "month", "Q": "quarter", "A": "year"}[arg_time_unit]
 
@@ -293,7 +289,6 @@ if __name__ == '__main__':
     fig['left'].suptitle("Commit frequency (left shifted) grouped by %s" % grouped_by)
     fig['right'].suptitle("Commit frequency (right shifted) grouped by %s" % grouped_by)
     fig['max-peak'].suptitle("Commit frequency (max peak shifted) grouped by %s" % grouped_by)
-    fig['other'].suptitle("Stat. description of commit frequency grouped by %s" % grouped_by)
     # plot everything --------------------------------------------------------------------------------------------------
     pid_frame = pd.DataFrame(
         index=frame['repository_id'].unique()).sort_index()  # This frame stores information about projects
@@ -350,9 +345,6 @@ if __name__ == '__main__':
     # annotate bars with value
     # for patch in portion_ax.patches:
     #    ax['max-peak-le-ge-zero'].annotate("%2.f" % np.round(patch.get_height(), decimals=2), (patch.get_x() + patch.get_width()/2, patch.get_height() - 10), rotation=90)
-    ### statistical description
-    pid_frame[['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']].plot(kind='bar', legend=False,
-                                                                                ax=ax['descriptions'])
     ### euclidean distance
     for prefix in ['left', 'right', 'max-peak']:
         populate_figure_with_euclidean(pid_series=shifted_pid_series[prefix],
@@ -365,9 +357,7 @@ if __name__ == '__main__':
     # as every figure has multiple axes with the same lines (i.e. the projects/ids) a one legend is drawed manually,
     # instead of having multiple legends with the same content in each axes
     for key in fig.keys():
-        if key == 'other':
-            fig[key].legend(bbox_to_anchor=[0, 0], loc='lower left', ncol=4)
-        elif key in ['date', 'left', 'right', 'max-peak']:
+        if key in ['date', 'left', 'right', 'max-peak']:
             lines = fig[key].axes[0].lines
             fig[key].legend(lines, arg_ids, bbox_to_anchor=[0, 0], loc='lower left', ncol=min(len(arg_ids), 8))
         else:
@@ -375,8 +365,7 @@ if __name__ == '__main__':
 
     patches, labels = ax['max-peak-le-ge-zero'].get_legend_handles_labels()
     ax['max-peak-le-ge-zero'].legend(patches, ['before', 'after'], ncol=2, loc='best', title="Commit portion max peak")
-
-    ax['descriptions'].set_xticklabels(arg_ids, rotation=0)
+    ax['max-peak-le-ge-zero'].set_xticklabels(arg_ids, rotation=0)
 
     if not arg_hide:
         plt.show()
