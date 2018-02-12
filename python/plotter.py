@@ -205,10 +205,10 @@ if __name__ == '__main__':
     }
     # axes map
     ax = {
-        'line': plt.subplot2grid((4, 3), (0, 0), colspan=3, fig=fig['date']),
-        'norm': plt.subplot2grid((4, 3), (1, 0), colspan=3, fig=fig['date']),
-        'acc': plt.subplot2grid((4, 3), (2, 0), colspan=3, fig=fig['date']),
-        'acc-norm': plt.subplot2grid((4, 3), (3, 0), colspan=3, fig=fig['date']),
+        'date-line': plt.subplot2grid((4, 3), (0, 0), colspan=3, fig=fig['date']),
+        'date-norm': plt.subplot2grid((4, 3), (1, 0), colspan=3, fig=fig['date']),
+        'date-acc': plt.subplot2grid((4, 3), (2, 0), colspan=3, fig=fig['date']),
+        'date-acc-norm': plt.subplot2grid((4, 3), (3, 0), colspan=3, fig=fig['date']),
         #
         'left-line': plt.subplot2grid((4, 3), (0, 0), colspan=2, fig=fig['left']),
         'left-line-euclidean': plt.subplot2grid((4, 3), (0, 2), colspan=1, fig=fig['left']),
@@ -241,10 +241,10 @@ if __name__ == '__main__':
         'descriptions': plt.subplot2grid((1, 1), (0, 0), fig=fig['other']),
     }
     # axes styling
-    ax['line'].set_ylabel("frequency")
-    ax['norm'].set_ylabel("norm.")
-    ax['acc'].set_ylabel("acc.")
-    ax['acc-norm'].set_ylabel("acc. norm.")
+    ax['date-line'].set_ylabel("frequency")
+    ax['date-norm'].set_ylabel("norm.")
+    ax['date-acc'].set_ylabel("acc.")
+    ax['date-acc-norm'].set_ylabel("acc. norm.")
     #
     ax['left-line'].set_ylabel("frequency")
     ax['left-norm'].set_ylabel("norm.")
@@ -324,7 +324,7 @@ if __name__ == '__main__':
         shifted_pid_series['right'][key] = rightshifted
         shifted_pid_series['max-peak'][key] = max_peakshifted
         ### plotting of figure for each format
-        populate_figure(group, ax_line=ax['line'], ax_norm=ax['norm'], ax_acc=ax['acc'], ax_acc_norm=ax['acc-norm'])
+        populate_figure(group, ax_line=ax['date-line'], ax_norm=ax['date-norm'], ax_acc=ax['date-acc'], ax_acc_norm=ax['date-acc-norm'])
         populate_figure(leftshifted, ax_line=ax['left-line'], ax_norm=ax['left-norm'], ax_acc=ax['left-acc'],
                         ax_acc_norm=ax['left-acc-norm'])
         populate_figure(rightshifted, ax_line=ax['right-line'], ax_norm=ax['right-norm'], ax_acc=ax['right-acc'],
@@ -354,8 +354,8 @@ if __name__ == '__main__':
             up_series = df[df['peaks'] == 1]['values']
             down_series = df[df['peaks'] == -1]['values']
 
-            up_series.plot(ax=ax['line'], style='^g')
-            down_series.plot(ax=ax['line'], style='vr',)
+            up_series.plot(ax=ax['date-line'], style='^g')
+            down_series.plot(ax=ax['date-line'], style='vr',)
 
 
     # annotate bars with value
