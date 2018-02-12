@@ -22,7 +22,17 @@ from sqlalchemy import create_engine
 from subprocess import check_output
 
 
-def euclidean_distance(pid_series, series_was_shifted_to, norm=False, acc=False, round_to_decimals=2):
+def euclidean_distance(pid_series, series_was_shifted_to, norm=False, acc=False):
+    """
+    Calculate the distance matrix between each pair of series in the specified map.
+
+    :param pid_series: Map of project ids to pandas series
+    :param series_was_shifted_to: Specify the way the series was shifted
+    :param norm: If true, the series values will be normalised
+    :param acc: If true, the series values will be accumulated
+    :return: Pandas dataframe with index equal to pid_series keys and column names as well. Cells contain the average
+        distance between two projects (intersect index and column name)
+    """
     pids = pid_series.keys()
     pids.sort()
     series = pid_series.values()
@@ -52,10 +62,13 @@ def euclidean_distance(pid_series, series_was_shifted_to, norm=False, acc=False,
 def __get_euclidean__(series1, series2, series_was_shifted_to):
     """
     Calculates the euclidean distance between the values of the two series. Compares points in order, not by similarity
-    on the x-axis (i.e. index). Than the values are normed by the max value of both series and finally the average is return.
-    :param series1:
-    :param series2:
-    :return: The similarity in percent.
+    on the x-axis (i.e. index).
+
+    :param series1: Pandas series
+    :param series2: Pandas series
+    :param series_was_shifted_to: Determines how to overlay two series, with different lengths and different points of
+        interest
+    :return: Vector of distances between points
     """
     assert (series_was_shifted_to in ['left', 'right', 'max-peak'])
     if series_was_shifted_to == 'left':
@@ -88,6 +101,15 @@ def __get_euclidean__(series1, series2, series_was_shifted_to):
 
 
 def peak_analysis(series, path_to_utils_binary="../target/debug/utils", utils_binary_flags=["--findpeaks"]):
+    """
+    Calculates the peek positions of a series.
+
+    :param series: Pandas series
+    :param path_to_utils_binary: Path to the rust program to calculate peaks
+    :param utils_binary_flags: Flags to specify when calling the rust program
+    :return: Pandas series indexed with range(0...length) and values are in [-1, 0, 1] indicating
+        [peak down, no peak, peak up] respectively
+    """
     # TODO optimise by passing multiple series values at the same time
     output = check_output([path_to_utils_binary] + utils_binary_flags + map(str, series.values))
     output_as_array = map(int, output[1:-1].split(','))
@@ -95,8 +117,21 @@ def peak_analysis(series, path_to_utils_binary="../target/debug/utils", utils_bi
     return peak_series
 
 
-def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
-                    style_line="-", peak_series=None, style_peak_up='^g', style_peak_down='vr'):
+def populate_figure_with_standard_plots(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
+                                        style_line="-", peak_series=None, style_peak_up='^g', style_peak_down='vr'):
+    """
+    Plots the series in several formats on the specified axes.
+
+    :param series: Pandas series
+    :param ax_line: Pyplot axes to plot the series
+    :param ax_norm: Pyplot axes to plot the normalised series
+    :param ax_acc: Pyplot axes to plot the accumulated series
+    :param ax_acc_norm: Pyplot axes to plot the accumulated, normalised series
+    :param style_line: Style for plotting in the specified axes
+    :param peak_series: Pandas series with peak positions of parameter 'series'
+    :param style_peak_up: Style used for plotting upward peaks
+    :param style_peak_down: Style used for plotting downward peaks
+    """
     # line
     ax = series.plot(label=key, style=style_line, ax=ax_line)
     # norm
@@ -119,6 +154,16 @@ def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
 
 def populate_figure_with_euclidean(pid_series, series_was_shifted_to, ax_line_euclidean, ax_norm_euclidean,
                                    ax_acc_euclidean, ax_acc_norm_euclidean):
+    """
+    Plots the euclidean distances of different formats on the specified axes.
+
+    :param pid_series: Map of project ids to pandas series
+    :param series_was_shifted_to: Specify the way the series was shifted
+    :param ax_line_euclidean: Pyplot axes for distance on series
+    :param ax_norm_euclidean: Pyplot axes for distance on normalised series
+    :param ax_acc_euclidean: Pyplot axes for distance on accumulated series
+    :param ax_acc_norm_euclidean:  Pyplot axes for distance on accumulated, normalised series
+    """
     euclidean_distance(pid_series, series_was_shifted_to).plot(kind='bar', legend=False, ax=ax_line_euclidean)
     euclidean_distance(pid_series, series_was_shifted_to, norm=True).plot(kind='bar', legend=False,
                                                                           ax=ax_norm_euclidean)
@@ -128,10 +173,23 @@ def populate_figure_with_euclidean(pid_series, series_was_shifted_to, ax_line_eu
 
 
 def populate_axes_with_euclidean(pid_series, series_was_shifted_to, axes):
+    """
+    Plots the distance of the series on the specified axes.
+
+    :param pid_series: Map of project ids to pandas series
+    :param series_was_shifted_to: Specify the way the series was shifted
+    :param axes Pyplot axes to plot the distance
+    """
     euclidean_distance(pid_series, series_was_shifted_to).plot(kind='bar', legend=False, ax=axes)
 
 
 def last_color(axes):
+    """
+    Determines the last used color of the axes.
+
+    :param axes: Pyplot axes
+    :return: Most recent line color
+    """
     return axes.lines[-1].get_color()
 
 
@@ -147,26 +205,42 @@ def normalise_series(series):
     return (series - series.min()) / (series.max() - series.min())
 
 
-def leftshift_series(series, return_shifted_x=False):
+def leftshift_series(series):
+    """
+    Transforms the series with a datetime index to a series with an integer index. The index represents the number of
+    days that passed since the first day.
+
+    :param series: Pandas series with a datetime index
+    :return: Pandas series with the same values but leftshifted index
+    """
     leftshifted_x = [(series.index[idx] - series.index[0]).days for idx in range(len(series.index))]
-    if not return_shifted_x:
-        return pd.Series(data=series.values, index=leftshifted_x)
-    else:
-        return pd.Series(data=series.values, index=leftshifted_x), leftshifted_x
+    return pd.Series(data=series.values, index=leftshifted_x)
 
 
-def rightshift_series(series, leftshifted_x=None):
-    if leftshifted_x == None:
-        _, leftshifted_x = leftshift_series(series, return_shifted_x=True)
-    rightshifted_x = [leftshifted_x[idx] - leftshifted_x[-1] for idx in range(len(leftshifted_x))]
+def rightshift_series(series, leftshifted_idx):
+    """
+    Transforms the series with a datetime index to a series with an integer index. The index represents the number of
+    days that passed since the last day. Therefore, all indices but the last will be negative.
+    :param series: Pandas series
+    :param leftshifted_idx: Numpy array of the leftshifted index of the specified series (note: take the index from leftshift_series())
+    :return: Pandas series with the same values but rightshifted index
+    """
+    rightshifted_x = [leftshifted_idx[idx] - leftshifted_idx[-1] for idx in range(len(leftshifted_idx))]
     return pd.Series(data=series.values, index=rightshifted_x)
 
 
-def maxpeakshift_series(series, leftshifted_x=None):
-    if leftshifted_x == None:
-        _, leftshifted_x = leftshift_series(series, return_shifted_x=True)
+def maxpeakshift_series(series, leftshifted_idx):
+    """
+    Transforms the series with a datetime index to a series with an integer index. The index represents the number of
+    days that passed since the maximum value. Therefore, there will be an index equal to 0 (max peak) and the remaining
+    indices are either negative (pre-peak) or positive (post-peak).
+
+    :param series: Pandas series
+    :param leftshifted_idx: Numpy array of the leftshifted index of the specified series (note: take the index from leftshift_series())
+    :return: Pandas series with the same values but max-peak-shifted index
+    """
     max_peak = np.argmax(series.values)
-    max_peakshifted_x = [leftshifted_x[idx] - leftshifted_x[max_peak] for idx in range(len(leftshifted_x))]
+    max_peakshifted_x = [leftshifted_idx[idx] - leftshifted_idx[max_peak] for idx in range(len(leftshifted_idx))]
     return pd.Series(data=series.values, index=max_peakshifted_x)
 
 
@@ -228,9 +302,9 @@ if __name__ == '__main__':
         if arg_rollingmean:
             series = rolling_mean_for_series(series, arg_window)
 
-        leftshifted, leftshifted_x = leftshift_series(series, return_shifted_x=True)
-        rightshifted = rightshift_series(series, leftshifted_x)
-        max_peakshifted = maxpeakshift_series(series, leftshifted_x)
+        leftshifted = leftshift_series(series)
+        rightshifted = rightshift_series(series, leftshifted.index)
+        max_peakshifted = maxpeakshift_series(series, leftshifted.index)
 
         shifted_pid_series['date'][key] = series
         shifted_pid_series['left'][key] = leftshifted
@@ -238,18 +312,18 @@ if __name__ == '__main__':
         shifted_pid_series['max-peak'][key] = max_peakshifted
         ### plotting of standard figure for each format ----------------------------------------------------------------
         peaks = peak_analysis(series)
-        populate_figure(series, peak_series=peaks if arg_mark_peaks else None,
-                        ax_line=ax['date-line'], ax_norm=ax['date-norm'],
-                        ax_acc=ax['date-acc'], ax_acc_norm=ax['date-acc-norm'], )
-        populate_figure(leftshifted, peak_series=peaks if arg_mark_peaks else None,
-                        ax_line=ax['left-line'], ax_norm=ax['left-norm'],
-                        ax_acc=ax['left-acc'], ax_acc_norm=ax['left-acc-norm'])
-        populate_figure(rightshifted, peak_series=peaks if arg_mark_peaks else None,
-                        ax_line=ax['right-line'], ax_norm=ax['right-norm'],
-                        ax_acc=ax['right-acc'], ax_acc_norm=ax['right-acc-norm'])
-        populate_figure(max_peakshifted, peak_series=peaks if arg_mark_peaks else None,
-                        ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
-                        ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
+        populate_figure_with_standard_plots(series, peak_series=peaks if arg_mark_peaks else None,
+                                            ax_line=ax['date-line'], ax_norm=ax['date-norm'],
+                                            ax_acc=ax['date-acc'], ax_acc_norm=ax['date-acc-norm'], )
+        populate_figure_with_standard_plots(leftshifted, peak_series=peaks if arg_mark_peaks else None,
+                                            ax_line=ax['left-line'], ax_norm=ax['left-norm'],
+                                            ax_acc=ax['left-acc'], ax_acc_norm=ax['left-acc-norm'])
+        populate_figure_with_standard_plots(rightshifted, peak_series=peaks if arg_mark_peaks else None,
+                                            ax_line=ax['right-line'], ax_norm=ax['right-norm'],
+                                            ax_acc=ax['right-acc'], ax_acc_norm=ax['right-acc-norm'])
+        populate_figure_with_standard_plots(max_peakshifted, peak_series=peaks if arg_mark_peaks else None,
+                                            ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
+                                            ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
         ### time between peaks -----------------------------------------------------------------------------------------
         for (peak_condition, tbp_axes_key) in [
             (peaks.values == 1, 'time-between-up-peaks'),
