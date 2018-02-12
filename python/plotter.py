@@ -19,6 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from sqlalchemy import create_engine
+from subprocess import check_output
 
 
 def euclidean_distance(pid_series, series_was_shifted_to, norm=False, acc=False, round_to_decimals=2):
@@ -80,6 +81,17 @@ def __get_euclidean__(series1, series2, series_was_shifted_to):
     dist_vector = np.absolute(values1 - values2)
     return dist_vector
 
+
+def peak_analysis(pid_series, path_to_utils_binary="../target/debug/utils", utils_binary_flags=["--findpeaks"], col_name_values='values', col_name_peaks='peaks'):
+    pid_value_peak_frame = {}
+    for key in pid_series: # TODO optimise by passing multiple series values at the same time
+        series = pid_series[key]
+        output = check_output([path_to_utils_binary] + utils_binary_flags + map(str, series.values))
+        output_as_array = map(int, output[1:-1].split(','))
+        df = pd.DataFrame(data={col_name_values: series.values, col_name_peaks:output_as_array}, index=series.index)
+        pid_value_peak_frame[key] = df
+        print df
+    return pid_value_peak_frame
 
 def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
                     style_line="-", style_rolling_mean='--',
@@ -334,6 +346,18 @@ if __name__ == '__main__':
     ### portion before and after the maximum peak
     portion_ax = pid_frame[['pre-peak-portion', 'post-peak-portion']].plot(kind='bar', legend=False,
                                                                            ax=ax['max-peak-le-ge-zero'])
+
+    for prefix in ['date', 'left', 'right', 'max-peak']:
+        pid_value_peak_frame = peak_analysis(shifted_pid_series['date'])
+        for key in pid_value_peak_frame:
+            df = pid_value_peak_frame[key]
+            up_series = df[df['peaks'] == 1]['values']
+            down_series = df[df['peaks'] == -1]['values']
+
+            up_series.plot(ax=ax['line'], style='^g')
+            down_series.plot(ax=ax['line'], style='vr',)
+
+
     # annotate bars with value
     # for patch in portion_ax.patches:
     #    ax['max-peak-le-ge-zero'].annotate("%2.f" % np.round(patch.get_height(), decimals=2), (patch.get_x() + patch.get_width()/2, patch.get_height() - 10), rotation=90)
