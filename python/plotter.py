@@ -6,7 +6,7 @@ Arguments:
     -t --timeunit=<UNIT> Resample the data as by day, week, month, quarter, year(annual)[values: D, W, M, Q, A]
 Options:
     -h --help           Show this screen.
-    --peak              Highlight peaks
+    --mark-peaks         Highlight peaks
     --rollingmean       Use a rolling mean instead of the actual values
     --window=<size>     Override the default window size for the rolling mean. [values: size > 0]
     --hide              Hide the figures
@@ -83,35 +83,34 @@ def __get_euclidean__(series1, series2, series_was_shifted_to):
 
 
 def peak_analysis(series, path_to_utils_binary="../target/debug/utils", utils_binary_flags=["--findpeaks"]):
-    #TODO optimise by passing multiple series values at the same time
+    # TODO optimise by passing multiple series values at the same time
     output = check_output([path_to_utils_binary] + utils_binary_flags + map(str, series.values))
     output_as_array = map(int, output[1:-1].split(','))
     peak_series = pd.Series(data=output_as_array)
     return peak_series
 
-def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
-                    style_line="-", style_rolling_mean='--',
-                    window_size_rolling_mean=5, ):
-    ax = series.plot(label=key, style=style_line, ax=ax_line)
-    # rolling_mean_for_series(group).plot(label=key, style=style_rolling_mean, color=last_color(ax_line), ax=ax_line)
 
+def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
+                    style_line="-", highlight_peaks=False, style_peak_up='^g', style_peak_down='vr'):
+    # line
+    ax = series.plot(label=key, style=style_line, ax=ax_line)
+    # norm
     norm_series = normalise_series(series)
     norm_series.plot(label=key, style=style_line, ax=ax_norm)
-    # rolling_mean_for_series(norm_group).plot(label=key, style=style_rolling_mean, color=last_color(ax_norm), ax=ax_norm)
-
+    # acc
     acc_series = accumulate_series(series)
     acc_series.plot(label=key, style=style_line, ax=ax_acc)
-
-    norm_acc_series = normalise_series(accumulate_series(series))
-    norm_acc_series.plot(label=key, style=style_line, ax=ax_acc_norm)
-
-
-    peak_series = peak_analysis(series)
-    peak_up_idx = peak_series.values == 1
-    peak_down_idx = peak_series.values == -1
-    for (shifted_series, shifted_ax) in [(series, ax_line), (norm_series, ax_norm)]:
-        shifted_series[peak_up_idx].plot(ax=shifted_ax, style='^g')
-        shifted_series[peak_down_idx].plot(ax=shifted_ax, style='vr',)
+    # acc norm
+    acc_norm_series = normalise_series(accumulate_series(series))
+    acc_norm_series.plot(label=key, style=style_line, ax=ax_acc_norm)
+    # peak highlighting
+    if highlight_peaks:
+        peak_series = peak_analysis(series)
+        peak_up_idx = peak_series.values == 1
+        peak_down_idx = peak_series.values == -1
+        for (shifted_series, shifted_ax) in [(series, ax_line), (norm_series, ax_norm)]:
+            shifted_series[peak_up_idx].plot(ax=shifted_ax, style=style_peak_up)
+            shifted_series[peak_down_idx].plot(ax=shifted_ax, style=style_peak_down, )
 
 
 def populate_figure_with_euclidean(pid_series, series_was_shifted_to,
@@ -168,13 +167,9 @@ if __name__ == '__main__':
 
     arg_ids = args['<id>']
     arg_time_unit = args['--timeunit'].upper()
-    # arg_acc = args['--acc']
-    # arg_norm = args['--norm']
-    # arg_shift = args['--shift']
     arg_out_file = args['--out']
     arg_hide = args['--hide']
-    # arg_ydist = args['--ydist']
-    # arg_peak = args['--peak']
+    arg_mark_peaks = args['--mark-peaks']
     arg_rollingmean = args['--rollingmean']
     arg_window = -1 if args['--window'] == None else int(args['--window'])
 
@@ -325,12 +320,17 @@ if __name__ == '__main__':
         shifted_pid_series['right'][key] = rightshifted
         shifted_pid_series['max-peak'][key] = max_peakshifted
         ### plotting of figure for each format
-        populate_figure(group, ax_line=ax['date-line'], ax_norm=ax['date-norm'], ax_acc=ax['date-acc'], ax_acc_norm=ax['date-acc-norm'])
-        populate_figure(leftshifted, ax_line=ax['left-line'], ax_norm=ax['left-norm'], ax_acc=ax['left-acc'],
-                        ax_acc_norm=ax['left-acc-norm'])
-        populate_figure(rightshifted, ax_line=ax['right-line'], ax_norm=ax['right-norm'], ax_acc=ax['right-acc'],
-                        ax_acc_norm=ax['right-acc-norm'])
-        populate_figure(max_peakshifted, ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
+        populate_figure(group, highlight_peaks=arg_mark_peaks,
+                        ax_line=ax['date-line'], ax_norm=ax['date-norm'],
+                        ax_acc=ax['date-acc'], ax_acc_norm=ax['date-acc-norm'],)
+        populate_figure(leftshifted, highlight_peaks=arg_mark_peaks,
+                        ax_line=ax['left-line'], ax_norm=ax['left-norm'],
+                        ax_acc=ax['left-acc'], ax_acc_norm=ax['left-acc-norm'])
+        populate_figure(rightshifted, highlight_peaks=arg_mark_peaks,
+                        ax_line=ax['right-line'], ax_norm=ax['right-norm'],
+                        ax_acc=ax['right-acc'], ax_acc_norm=ax['right-acc-norm'])
+        populate_figure(max_peakshifted, highlight_peaks=arg_mark_peaks,
+                        ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
                         ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
 
         ### percentage before and after max peak
