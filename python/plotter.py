@@ -13,7 +13,7 @@ Options:
     -o --out=<file>     Path to output file. (e.g. fig.png, fig.pdf)
 
 """
-from utils.pyplot_styler import get_fig_and_ax_map
+from utils.pyplot_styler import get_fig_and_ax_map, post_plot_figure_style, post_plot_axes_style
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -24,6 +24,7 @@ from subprocess import check_output
 
 def euclidean_distance(pid_series, series_was_shifted_to, norm=False, acc=False, round_to_decimals=2):
     pids = pid_series.keys()
+    pids.sort()
     series = pid_series.values()
     if acc:
         series = [accumulate_series(s) for s in series]
@@ -32,18 +33,18 @@ def euclidean_distance(pid_series, series_was_shifted_to, norm=False, acc=False,
 
     N = len(pids)
     dist_matrix = np.zeros((N, N))
-    #max_distance = 0
+    # max_distance = 0
     for i in range(N):
         for j in range(N):
             if i <= j:
                 continue
             dist_vector = __get_euclidean__(series[i], series[j], series_was_shifted_to)
-            #max_distance = max(max_distance, np.max(dist_vector))
+            # max_distance = max(max_distance, np.max(dist_vector))
             eucl = np.average(dist_vector)
             dist_matrix[i, j] = eucl
             dist_matrix[j, i] = eucl
 
-    #dist_matrix = np.round(np.true_divide(dist_matrix, max_distance), decimals=round_to_decimals)
+    # dist_matrix = np.round(np.true_divide(dist_matrix, max_distance), decimals=round_to_decimals)
     df = pd.DataFrame(dist_matrix, index=pids, columns=pids)
     return df
 
@@ -116,16 +117,19 @@ def populate_figure(series, ax_line, ax_norm, ax_acc, ax_acc_norm,
             shifted_series[peak_down_idx].plot(ax=shifted_ax, style=style_peak_down, )
 
 
-def populate_figure_with_euclidean(pid_series, series_was_shifted_to,
-                                   ax_line_euclidean, ax_norm_euclidean, ax_acc_euclidean, ax_acc_norm_euclidean):
+def populate_figure_with_euclidean(pid_series, series_was_shifted_to, ax_line_euclidean, ax_norm_euclidean,
+                                   ax_acc_euclidean, ax_acc_norm_euclidean):
     euclidean_distance(pid_series, series_was_shifted_to).plot(kind='bar', legend=False, ax=ax_line_euclidean)
     euclidean_distance(pid_series, series_was_shifted_to, norm=True).plot(kind='bar', legend=False,
                                                                           ax=ax_norm_euclidean)
     euclidean_distance(pid_series, series_was_shifted_to, acc=True).plot(kind='bar', legend=False, ax=ax_acc_euclidean)
     euclidean_distance(pid_series, series_was_shifted_to, acc=True, norm=True).plot(kind='bar', legend=False,
                                                                                     ax=ax_acc_norm_euclidean)
+
+
 def populate_axes_with_euclidean(pid_series, series_was_shifted_to, axes):
     euclidean_distance(pid_series, series_was_shifted_to).plot(kind='bar', legend=False, ax=axes)
+
 
 def last_color(axes):
     return axes.lines[-1].get_color()
@@ -155,7 +159,7 @@ def rightshift_series(series, leftshifted_x=None):
     if leftshifted_x == None:
         _, leftshifted_x = leftshift_series(series, return_shifted_x=True)
     rightshifted_x = [leftshifted_x[idx] - leftshifted_x[-1] for idx in range(len(leftshifted_x))]
-    return pd.Series(data=group.values, index=rightshifted_x)
+    return pd.Series(data=series.values, index=rightshifted_x)
 
 
 def maxpeakshift_series(series, leftshifted_x=None):
@@ -187,7 +191,7 @@ if __name__ == '__main__':
     if arg_rollingmean and arg_window <= 0:
         print "Invalid window size. Use --help to get more information."
         exit(1)
-    # get data ---------------------------------------------------------------------------------------------------------
+    # get data from database -------------------------------------------------------------------------------------------
     engine = create_engine("postgres://postgres:0000@localhost/project_analyser")
     frame = pd.read_sql_query(
         'SELECT * FROM commit_frequency WHERE repository_id IN (%s) ORDER BY commit_date' % str(arg_ids)[1:-1],
@@ -196,39 +200,45 @@ if __name__ == '__main__':
     # setup figures and axes -------------------------------------------------------------------------------------------
     fig, ax = get_fig_and_ax_map(arg_time_unit, arg_rollingmean, arg_window)
     # setup data structures to store information -----------------------------------------------------------------------
-    pid_frame = pd.DataFrame(
-        index=frame['repository_id'].unique()).sort_index()  # This frame stores information about projects
+    ### pid_frame
+    # is indexed by the repository id. Add columns to it to save repository-based information
+    pid_frame = pd.DataFrame(index=frame['repository_id'].unique()).sort_index()
+    ### shifted_pid_series
+    # stores multiple formats for project id series
+    # example: shifted_pid_series['right'][2] stores the series for project 2 in a right-shifted format
     shifted_pid_series = {
-        # map to store multiple formats for project id series
-        # example: shifted_pid_series['right'][2] stores the series for project 2 in a right-shifted format
         'date': {},
         'left': {},
         'right': {},
         'max-peak': {}
     }
+    ### peak_pid_series
+    # stores the time between peak analysis for projects
+    # example: peak_pid_series['time-between-all-peaks'][2] stores the series of the analyis for project 2 of time between all peaks
     peak_pid_series = {
         'time-between-all-peaks': {},
         'time-between-up-peaks': {},
         'time-between-down-peaks': {},
     }
     # plot everything --------------------------------------------------------------------------------------------------
-    for key, group in frame.groupby('repository_id'):
-        ### transform and store series in different shifted formats
-        group = group.frequency.resample(arg_time_unit).sum()
+    for key, series in frame.groupby('repository_id'):
+        ### transform and store series in different shifted formats ----------------------------------------------------
+        # depending on the selected time unit the data are resampled. Data in the same resampled bin are summed up.
+        series = series.frequency.resample(arg_time_unit).sum()
         if arg_rollingmean:
-            group = rolling_mean_for_series(group, arg_window)
+            series = rolling_mean_for_series(series, arg_window)
 
-        leftshifted, leftshifted_x = leftshift_series(group, return_shifted_x=True)
-        rightshifted = rightshift_series(group, leftshifted_x)
-        max_peakshifted = maxpeakshift_series(group, leftshifted_x)
+        leftshifted, leftshifted_x = leftshift_series(series, return_shifted_x=True)
+        rightshifted = rightshift_series(series, leftshifted_x)
+        max_peakshifted = maxpeakshift_series(series, leftshifted_x)
 
-        shifted_pid_series['date'][key] = group
+        shifted_pid_series['date'][key] = series
         shifted_pid_series['left'][key] = leftshifted
         shifted_pid_series['right'][key] = rightshifted
         shifted_pid_series['max-peak'][key] = max_peakshifted
-        ### plotting of figure for each format
-        peaks = peak_analysis(group)
-        populate_figure(group, peak_series=peaks if arg_mark_peaks else None,
+        ### plotting of standard figure for each format ----------------------------------------------------------------
+        peaks = peak_analysis(series)
+        populate_figure(series, peak_series=peaks if arg_mark_peaks else None,
                         ax_line=ax['date-line'], ax_norm=ax['date-norm'],
                         ax_acc=ax['date-acc'], ax_acc_norm=ax['date-acc-norm'], )
         populate_figure(leftshifted, peak_series=peaks if arg_mark_peaks else None,
@@ -240,29 +250,30 @@ if __name__ == '__main__':
         populate_figure(max_peakshifted, peak_series=peaks if arg_mark_peaks else None,
                         ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
                         ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
-        ### time between peaks
+        ### time between peaks -----------------------------------------------------------------------------------------
         for (peak_condition, tbp_axes_key) in [
             (peaks.values == 1, 'time-between-up-peaks'),
             (peaks.values == -1, 'time-between-down-peaks'),
             (peaks.values != 0, 'time-between-all-peaks'),
         ]:
             peak_times = leftshifted[peak_condition].index
-            time_between_peaks = [peak_times[0]] + [peak_times[idx] - peak_times[idx - 1] for idx in range(1, len(peak_times))]
+            time_between_peaks = [peak_times[0]] + [peak_times[idx] - peak_times[idx - 1] for idx in
+                                                    range(1, len(peak_times))]
             peak_series = pd.Series(data=time_between_peaks)
             peak_series.plot(ax=ax[tbp_axes_key])
             peak_pid_series[tbp_axes_key][key] = peak_series
 
-        ### percentage before and after max peak
-        pid_frame.at[key, 'pre-peak-portion'] = np.multiply(
-            np.true_divide(len(np.where(max_peakshifted.index < 0)[0]), len(max_peakshifted.index)), 100)
-        pid_frame.at[key, 'post-peak-portion'] = np.multiply(
-            np.true_divide(len(np.where(max_peakshifted.index > 0)[0]), len(max_peakshifted.index)), 100)
+        ### percentage before and after max peak -----------------------------------------------------------------------
+        len_mps = len(max_peakshifted.index)
+        get_portion = lambda length: np.multiply(np.true_divide(length, len_mps), 100)
+        pid_frame.at[key, 'pre-peak-portion'] = get_portion(len(np.where(max_peakshifted.index < 0)[0]))
+        pid_frame.at[key, 'post-peak-portion'] = get_portion(len(np.where(max_peakshifted.index > 0)[0]))
 
-    ### portion before and after the maximum peak
+    ### portion before and after the maximum peak ----------------------------------------------------------------------
     portion_ax = pid_frame[['pre-peak-portion', 'post-peak-portion']].plot(kind='bar', legend=False,
                                                                            ax=ax['max-peak-le-ge-zero'])
 
-    ### euclidean distance
+    ### euclidean distance ---------------------------------------------------------------------------------------------
     # for normal plots
     for prefix in ['left', 'right', 'max-peak']:
         populate_figure_with_euclidean(pid_series=shifted_pid_series[prefix],
@@ -276,19 +287,10 @@ if __name__ == '__main__':
         pid_series = peak_pid_series[key]
         axes = ax["%s-euclidean" % key]
         populate_axes_with_euclidean(pid_series, 'left', axes)
+
     # ------------------------------------------------------------------------------------------------------------------
-    # as every figure has multiple axes with the same lines (i.e. the projects/ids) a one legend is drawed manually,
-    # instead of having multiple legends with the same content in each axes
-    for key in fig.keys():
-        if key in ['date', 'left', 'right', 'max-peak', 'time-between-peaks']:
-            lines = fig[key].axes[0].lines
-            fig[key].legend(lines, arg_ids, bbox_to_anchor=[0, 0], loc='lower left', ncol=min(len(arg_ids), 8))
-        else:
-            print "[Warning] No custom legend for figure key '%s'." % key
-    # some more styling at the end, that requires the axes to be filled with lines etc. already
-    patches, labels = ax['max-peak-le-ge-zero'].get_legend_handles_labels()
-    ax['max-peak-le-ge-zero'].legend(patches, ['before', 'after'], ncol=2, loc='best', title="Commit portion max peak")
-    ax['max-peak-le-ge-zero'].set_xticklabels(arg_ids, rotation=0)
-    # hide or show plots -----------------------------------------------------------------------------------------------
+    post_plot_figure_style(fig, arg_ids)
+    post_plot_axes_style(ax, arg_ids, silent=True)
+
     if not arg_hide:
         plt.show()
