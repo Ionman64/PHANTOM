@@ -40,7 +40,7 @@ def __style_time_between_peaks(axes, peak_type):
 # Post-plot styling ----------------------------------------------------------------------------------------------------
 def post_plot_figure_style(fig, arg_ids, ncols=8, silent=False):
     for key in fig:
-        if key in ['date', 'left', 'right', 'max-peak', 'time-between-peaks']:
+        if key in ['date', 'left', 'right', 'sequence', 'max-peak', 'time-between-peaks']:
             # as every figure has multiple axes with the same lines (i.e. the projects/ids) a one legend is drawed
             # manually, instead of having multiple legends with the same content in each axes per figure
             lines = fig[key].axes[0].lines
@@ -71,6 +71,7 @@ def get_fig_and_ax_map(arg_time_unit, arg_rollingmean, arg_window):
         'left': plt.figure(figsize=(10, 10)),
         'right': plt.figure(figsize=(10, 10)),
         'max-peak': plt.figure(figsize=(10, 10)),
+        'sequence': plt.figure(figsize=(10, 10)),
         'time-between-peaks': plt.figure(),
     }
     # axes map ---------------------------------------------------------------------------------------------------------
@@ -78,6 +79,7 @@ def get_fig_and_ax_map(arg_time_unit, arg_rollingmean, arg_window):
     left_grid = (4, 3)
     right_grid = (4, 3)
     max_peak_grid = (5, 3)
+    sequence_grid = (4, 3)
     time_between_grid = (3, 3)
     ax = {
         # NOTE: The keys follow a naming convention for ease of use as well as for styling! See in below at 'axes styling'
@@ -113,6 +115,15 @@ def get_fig_and_ax_map(arg_time_unit, arg_rollingmean, arg_window):
         'max-peak-acc-euclidean': plt.subplot2grid(max_peak_grid, (3, 2), colspan=1, fig=fig['max-peak']),
         'max-peak-acc-norm': plt.subplot2grid(max_peak_grid, (4, 0), colspan=2, fig=fig['max-peak']),
         'max-peak-acc-norm-euclidean': plt.subplot2grid(max_peak_grid, (4, 2), colspan=1, fig=fig['max-peak']),
+        #
+        'sequence-line': plt.subplot2grid(sequence_grid, (0, 0), colspan=2, fig=fig['sequence']),
+        'sequence-line-euclidean': plt.subplot2grid(sequence_grid, (0, 2), colspan=1, fig=fig['sequence']),
+        'sequence-norm': plt.subplot2grid(sequence_grid, (1, 0), colspan=2, fig=fig['sequence']),
+        'sequence-norm-euclidean': plt.subplot2grid(sequence_grid, (1, 2), colspan=1, fig=fig['sequence']),
+        'sequence-acc': plt.subplot2grid(sequence_grid, (2, 0), colspan=2, fig=fig['sequence']),
+        'sequence-acc-euclidean': plt.subplot2grid(sequence_grid, (2, 2), colspan=1, fig=fig['sequence']),
+        'sequence-acc-norm': plt.subplot2grid(sequence_grid, (3, 0), colspan=2, fig=fig['sequence']),
+        'sequence-acc-norm-euclidean': plt.subplot2grid(sequence_grid, (3, 2), colspan=1, fig=fig['sequence']),
         #
         'time-between-all-peaks': plt.subplot2grid(time_between_grid, (0, 0), colspan=2, fig=fig['time-between-peaks']),
         'time-between-all-peaks-euclidean': plt.subplot2grid(time_between_grid, (0, 2), colspan=1,
@@ -152,6 +163,7 @@ def get_fig_and_ax_map(arg_time_unit, arg_rollingmean, arg_window):
     fig['right'].suptitle("Commit frequency (right shifted) %sgrouped by %s" % (rolling_mean_text, grouped_by_text))
     fig['max-peak'].suptitle(
         "Commit frequency (max peak shifted) %sgrouped by %s" % (rolling_mean_text, grouped_by_text))
+    fig['sequence'].suptitle("Commit frequency (sequence shifted) %sgrouped by %s" % (rolling_mean_text, grouped_by_text))
     fig['time-between-peaks'].suptitle(
         "Time between peaks (values %sgrouped by %s before peak analysis)" % (rolling_mean_text, grouped_by_text))
     # ------------------------------------------------------------------------------------------------------------------

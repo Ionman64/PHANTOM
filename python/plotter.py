@@ -70,8 +70,8 @@ def __get_euclidean__(series1, series2, series_was_shifted_to):
         interest
     :return: Vector of distances between points
     """
-    assert (series_was_shifted_to in ['left', 'right', 'max-peak'])
-    if series_was_shifted_to == 'left':
+    assert (series_was_shifted_to in ['left', 'right', 'max-peak', 'sequence'])
+    if series_was_shifted_to in ['left', 'sequence'] :
         # values are overlayed correclty already, but they might have different lengths.
         shared_length = min(len(series1.values), len(series2.values))
         values1 = series1.values[:shared_length]
@@ -243,6 +243,12 @@ def maxpeakshift_series(series, leftshifted_idx):
     max_peakshifted_x = [leftshifted_idx[idx] - leftshifted_idx[max_peak] for idx in range(len(leftshifted_idx))]
     return pd.Series(data=series.values, index=max_peakshifted_x)
 
+def transform_index(series, time_unit):
+    pass
+
+def sequenceshift_series(series):
+    idx_range = range(0, len(series.values))
+    return pd.Series(data=series.values, index=idx_range)
 
 if __name__ == '__main__':
     # setup command line arguments -------------------------------------------------------------------------------------
@@ -266,13 +272,12 @@ if __name__ == '__main__':
         print "Invalid window size. Use --help to get more information."
         exit(1)
     # get data from database -------------------------------------------------------------------------------------------
-    engine = create_engine("postgres://postgres:new@localhost/project_analyser")
+    engine = create_engine("postgres://postgres:0000@localhost/project_analyser")
     frame = pd.read_sql_query(
         "SELECT repository_id, commit_date::DATE as commit_date, COUNT(commit_date::DATE) as frequency FROM repository_commit WHERE repository_id in (%s) GROUP BY commit_date::DATE, repository_id;" % str(arg_ids)[1:-1],
         con=engine,
         index_col='commit_date',
         parse_dates="commit_date")
-    print (frame)
     # setup figures and axes -------------------------------------------------------------------------------------------
     fig, ax = get_fig_and_ax_map(arg_time_unit, arg_rollingmean, arg_window)
     # setup data structures to store information -----------------------------------------------------------------------
@@ -286,7 +291,8 @@ if __name__ == '__main__':
         'date': {},
         'left': {},
         'right': {},
-        'max-peak': {}
+        'max-peak': {},
+        'sequence': {},
     }
     ### peak_pid_series
     # stores the time between peak analysis for projects
@@ -301,17 +307,20 @@ if __name__ == '__main__':
         ### transform and store series in different shifted formats ----------------------------------------------------
         # depending on the selected time unit the data are resampled. Data in the same resampled bin are summed up.
         series = series.frequency.resample(arg_time_unit).sum()
+
         if arg_rollingmean:
             series = rolling_mean_for_series(series, arg_window)
 
         leftshifted = leftshift_series(series)
         rightshifted = rightshift_series(series, leftshifted.index)
         max_peakshifted = maxpeakshift_series(series, leftshifted.index)
+        sequence_shifted = sequenceshift_series(series)
 
         shifted_pid_series['date'][key] = series
         shifted_pid_series['left'][key] = leftshifted
         shifted_pid_series['right'][key] = rightshifted
         shifted_pid_series['max-peak'][key] = max_peakshifted
+        shifted_pid_series['sequence'][key] = sequence_shifted
         ### plotting of standard figure for each format ----------------------------------------------------------------
         peaks = peak_analysis(series)
         populate_figure_with_standard_plots(series, peak_series=peaks if arg_mark_peaks else None,
@@ -326,6 +335,9 @@ if __name__ == '__main__':
         populate_figure_with_standard_plots(max_peakshifted, peak_series=peaks if arg_mark_peaks else None,
                                             ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
                                             ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
+        populate_figure_with_standard_plots(sequence_shifted, peak_series=peaks if arg_mark_peaks else None,
+                                            ax_line=ax['sequence-line'], ax_norm=ax['sequence-norm'],
+                                            ax_acc=ax['sequence-acc'], ax_acc_norm=ax['sequence-acc-norm'])
         ### time between peaks -----------------------------------------------------------------------------------------
         for (peak_condition, tbp_axes_key) in [
             (peaks.values == 1, 'time-between-up-peaks'),
@@ -351,7 +363,7 @@ if __name__ == '__main__':
 
     ### euclidean distance ---------------------------------------------------------------------------------------------
     # for normal plots
-    for prefix in ['left', 'right', 'max-peak']:
+    for prefix in ['left', 'right', 'max-peak', 'sequence']:
         populate_figure_with_euclidean(pid_series=shifted_pid_series[prefix],
                                        series_was_shifted_to=prefix,
                                        ax_line_euclidean=ax['%s-line-euclidean' % prefix],
