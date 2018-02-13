@@ -19,27 +19,6 @@ fn generate_analysis_csv(project: &ClonedProject, datecount: HashMap<String, i32
     Ok(())
 }
 
-pub fn count_commits_per_day(cloned_project: &ClonedProject) -> Result<HashMap<NaiveDate, i16>, ErrorKind> {
-    let mut date_count = HashMap::new();
-    let git_log_lines = read_git_log_to_vec(&cloned_project.output_log_path).unwrap();
-
-    for (i, line) in git_log_lines.response.iter().enumerate() {
-        let timestamp: i64 = match line.parse() {
-            Ok(val) => val,
-            Err(e) => {
-                error!("Could not parse timestamp '{}' in line {}. Timestamp was skipped. Error: {}",
-                       line, i + 1, e);
-                continue;
-            }
-        };
-        let date = NaiveDateTime::from_timestamp(timestamp, 0).date();
-        let count = date_count.entry(date).or_insert(0);
-        *count += 1;
-    }
-
-    Ok(date_count)
-}
-
 fn read_git_log_to_vec(filepath: &String) -> Result<LinesResponse<String>, ErrorKind> {
     let file = File::open(filepath).expect("Git log not found");
     let reader = BufReader::new(file);
@@ -70,13 +49,13 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         Ok(output) => output,
         Err(_) => {
             warn!("Could not create git log");
-            return Err(ErrorKind::Other);
+            return Err(ErrorKind::InvalidInput);
         }
     };
     let output = git_files_and_dates_command.stdout;
     let output_string = match String::from_utf8(output) {
         Ok(x) => x,
-        Err(_) => return Err(ErrorKind::Other),
+        Err(_) => return Err(ErrorKind::InvalidInput),
     };
     let commits_to_files: Vec<(String, Vec<String>)> = Vec::new();
     for line in output_string.split('\n').collect::<Vec<&str>>() {
@@ -88,7 +67,7 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             let commit_hash = String::from(parts[0]);
             let timestamp = match parts[1].parse() {
                 Ok(x) => {x},
-                Err(_) => {return Err(ErrorKind::InvalidInput)}
+                Err(_) => {return Err(ErrorKind::InvalidData)}
             };
             let date = NaiveDateTime::from_timestamp(timestamp, 0);
             let count = date_count.entry(date).or_insert(0);
@@ -101,7 +80,7 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         }
     }
     let mut index = 0;
-    let jump = 10000;
+    let jump = 950;
     let length = repository_commits.len();
     while index < length {
         let mut tempVec: Vec<NewRepositoryCommit> = Vec::new();
@@ -115,7 +94,8 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             Err(ErrorKind::AlreadyExists) => { info!("{} already exists in database", &cloned_project.github.id) },
             Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id); },
             Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id) },
-        }
+        };
+        //Ok(&cloned_project)
     }
     let mut commit_frequencies:Vec<CommitFrequency> = Vec::new();
     for (commit_date, frequency) in date_count.into_iter() {
@@ -124,9 +104,10 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
     }
     match database::create_commit_frequencies(commit_frequencies) {
         Ok(_) => {},
+        Err(ErrorKind::AlreadyExists) => {return Err(ErrorKind::AlreadyExists)},
         Err(_) => {return Err(ErrorKind::Other)}
     }
-    Ok(&cloned_project)
+    Ok(cloned_project)
 }
 fn print_commits(id: &i64, commits: &Vec<NewRepositoryCommit>) {
     use downloader::get_home_dir_path;

@@ -42,7 +42,7 @@ fn execute(path_to_projects_csv: String) {
     };
 
     let mut git_repositories: Vec<GitRepository> = Vec::new();
-    for project in new_repositories.into_iter().take(5) {
+    for project in new_repositories.into_iter().take(10) {
         let url = project.url.clone();
         match database::create_git_repository(project) {
             Ok(repository) => git_repositories.push(repository),
@@ -71,38 +71,17 @@ fn execute(path_to_projects_csv: String) {
                 }
             };
             match git_analyser::generate_git_log(&cloned_project) {
-                Ok(log) => {
+                Ok(x) => {
                     info!("Created log in {}", &cloned_project.path);
-                    log
-                }
+                },
+                Err(ErrorKind::InvalidData) => {error!("Invalid Data")},
+                Err(ErrorKind::InvalidInput) => {error!("Invalid input when creating log")},
+                Err(ErrorKind::Other) => {error!("Unknown error creating log")}
                 Err(e) => {
                     error!("Could not generate log file for project {}: {:?}", &cloned_project.path, e);
                     return;
                 }
             };
-            let date_count = match git_analyser::count_commits_per_day(&cloned_project) {
-                Ok(date_count) => { date_count }
-                Err(_) => {
-                    error!("Could not count commits");
-                    return;
-                }
-            };
-
-            // write commit frequency analysis into database
-            let mut commit_frequencies:Vec<CommitFrequency> = Vec::new();
-            for (date, frequency) in date_count.into_iter() {
-                commit_frequencies.push(CommitFrequency {
-                    repository_id: cloned_project.github.id,
-                    commit_date: date.and_hms(0, 0, 0),
-                    frequency,
-                });
-            }
-            match database::create_commit_frequencies(commit_frequencies) {
-                Ok(_) => {}
-                Err(_) => {
-                    error!("Could not create frequencies");
-                }
-            }
         });
     }
 }
