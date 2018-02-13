@@ -24,7 +24,7 @@ pub struct RepositoryCommit {
     pub commit_hash: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 #[derive(Insertable)]
 #[table_name="repository_commit"]
 pub struct NewRepositoryCommit {

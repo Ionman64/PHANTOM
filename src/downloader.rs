@@ -191,8 +191,16 @@ mod tests {
 
     #[test]
     fn clone_project_correct_url() {
-        let project = GitRepository { id: 1, url: String::from("https://github.com/bitcoin/bitcoin") };
-        assert!(clone_project(project).is_ok());
+        let project = GitRepository { id: -1, url: String::from("https://github.com/bitcoin/bitcoin") };
+        let success = clone_project(project).is_ok();
+        let file_path = Path::new(&get_home_dir_path().unwrap())
+            .join("project_analyser")
+            .join("repos")
+            .join("-1");
+        if success {
+            fs::remove_dir_all(file_path);
+        }
+        assert!(success);
     }
 
     #[test]

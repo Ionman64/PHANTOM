@@ -100,22 +100,47 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             //println!("{}", line);
         }
     }
-    match database::create_repository_commit(repository_commits) {
-        Ok(x) => {info!("{} rows inserted into database: repository_id {}", x, cloned_project.github.id)},
-        Err(ErrorKind::AlreadyExists) => {info!("{} already exists in database", cloned_project.github.id)},
-        Err(ErrorKind::Other) => {info!("Other Error when inserting {} into database", cloned_project.github.id)},
-        Err(_) => {info!("Unknown Error when inserting {} into database", cloned_project.github.id)},
+    let mut index = 0;
+    let jump = 10000;
+    let length = repository_commits.len();
+    while index < length {
+        let mut tempVec: Vec<NewRepositoryCommit> = Vec::new();
+        for repository_commit in repository_commits.clone().into_iter().skip(index).take(jump) {
+            tempVec.push(repository_commit);
+        }
+        index = index + jump;
+        println!("{} at index {}", &cloned_project.github.id, jump);
+        match database::create_repository_commit(&tempVec) {
+            Ok(x) => { info!("{} rows inserted into database: repository_id {}", x, &cloned_project.github.id) },
+            Err(ErrorKind::AlreadyExists) => { info!("{} already exists in database", &cloned_project.github.id) },
+            Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id); },
+            Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id) },
+        }
     }
     let mut commit_frequencies:Vec<CommitFrequency> = Vec::new();
     for (commit_date, frequency) in date_count.into_iter() {
         let commit_frequency = CommitFrequency {repository_id:cloned_project.github.id, commit_date, frequency};
         commit_frequencies.push(commit_frequency);
     }
-    /*match database::create_commit_frequencies(commit_frequencies) {
+    match database::create_commit_frequencies(commit_frequencies) {
         Ok(_) => {},
         Err(_) => {return Err(ErrorKind::Other)}
-    }*/
+    }
     Ok(&cloned_project)
+}
+fn print_commits(id: &i64, commits: &Vec<NewRepositoryCommit>) {
+    use downloader::get_home_dir_path;
+    use std::path::Path;
+    use std::fs;
+    use std::ops::Add;
+    let file_path = Path::new(&get_home_dir_path().unwrap())
+        .join("project_analyser")
+        .join(id.to_string().add(".sql"));
+    let file = File::create(file_path).unwrap();
+    let mut bufwriter = BufWriter::new(file);
+    for commit in commits.into_iter() {
+        bufwriter.write_fmt(format_args!("INSERT INTO repository_commit (repository_id, commit_hash, commit_date) VALUES ('{}','{}','{}');\n", commit.repository_id, commit.commit_hash, commit.commit_date));
+    }
 }
 
 #[cfg(tests)]

@@ -6,7 +6,7 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
-use models::{NewGitRepository, GitRepository, CommitFrequency, NewRepositoryCommit};
+use models::{NewGitRepository, GitRepository, CommitFrequency, NewRepositoryCommit, RepositoryCommit};
 use std::env;
 use std::io::ErrorKind;
 
@@ -37,7 +37,7 @@ pub fn create_commit_frequencies(entry: Vec<CommitFrequency>) -> DatabaseResult<
     commit_frequency::create(&conn, entry)
 }
 
-pub fn create_repository_commit(entry: Vec<NewRepositoryCommit>) -> DatabaseResult<usize> {
+pub fn create_repository_commit(entry: &Vec<NewRepositoryCommit>) -> DatabaseResult<usize> {
     let conn = establish_connection();
     repository_commit::create(&conn, entry)
 }
