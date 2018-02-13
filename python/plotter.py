@@ -266,11 +266,13 @@ if __name__ == '__main__':
         print "Invalid window size. Use --help to get more information."
         exit(1)
     # get data from database -------------------------------------------------------------------------------------------
-    engine = create_engine("postgres://postgres:0000@localhost/project_analyser")
+    engine = create_engine("postgres://postgres:new@localhost/project_analyser")
     frame = pd.read_sql_query(
-        'SELECT * FROM commit_frequency WHERE repository_id IN (%s) ORDER BY commit_date' % str(arg_ids)[1:-1],
+        "SELECT repository_id, commit_date::DATE as commit_date, COUNT(commit_date::DATE) as frequency FROM repository_commit WHERE repository_id in (%s) GROUP BY commit_date::DATE, repository_id;" % str(arg_ids)[1:-1],
         con=engine,
-        index_col='commit_date')
+        index_col='commit_date',
+        parse_dates="commit_date")
+    print (frame)
     # setup figures and axes -------------------------------------------------------------------------------------------
     fig, ax = get_fig_and_ax_map(arg_time_unit, arg_rollingmean, arg_window)
     # setup data structures to store information -----------------------------------------------------------------------
