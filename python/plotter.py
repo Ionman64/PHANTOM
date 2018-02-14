@@ -299,14 +299,6 @@ if __name__ == '__main__':
         'max-peak': {},
         'sequence': {},
     }
-    ### peak_pid_series
-    # stores the time between peak analysis for projects
-    # example: peak_pid_series['time-between-all-peaks'][2] stores the series of the analyis for project 2 of time between all peaks
-    peak_pid_series = {
-        'time-between-all-peaks': {},
-        'time-between-up-peaks': {},
-        'time-between-down-peaks': {},
-    }
     # plot everything --------------------------------------------------------------------------------------------------
     for key, series in frame.groupby('repository_id'):
         ### transform and store series in different shifted formats ----------------------------------------------------
@@ -343,18 +335,6 @@ if __name__ == '__main__':
         populate_figure_with_standard_plots(sequence_shifted, peak_series=peaks if arg_mark_peaks else None,
                                             ax_line=ax['sequence-line'], ax_norm=ax['sequence-norm'],
                                             ax_acc=ax['sequence-acc'], ax_acc_norm=ax['sequence-acc-norm'])
-        ### time between peaks -----------------------------------------------------------------------------------------
-        for (peak_condition, tbp_axes_key) in [
-            (peaks.values == 1, 'time-between-up-peaks'),
-            (peaks.values == -1, 'time-between-down-peaks'),
-            (peaks.values != 0, 'time-between-all-peaks'),
-        ]:
-            peak_times = leftshifted[peak_condition].index
-            time_between_peaks = [peak_times[0]] + [peak_times[idx] - peak_times[idx - 1] for idx in
-                                                    range(1, len(peak_times))]
-            peak_series = pd.Series(data=time_between_peaks)
-            peak_series.plot(ax=ax[tbp_axes_key])
-            peak_pid_series[tbp_axes_key][key] = peak_series
 
         ### percentage before and after max peak -----------------------------------------------------------------------
         len_mps = len(max_peakshifted.index)
@@ -375,11 +355,6 @@ if __name__ == '__main__':
                                        ax_norm_euclidean=ax['%s-norm-euclidean' % prefix],
                                        ax_acc_euclidean=ax['%s-acc-euclidean' % prefix],
                                        ax_acc_norm_euclidean=ax['%s-acc-norm-euclidean' % prefix])
-    # for time between peak plots
-    for key in peak_pid_series:
-        pid_series = peak_pid_series[key]
-        axes = ax["%s-euclidean" % key]
-        populate_axes_with_euclidean(pid_series, 'left', axes)
 
     # ------------------------------------------------------------------------------------------------------------------
     post_plot_figure_style(fig, arg_ids)

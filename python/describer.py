@@ -38,7 +38,7 @@ if __name__ == "__main__":
         # avg. time between peaks
         peak_up_times = df[df['peaks'] == 1].index
         time_between_ups = [(peak_up_times[idx] - peak_up_times[idx-1]).days for idx in range(1, len(peak_up_times))]
-        avg_delta_ups = -100
+        avg_delta_ups = -10
         if len(time_between_ups) > 0:
             avg_delta_ups = np.average(time_between_ups)  / resample_time_unit_days
         id_frame.at[key, 'avg delta ups'] = avg_delta_ups
@@ -53,9 +53,9 @@ if __name__ == "__main__":
             diff = peak_val - prev_val
             amplitudes.append(np.true_divide(diff, ymax))
 
-        min_amp = -100
-        avg_amp = -100
-        max_amp = -100
+        min_amp = -5
+        avg_amp = -5
+        max_amp = -5
         if len(amplitudes) > 0:
             min_amp = np.min(amplitudes)
             avg_amp = np.average(amplitudes)
@@ -64,18 +64,16 @@ if __name__ == "__main__":
         id_frame.at[key, 'avg amplitude'] = avg_amp
         id_frame.at[key, 'max amplitude'] = max_amp
 
-
-
-
         # density calculation
         #print df['values'][ymax_idx:ymax_idx+10].count()
 
+    pd.set_option("display.max_rows", 400)
     #print "\n*\t--------------------\t*\n", id_frame, "\n\n", id_frame.describe()[1:]
+
     mat = id_frame.as_matrix()
-    km = cluster.KMeans(n_clusters=10)
+    km = cluster.KMeans(n_clusters=2)
     km.fit(mat)
     labels = km.labels_
 
-    pd.set_option("display.max_rows", 400)
     df_results = pd.DataFrame(data={'repository_id': id_frame.index, 'cluster': labels})
     print df_results
