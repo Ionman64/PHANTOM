@@ -71,17 +71,12 @@ def __get_euclidean__(series1, series2, series_was_shifted_to):
         interest
     :return: Vector of distances between points
     """
-    assert (series_was_shifted_to in ['left', 'right', 'max-peak', 'sequence'])
+    assert (series_was_shifted_to in ['left', 'max-peak', 'sequence'])
     if series_was_shifted_to in ['left', 'sequence'] :
         # values are overlayed correclty already, but they might have different lengths.
         shared_length = min(len(series1.values), len(series2.values))
         values1 = series1.values[:shared_length]
         values2 = series2.values[:shared_length]
-    elif series_was_shifted_to == 'right':
-        # values are not overlayed correctly, therefore take only last one and consider different lengths
-        shared_length = min(len(series1.values), len(series2.values))
-        values1 = series1.values[-shared_length:]
-        values2 = series2.values[-shared_length:]
     elif series_was_shifted_to == 'max-peak':
         # values must be overlayed where the index is 0. To do this, we skip some elements of the vector with more
         # values before 0, which will align them. Then consider different lengths of the remaining values.
@@ -295,7 +290,6 @@ if __name__ == '__main__':
     shifted_pid_series = {
         'date': {},
         'left': {},
-        'right': {},
         'max-peak': {},
         'sequence': {},
     }
@@ -309,13 +303,12 @@ if __name__ == '__main__':
             series = rolling_mean_for_series(series, arg_window)
 
         leftshifted = leftshift_series(series)
-        rightshifted = rightshift_series(series, leftshifted.index)
+
         max_peakshifted = maxpeakshift_series(series, leftshifted.index)
         sequence_shifted = sequenceshift_series(series)
 
         shifted_pid_series['date'][key] = series
         shifted_pid_series['left'][key] = leftshifted
-        shifted_pid_series['right'][key] = rightshifted
         shifted_pid_series['max-peak'][key] = max_peakshifted
         shifted_pid_series['sequence'][key] = sequence_shifted
         ### plotting of standard figure for each format ----------------------------------------------------------------
@@ -326,9 +319,7 @@ if __name__ == '__main__':
         populate_figure_with_standard_plots(leftshifted, peak_series=peaks if arg_mark_peaks else None,
                                             ax_line=ax['left-line'], ax_norm=ax['left-norm'],
                                             ax_acc=ax['left-acc'], ax_acc_norm=ax['left-acc-norm'])
-        populate_figure_with_standard_plots(rightshifted, peak_series=peaks if arg_mark_peaks else None,
-                                            ax_line=ax['right-line'], ax_norm=ax['right-norm'],
-                                            ax_acc=ax['right-acc'], ax_acc_norm=ax['right-acc-norm'])
+
         populate_figure_with_standard_plots(max_peakshifted, peak_series=peaks if arg_mark_peaks else None,
                                             ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
                                             ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
@@ -348,7 +339,7 @@ if __name__ == '__main__':
 
     ### euclidean distance ---------------------------------------------------------------------------------------------
     # for normal plots
-    for prefix in ['left', 'right', 'max-peak', 'sequence']:
+    for prefix in ['left', 'max-peak', 'sequence']:
         populate_figure_with_euclidean(pid_series=shifted_pid_series[prefix],
                                        series_was_shifted_to=prefix,
                                        ax_line_euclidean=ax['%s-line-euclidean' % prefix],
