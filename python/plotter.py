@@ -20,6 +20,7 @@ import pandas as pd
 from docopt import docopt
 from sqlalchemy import create_engine
 from subprocess import check_output
+from utils.setup import get_db_connection_string
 
 
 def euclidean_distance(pid_series, series_was_shifted_to, norm=False, acc=False):
@@ -111,6 +112,8 @@ def peak_analysis(series, path_to_utils_binary="../target/debug/utils", utils_bi
         [peak down, no peak, peak up] respectively
     """
     # TODO optimise by passing multiple series values at the same time
+    if len(series) < 3:
+        return pd.Series(data=[0]*len(series))
     output = check_output([path_to_utils_binary] + utils_binary_flags + map(str, series.values))
     output_as_array = map(int, output[1:-1].split(','))
     peak_series = pd.Series(data=output_as_array)
@@ -272,14 +275,9 @@ if __name__ == '__main__':
         print "Invalid window size. Use --help to get more information."
         exit(1)
     # read environment variable from '.env' ----------------------------------------------------------------------------
-    env_map = {}
-    with open('../.env') as file:
-        for line in file.readlines():
-            line = line.split('=')
-            assert (len(line) == 2)
-            env_map[line[0]] = line[1]
+
     # get data from database -------------------------------------------------------------------------------------------
-    engine = create_engine(env_map.get("DATABASE_URL"))
+    engine = create_engine(get_db_connection_string())
     frame = pd.read_sql_query(
         "SELECT repository_id, commit_date::DATE as commit_date, COUNT(commit_date::DATE) as frequency FROM repository_commit WHERE repository_id in (%s) GROUP BY commit_date::DATE, repository_id;" % str(arg_ids)[1:-1],
         con=engine,
