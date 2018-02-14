@@ -271,8 +271,15 @@ if __name__ == '__main__':
     if arg_rollingmean and arg_window <= 0:
         print "Invalid window size. Use --help to get more information."
         exit(1)
+    # read environment variable from '.env' ----------------------------------------------------------------------------
+    env_map = {}
+    with open('../.env') as file:
+        for line in file.readlines():
+            line = line.split('=')
+            assert (len(line) == 2)
+            env_map[line[0]] = line[1]
     # get data from database -------------------------------------------------------------------------------------------
-    engine = create_engine("postgres://postgres:0000@localhost/project_analyser")
+    engine = create_engine(env_map.get("DATABASE_URL"))
     frame = pd.read_sql_query(
         "SELECT repository_id, commit_date::DATE as commit_date, COUNT(commit_date::DATE) as frequency FROM repository_commit WHERE repository_id in (%s) GROUP BY commit_date::DATE, repository_id;" % str(arg_ids)[1:-1],
         con=engine,
