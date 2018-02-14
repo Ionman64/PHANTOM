@@ -4,45 +4,50 @@ import sqlalchemy
 from sklearn import cluster
 from utils.setup import get_db_connection_string
 from plotter import peak_analysis
-if __name__ == "__main__":
-    engine = sqlalchemy.create_engine(get_db_connection_string())
 
+def normalise_columns_with_standard_score(dataframe):
+    for col in dataframe.columns:
+        dataframe[col] = (dataframe[col] - dataframe[col].mean()) / dataframe[col].std()
+
+if __name__ == "__main__":
+    # get data ---------------------------------------------------------------------------------------------------------
+    engine = sqlalchemy.create_engine(get_db_connection_string())
     db_frame = pd.read_sql_query(
         "SELECT repository_id, commit_date::DATE as commit_date, COUNT(commit_date::DATE) as frequency FROM repository_commit GROUP BY commit_date::DATE, repository_id;",
         con=engine,        index_col='commit_date',
         parse_dates="commit_date").sort_index()
-
     id_frame = pd.DataFrame(index=db_frame.repository_id.unique()).sort_index()
-
-    resample_time_unit = "w"
+    # setup ------------------------------------------------------------------------------------------------------------
+    resample_time_unit = "w" # choose the time unit to group. 'w' = week
     resample_time_unit_days = 7
+    # iterate over IDs to populate dataframe ---------------------------------------------------------------------------
     for key, series in db_frame.groupby('repository_id')['frequency']:
-        #print "*** ID == ", key
+        ### print "*** ID == ", key
         series = series.resample(resample_time_unit).sum()
         peaks = peak_analysis(series)
         df = pd.DataFrame(data={'values': series.values, 'peaks': peaks.values}, index=series.index)
 
-        # duration
+        ### duration
         id_frame.at[key, 'duration'] = len(df)
 
-        # max value position
+        ### max value position
         ymax = df['values'].max()
         id_frame.at[key, 'max y'] = ymax
         ymax_idx = df['values'].values.argmax()
         id_frame.at[key, 'max y pos'] = ymax_idx + 1
 
-        # number of up peaks
+        ### number of up peak s
         peak_counts = df.groupby('peaks').count()
         id_frame.at[key, 'peakup'] = peak_counts.loc[1][0] if 1 in peak_counts.index else 0
 
-        # avg. time between peaks
+        ### avg. time between peaks
         peak_up_times = df[df['peaks'] == 1].index
         time_between_ups = [(peak_up_times[idx] - peak_up_times[idx-1]).days for idx in range(1, len(peak_up_times))]
-        avg_delta_ups = -10
+        avg_delta_ups = 0
         if len(time_between_ups) > 0:
             avg_delta_ups = np.average(time_between_ups)  / resample_time_unit_days
         id_frame.at[key, 'avg delta ups'] = avg_delta_ups
-        # peak amplitudes
+        ### peak amplitudes
         up_idx = np.where(df.peaks.values == 1)[0]
         vals = df['values'].values
         amplitudes = []
@@ -53,9 +58,9 @@ if __name__ == "__main__":
             diff = peak_val - prev_val
             amplitudes.append(np.true_divide(diff, ymax))
 
-        min_amp = -5
-        avg_amp = -5
-        max_amp = -5
+        min_amp = 0
+        avg_amp = 0
+        max_amp = 0
         if len(amplitudes) > 0:
             min_amp = np.min(amplitudes)
             avg_amp = np.average(amplitudes)
@@ -64,16 +69,44 @@ if __name__ == "__main__":
         id_frame.at[key, 'avg amplitude'] = avg_amp
         id_frame.at[key, 'max amplitude'] = max_amp
 
-        # density calculation
-        #print df['values'][ymax_idx:ymax_idx+10].count()
-
     pd.set_option("display.max_rows", 400)
-    #print "\n*\t--------------------\t*\n", id_frame, "\n\n", id_frame.describe()[1:]
+    print id_frame.describe()
 
-    mat = id_frame.as_matrix()
+    normalise_columns_with_standard_score(id_frame)
+
+
+    # setup kmeans with number of clusters
     km = cluster.KMeans(n_clusters=2)
-    km.fit(mat)
-    labels = km.labels_
 
-    df_results = pd.DataFrame(data={'repository_id': id_frame.index, 'cluster': labels})
-    print df_results
+    # run kmeans N times
+    N = 10
+    # accuracy for each run
+    acc0 = np.zeros(N)
+    acc1 = np.zeros(N)
+    # misclassification for each run
+    mis0 = np.zeros(N)
+    mis1 = np.zeros(N)
+
+    mat = id_frame[['duration', 'avg amplitude']].as_matrix()
+    for idx in range(N):
+        df_results = pd.DataFrame(data={'repository_id': id_frame.index, 'cluster': km.fit(mat).labels_})
+
+        cut = 152 # the first 152 projects are projects according to the csv. So they should have the same label
+        rep0 = df_results[df_results.repository_id <= cut]
+        rep1 = df_results[df_results.repository_id > cut]
+
+        lab0 = rep0.loc[0].cluster # label for first cluster is the label for the first project
+        lab1 = np.mod(lab0+1, 2) # as there are two label, the other label is determined by modulo
+
+        acc0[idx] = np.true_divide(rep0[rep0.cluster == lab0]['cluster'].count(), rep0['cluster'].count())
+        mis0[idx] = np.true_divide(rep0[rep0.cluster == lab1]['cluster'].count(), rep0['cluster'].count())
+
+        acc1[idx] = np.true_divide(rep1[rep1.cluster == lab1]['cluster'].count(), rep1['cluster'].count())
+        mis1[idx] = np.true_divide(rep1[rep1.cluster == lab0]['cluster'].count(), rep1['cluster'].count())
+
+    print "Acc(0): ", np.average(acc0)
+    print "Mis(0): ", np.average(mis0)
+    print "Acc(1): ", np.average(acc1)
+    print "Mis(1): ", np.average(mis1)
+
+
