@@ -1,4 +1,4 @@
-use super::schema::{git_repository, commit_frequency, repository_commit};
+use super::schema::{git_repository, repository_commit};
 use chrono::NaiveDateTime;
 
 #[derive(Queryable)]
@@ -15,13 +15,14 @@ impl NewRepositoryCommit {
     }
 }
 
-#[derive(Queryable)]
+
 #[derive(Debug)]
+#[derive(Queryable)]
 pub struct RepositoryCommit {
     pub commit_id: i64,
     pub repository_id: i64,
-    pub commit_date: NaiveDateTime,
     pub commit_hash: String,
+    pub commit_date: NaiveDateTime
 }
 
 #[derive(Debug,Clone)]
@@ -31,16 +32,6 @@ pub struct NewRepositoryCommit {
     pub repository_id: i64,
     pub commit_date: NaiveDateTime,
     pub commit_hash: String,
-}
-
-#[derive(Queryable)]
-#[derive(Debug)]
-#[derive(Insertable)]
-#[table_name="commit_frequency"]
-pub struct CommitFrequency {
-    pub repository_id: i64,
-    pub commit_date: NaiveDateTime,
-    pub frequency: i16,
 }
 
 #[derive(Insertable)]

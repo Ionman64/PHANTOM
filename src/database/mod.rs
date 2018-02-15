@@ -1,18 +1,15 @@
 extern crate diesel;
 extern crate dotenv;
 
-
-use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
-use models::{NewGitRepository, GitRepository, CommitFrequency, NewRepositoryCommit, RepositoryCommit};
+use models::{NewGitRepository, GitRepository, RepositoryCommit, NewRepositoryCommit};
 use std::env;
 use std::io::ErrorKind;
 
 type DatabaseResult<T> = Result<T, ErrorKind>;
 
-mod commit_frequency;
 mod git_repository;
 mod repository_commit;
 
@@ -32,12 +29,7 @@ pub fn create_git_repository(project: NewGitRepository) -> DatabaseResult<GitRep
     git_repository::create(&conn, project)
 }
 
-pub fn create_commit_frequencies(entry: Vec<CommitFrequency>) -> DatabaseResult<CommitFrequency> {
-    let conn = establish_connection();
-    commit_frequency::create(&conn, entry)
-}
-
-pub fn create_repository_commit(entry: &Vec<NewRepositoryCommit>) -> DatabaseResult<usize> {
+pub fn create_repository_commit(entry: Vec<NewRepositoryCommit>) -> DatabaseResult<usize> {
     let conn = establish_connection();
     repository_commit::create(&conn, entry)
 }
@@ -48,9 +40,9 @@ pub fn read_git_repository(url: String) -> DatabaseResult<GitRepository> {
     git_repository::read(&conn, url)
 }
 
-pub fn read_commit_frequency(id: i64, date: Option<NaiveDateTime>) -> DatabaseResult<Vec<CommitFrequency>> {
+pub fn read_repository_commit(id: i64) -> DatabaseResult<Vec<RepositoryCommit>> {
     let conn = establish_connection();
-    commit_frequency::read(&conn, id, date)
+    repository_commit::read(&conn, id)
 }
 
 /* Update entries *********************************************************************************/

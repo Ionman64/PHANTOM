@@ -42,7 +42,7 @@ fn execute(path_to_projects_csv: String) {
     };
 
     let mut git_repositories: Vec<GitRepository> = Vec::new();
-    for project in new_repositories.into_iter().take(10) {
+    for project in new_repositories.into_iter().take(1) {
         let url = project.url.clone();
         match database::create_git_repository(project) {
             Ok(repository) => git_repositories.push(repository),
@@ -71,7 +71,7 @@ fn execute(path_to_projects_csv: String) {
                 }
             };
             match git_analyser::generate_git_log(&cloned_project) {
-                Ok(x) => {
+                Ok(_) => {
                     info!("Created log in {}", &cloned_project.path);
                 },
                 Err(ErrorKind::InvalidData) => {error!("Invalid Data")},
@@ -82,6 +82,11 @@ fn execute(path_to_projects_csv: String) {
                     return;
                 }
             };
+            let _get_all_commits = match database::read_repository_commit(cloned_project.github.id) {
+                Ok(x) => x,
+                Err(_) => {error!("could not read commits");return;}
+            };
+            //git_analyser::checkout_commit(&cloned_project, &String::from("f4047650f2b654bb9ef33f2408212915e410e835"));
         });
     }
 }
