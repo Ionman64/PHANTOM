@@ -1,4 +1,4 @@
-use super::schema::{git_repository, repository_commit};
+use super::schema::{git_repository, repository_commit, commit_file};
 use chrono::NaiveDateTime;
 
 #[derive(Queryable)]
@@ -17,11 +17,12 @@ impl NewRepositoryCommit {
 
 #[derive(Debug,Clone)]
 #[derive(Insertable)]
-#[table_name="file_analysis"]
+#[table_name="commit_file"]
 pub struct NewCommitFile {
-    pub file_id: i64,
     pub commit_id: i64,
+    pub file_path: String
 }
+
 
 
 #[derive(Debug)]
@@ -29,6 +30,7 @@ pub struct NewCommitFile {
 pub struct CommitFile {
     pub file_id: i64,
     pub commit_id: i64,
+    pub file_path: String
 }
 
 

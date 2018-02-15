@@ -24,6 +24,7 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         Ok(x) => x,
         Err(_) => return Err(ErrorKind::InvalidInput),
     };
+    //let mut commit_to_file:Vec<(String, Vec<(String, String))> = Vec::new();
     let mut current_commit_hash;
     for line in output_string.split('\n').collect::<Vec<&str>>() {
         if line.contains(">>>>") {
@@ -43,6 +44,10 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         }
         else {
             //File Name
+            //let modifier = line.split(' ')[0];
+            //let filepath = line.split(' ')[1];
+            //let tempFile = CommitFile {commit_id:}
+            //commit_to_file.push((current_commit_hash, (line);
             //println!("{}", line);
         }
     }

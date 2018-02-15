@@ -4,7 +4,7 @@ extern crate dotenv;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
-use models::{NewGitRepository, GitRepository, RepositoryCommit, NewRepositoryCommit};
+use models::*;
 use std::env;
 use std::io::ErrorKind;
 
@@ -12,6 +12,7 @@ type DatabaseResult<T> = Result<T, ErrorKind>;
 
 mod git_repository;
 mod repository_commit;
+mod commit_file;
 
 fn establish_connection() -> PgConnection {
     dotenv().ok();
@@ -32,6 +33,11 @@ pub fn create_git_repository(project: NewGitRepository) -> DatabaseResult<GitRep
 pub fn create_repository_commit(entry: Vec<NewRepositoryCommit>) -> DatabaseResult<usize> {
     let conn = establish_connection();
     repository_commit::create(&conn, entry)
+}
+
+pub fn create_commit_file(entry: Vec<NewCommitFile>) -> DatabaseResult<usize> {
+    let conn = establish_connection();
+    commit_file::create(&conn, entry)
 }
 
 /* Read entries ***********************************************************************************/
