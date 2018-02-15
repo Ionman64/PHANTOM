@@ -47,7 +47,7 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         }
     }
     let mut index = 0;
-    let jump = 950;
+    let jump = 21845;
     let length = repository_commits.len();
     while index < length {
         let mut temp_vec: Vec<NewRepositoryCommit> = Vec::new();
