@@ -3,9 +3,9 @@ use schema::repository_commit;
 use models::{RepositoryCommit, NewRepositoryCommit};
 use diesel::result::Error;
 
-pub fn create(conn: &PgConnection, entry: Vec<NewRepositoryCommit>) -> DatabaseResult<usize> {
+pub fn create(conn: &PgConnection, entry: &[NewRepositoryCommit]) -> DatabaseResult<usize> {
     match diesel::insert_into(repository_commit::table)
-        .values(&entry)
+        .values(entry)
         .execute(conn) {
             Ok(x) => return Ok(x),
             Err(Error::QueryBuilderError(_)) => {info!("Could not build query"); return Err(ErrorKind::Other)},

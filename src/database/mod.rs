@@ -38,7 +38,7 @@ pub fn create_repository_commit(entry: Vec<NewRepositoryCommit>) -> DatabaseResu
     let chunks = entry.chunks(MAX_QUERY_VALUES / NewRepositoryCommit::count_fields());
 
     for chunk in chunks {
-        repository_commit::create(&conn, entry)?;
+        repository_commit::create(&conn, &entry)?;
     }
     Ok(entry.len())
 }
