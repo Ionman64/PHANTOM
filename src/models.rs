@@ -15,6 +15,22 @@ impl NewRepositoryCommit {
     }
 }
 
+#[derive(Debug,Clone)]
+#[derive(Insertable)]
+#[table_name="file_analysis"]
+pub struct NewCommitFile {
+    pub file_id: i64,
+    pub commit_id: i64,
+}
+
+
+#[derive(Debug)]
+#[derive(Queryable)]
+pub struct CommitFile {
+    pub file_id: i64,
+    pub commit_id: i64,
+}
+
 
 #[derive(Debug)]
 #[derive(Queryable)]
