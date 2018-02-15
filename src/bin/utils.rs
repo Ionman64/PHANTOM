@@ -1,14 +1,4 @@
-extern crate project_analyser;
-
 use std::env;
-use project_analyser::database;
-use std::fs::File;
-use std::io::{Write, BufWriter};
-use project_analyser::models::CommitFrequency;
-use project_analyser::downloader::get_home_dir_path;
-use std::path::Path;
-use std::fs;
-use std::ops::Add;
 ///Provides the distance between two points on a graph as represented in cartesian co-ordinates
 /// #Example
 /// two_dimensions_euclidean_distance((1,1), (2,2)) -> 1.41321: f64
@@ -34,11 +24,11 @@ pub enum PEAK {
 /// assert_eq!(x, 1)
 ///
 /// assert_eq!(y, PEAK::UP)
-pub fn detect_all_peaks(data_set: Vec<f64>) -> Vec<(usize, PEAK)> {
+pub fn detect_all_peaks(data_set: Vec<f64>) -> Vec<(usize, usize)> {
     if data_set.len() < 3 {
         panic!("dataset must have more than three elements for peak detection");
     }
-    let mut return_vector:Vec<(usize, PEAK)> = Vec::new();
+    let mut return_vector:Vec<(usize, usize)> = Vec::new();
     let mut index = 1;
     let array_length = data_set.len();
     let mut downward_trend = false;
@@ -68,54 +58,16 @@ pub fn detect_all_peaks(data_set: Vec<f64>) -> Vec<(usize, PEAK)> {
     return_vector
 }
 
-fn format_dates_for_peak_detection(dates_vector: &Vec<CommitFrequency>) -> Vec<(f64)> {
-    let mut result_vector: Vec<(f64)> = Vec::new();
-    for value in dates_vector.into_iter() {
-        result_vector.push(value.frequency.into());
-    }
-    return result_vector;
-}
-
-fn get_project_data(id: i64) -> Vec<(String, i8)> {
-    let mut return_vector: Vec<(String, i8)> = Vec::new();
-    let commit_vector: Vec<CommitFrequency> = match database::read_commit_frequency(id, None) {
-        Ok(x) => x,
-        Err(_) => panic!("Could not find data set for {}", id),
-    };
-    let data_set = format_dates_for_peak_detection(&commit_vector);
-    for (peak_point, peak) in detect_all_peaks(data_set).into_iter() {
-        let date = commit_vector.get(peak_point).unwrap().commit_date.date().to_string();
-        match peak {
-            PEAK::UP => return_vector.push((date,1)),
-            PEAK::DOWN => return_vector.push((date,-1)),
-        }
-    }
-    return return_vector;
-}
-
-fn find_peaks(args: &[String]) {
-    let mut project_ids: Vec<i64> = Vec::new();
+fn parse_string_input(args: &[String]) {
+    let mut data_set: Vec<f64> = Vec::new();
     for (counter, argument) in args.iter().enumerate() {
-        project_ids.push(match argument.parse() {
+        data_set.push(match argument.parse() {
             Ok(x) => x,
             Err(_) => panic!("Could not interpret {} : Programme Terminated", counter)
         });
     }
-    let peak_path = Path::new(&get_home_dir_path().unwrap())
-        .join("project_analyser")
-        .join("peak_detection");
-    fs::create_dir_all(&peak_path).expect("Could not create directories");
-    for id in project_ids {
-        let file_path = Path::new(&get_home_dir_path().unwrap())
-            .join("project_analyser")
-            .join("peak_detection")
-            .join(id.to_string().add(".csv"));
-        let peak_file = File::create(file_path).unwrap();
-        let mut bufwriter = BufWriter::new(peak_file);
-        for (date, peak) in get_project_data(id).into_iter() {
-            bufwriter.write_fmt(format_args!("{},{}\n", date, peak)).expect("Could not write analysis");
-        }
-    }
+    let peaks: Vec<f64> = detect_all_peaks(data_set);
+    println!("{:?}", peaks);
 }
 fn main() {
     let args: Vec<_> = env::args().collect();
@@ -124,7 +76,7 @@ fn main() {
         return;
     }
     match args[1].as_str() {
-        "--findpeaks" => find_peaks(&args[2..]),
+        "--findpeaks" => parse_string_input(&args[2..]),
         _ => {
             println!("Unknown argument {}", args[1]);
             return;
