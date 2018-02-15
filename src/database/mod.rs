@@ -35,6 +35,7 @@ pub fn create_git_repository(project: NewGitRepository) -> DatabaseResult<GitRep
 pub fn create_repository_commit(entry: Vec<NewRepositoryCommit>) -> DatabaseResult<usize> {
     let conn = establish_connection();
 
+
     let chunks = entry.chunks(MAX_QUERY_VALUES / NewRepositoryCommit::count_fields());
 
     for chunk in chunks {

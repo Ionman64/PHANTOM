@@ -1,6 +1,30 @@
 use super::schema::{git_repository, repository_commit, commit_file};
 use chrono::NaiveDateTime;
 
+///
+/// This macro implements 'count_fields()' for a public struct
+///
+macro_rules! make_fields_countable {
+    (
+        $(#[$m:meta])*
+        pub struct $name:ident {
+            $(pub $field_name:ident : $field_type:ty,)*
+        }
+    ) => {
+        $(#[$m])*
+        pub struct $name {
+            $(pub $field_name : $field_type,)*
+
+        }
+
+        impl $name {
+            pub fn count_fields() -> usize {
+                vec![$(stringify!($field_name)),*].len()
+            }
+        }
+    };
+}
+
 #[derive(Queryable)]
 pub struct GitRepository {
     pub id: i64,
@@ -9,12 +33,11 @@ pub struct GitRepository {
 
 #[derive(Debug, Clone)]
 #[derive(Insertable)]
-#[table_name="commit_file"]
+#[table_name = "commit_file"]
 pub struct NewCommitFile {
     pub commit_id: i64,
-    pub file_path: String
+    pub file_path: String,
 }
-
 
 
 #[derive(Debug)]
@@ -22,7 +45,7 @@ pub struct NewCommitFile {
 pub struct CommitFile {
     pub file_id: i64,
     pub commit_id: i64,
-    pub file_path: String
+    pub file_path: String,
 }
 
 
@@ -35,13 +58,15 @@ pub struct RepositoryCommit {
     pub commit_date: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
-#[derive(Insertable)]
-#[table_name = "repository_commit"]
-pub struct NewRepositoryCommit {
-    pub repository_id: i64,
-    pub commit_date: NaiveDateTime,
-    pub commit_hash: String,
+make_fields_countable! {
+    # [derive(Debug, Clone)]
+    #[derive(Insertable)]
+    # [table_name = "repository_commit"]
+    pub struct NewRepositoryCommit {
+        pub repository_id: i64,
+        pub commit_date: NaiveDateTime,
+        pub commit_hash: String,
+    }
 }
 
 #[derive(Insertable)]
@@ -58,11 +83,6 @@ impl NewRepositoryCommit {
     }
 }
 
-impl FieldCounter for NewRepositoryCommit {
-    fn count_fields() -> usize {
-        3
-    }
-}
 
 impl NewGitRepository {
     /// Helper function to create a new struct
@@ -102,8 +122,3 @@ impl ClonedProject {
         }
     }
 }
-
-pub trait FieldCounter {
-    fn count_fields() -> usize;
-}
-
