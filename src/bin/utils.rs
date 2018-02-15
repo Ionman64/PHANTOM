@@ -67,7 +67,7 @@ fn main() {
         "--findpeaks" => {
             let ds: Vec<f64> = args.iter().skip(2).map(|x| x.parse().unwrap()).collect();
             let peaks = detect_all_peaks(ds);
-            println!("{:?}", peaks);
+            print!("{:?}", peaks);
         }
         _ => {
             println!("Unknown argument {}", args[1]);
