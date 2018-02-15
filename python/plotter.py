@@ -111,7 +111,7 @@ def peak_analysis(series, path_to_utils_binary="../target/debug/utils", utils_bi
         return pd.Series(data=[0]*len(series))
     output = check_output([path_to_utils_binary] + utils_binary_flags + map(str, series.values))
 
-    output_as_array = map(int, output[1:-2].split(','))
+    output_as_array = map(int, output[1:-1].split(','))
     peak_series = pd.Series(data=output_as_array)
     return peak_series
 
