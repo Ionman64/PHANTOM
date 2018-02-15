@@ -4,7 +4,7 @@ extern crate dotenv;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
-use models::{NewGitRepository, GitRepository, RepositoryCommit, NewRepositoryCommit};
+use models::{NewGitRepository, GitRepository, RepositoryCommit, NewRepositoryCommit, FieldCounter};
 use std::env;
 use std::io::ErrorKind;
 
@@ -12,6 +12,8 @@ type DatabaseResult<T> = Result<T, ErrorKind>;
 
 mod git_repository;
 mod repository_commit;
+
+const MAX_QUERY_VALUES: usize = 65535;
 
 fn establish_connection() -> PgConnection {
     dotenv().ok();
@@ -31,7 +33,13 @@ pub fn create_git_repository(project: NewGitRepository) -> DatabaseResult<GitRep
 
 pub fn create_repository_commit(entry: Vec<NewRepositoryCommit>) -> DatabaseResult<usize> {
     let conn = establish_connection();
-    repository_commit::create(&conn, entry)
+
+    let chunks = entry.chunks(MAX_QUERY_VALUES / NewRepositoryCommit::count_fields());
+
+    for chunk in chunks {
+        repository_commit::create(&conn, entry)?;
+    }
+    Ok(entry.len())
 }
 
 /* Read entries ***********************************************************************************/

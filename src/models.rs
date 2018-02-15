@@ -7,17 +7,9 @@ pub struct GitRepository {
     pub url: String,
 }
 
-impl NewRepositoryCommit {
-    /// Helper function to create a new struct
-    pub fn new(repository_id:i64, commit_date:NaiveDateTime, commit_hash:String) -> NewRepositoryCommit {
-        // TODO Validate
-        NewRepositoryCommit  {repository_id, commit_date, commit_hash}
-    }
-}
-
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 #[derive(Insertable)]
-#[table_name="file_analysis"]
+#[table_name = "file_analysis"]
 pub struct NewCommitFile {
     pub file_id: i64,
     pub commit_id: i64,
@@ -38,12 +30,12 @@ pub struct RepositoryCommit {
     pub commit_id: i64,
     pub repository_id: i64,
     pub commit_hash: String,
-    pub commit_date: NaiveDateTime
+    pub commit_date: NaiveDateTime,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 #[derive(Insertable)]
-#[table_name="repository_commit"]
+#[table_name = "repository_commit"]
 pub struct NewRepositoryCommit {
     pub repository_id: i64,
     pub commit_date: NaiveDateTime,
@@ -51,9 +43,23 @@ pub struct NewRepositoryCommit {
 }
 
 #[derive(Insertable)]
-#[table_name="git_repository"]
+#[table_name = "git_repository"]
 pub struct NewGitRepository {
     pub url: String
+}
+
+impl NewRepositoryCommit {
+    /// Helper function to create a new struct
+    pub fn new(repository_id: i64, commit_date: NaiveDateTime, commit_hash: String) -> NewRepositoryCommit {
+        // TODO Validate
+        NewRepositoryCommit { repository_id, commit_date, commit_hash }
+    }
+}
+
+impl FieldCounter for NewRepositoryCommit {
+    fn count_fields() -> usize {
+        3
+    }
 }
 
 impl NewGitRepository {
@@ -93,5 +99,9 @@ impl ClonedProject {
             path: file_path.into_os_string().into_string().unwrap(),
         }
     }
+}
+
+pub trait FieldCounter {
+    fn count_fields() -> usize;
 }
 
