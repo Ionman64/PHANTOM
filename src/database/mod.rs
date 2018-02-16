@@ -34,22 +34,15 @@ pub fn create_git_repository(project: NewGitRepository) -> DatabaseResult<GitRep
 
 pub fn create_repository_commit(entry: Vec<NewRepositoryCommit>) -> DatabaseResult<usize> {
     let conn = establish_connection();
-
-    /*
-    let chunks = entry.chunks(MAX_QUERY_VALUES / NewRepositoryCommit::count_fields());
-    for chunk in chunks {
-        repository_commit::create(&conn, &chunk)?;
-    }
-    Ok(entry.len())
-    */
     create_in_chunks(&repository_commit::create, &conn, entry)
 }
 
 pub fn create_commit_file(entry: Vec<NewCommitFile>) -> DatabaseResult<usize> {
     let conn = establish_connection();
-    commit_file::create(&conn, entry)
+    create_in_chunks(commit_file::create, &conn, entry)
 }
 
+/// Splits the passed vector into chunks that are small enough for an INSERT statement for the database.
 fn create_in_chunks<T: FieldCountable>(fun: &Fn(&PgConnection, &[T]) -> DatabaseResult<usize>, conn: &PgConnection, entries: Vec<T>) -> DatabaseResult<usize> {
     let chunks = entries.chunks(MAX_QUERY_VALUES / T::count_fields());
     for chunk in chunks {
