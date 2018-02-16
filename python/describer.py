@@ -27,6 +27,8 @@ if __name__ == "__main__":
         peaks = peak_analysis(series)
         df = pd.DataFrame(data={'values': series.values, 'peaks': peaks.values}, index=series.index)
 
+        id_frame.at[key, '#commits'] = df['values'].sum()
+
         ### duration
         id_frame.at[key, 'duration'] = len(df)
 
@@ -72,7 +74,7 @@ if __name__ == "__main__":
     pd.set_option("display.max_rows", 400)
 
     print id_frame, "\n\n", id_frame.describe(), "\n\n"
-
+    exit(1)
     normalise_columns_with_standard_score(id_frame)
 
 
