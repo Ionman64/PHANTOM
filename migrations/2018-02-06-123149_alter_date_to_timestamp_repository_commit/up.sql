@@ -1,1 +1,0 @@
-ALTER TABLE IF EXISTS repository_commit ALTER COLUMN commit_date TYPE timestamp;

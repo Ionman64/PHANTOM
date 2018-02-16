@@ -1,1 +1,0 @@
-ALTER TABLE IF EXISTS github_projects  RENAME TO git_repository;
