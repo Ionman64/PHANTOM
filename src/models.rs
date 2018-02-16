@@ -17,12 +17,16 @@ macro_rules! make_fields_countable {
 
         }
 
-        impl $name {
-            pub fn count_fields() -> usize {
+        impl FieldCountable for $name {
+            fn count_fields() -> usize {
                 vec![$(stringify!($field_name)),*].len()
             }
         }
     };
+}
+
+pub trait FieldCountable {
+    fn count_fields() -> usize;
 }
 
 #[derive(Queryable)]
