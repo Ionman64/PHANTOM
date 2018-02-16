@@ -35,12 +35,16 @@ pub struct GitRepository {
     pub url: String,
 }
 
-#[derive(Debug, Clone)]
-#[derive(Insertable)]
-#[table_name = "commit_file"]
-pub struct NewCommitFile {
-    pub commit_id: i64,
-    pub file_path: String,
+make_fields_countable! {
+    #[derive(Debug, Clone)]
+    #[derive(Insertable)]
+    #[table_name = "commit_file"]
+    pub struct NewCommitFile {
+        pub commit_hash: String,
+        pub repository_id: i64,
+        pub file_path: String,
+        pub action: String,
+    }
 }
 
 
@@ -48,15 +52,16 @@ pub struct NewCommitFile {
 #[derive(Queryable)]
 pub struct CommitFile {
     pub file_id: i64,
-    pub commit_id: i64,
+    pub commit_hash: String,
+    pub repository_id: i64,
     pub file_path: String,
+    pub action: String,
 }
 
 
 #[derive(Debug)]
 #[derive(Queryable)]
 pub struct RepositoryCommit {
-    pub commit_id: i64,
     pub repository_id: i64,
     pub commit_hash: String,
     pub commit_date: NaiveDateTime,
@@ -73,10 +78,12 @@ make_fields_countable! {
     }
 }
 
-#[derive(Insertable)]
-#[table_name = "git_repository"]
-pub struct NewGitRepository {
-    pub url: String
+make_fields_countable! {
+    #[derive(Insertable)]
+    #[table_name = "git_repository"]
+    pub struct NewGitRepository {
+        pub url: String,
+    }
 }
 
 impl NewRepositoryCommit {

@@ -39,7 +39,7 @@ pub fn create_repository_commit(entry: Vec<NewRepositoryCommit>) -> DatabaseResu
 
 pub fn create_commit_file(entry: Vec<NewCommitFile>) -> DatabaseResult<usize> {
     let conn = establish_connection();
-    create_in_chunks(commit_file::create, &conn, entry)
+    create_in_chunks(&commit_file::create, &conn, entry)
 }
 
 /// Splits the passed vector into chunks that are small enough for an INSERT statement for the database.
