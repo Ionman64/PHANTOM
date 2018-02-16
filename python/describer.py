@@ -70,7 +70,8 @@ if __name__ == "__main__":
         id_frame.at[key, 'max amplitude'] = max_amp
 
     pd.set_option("display.max_rows", 400)
-    print id_frame.describe()
+
+    print id_frame, "\n\n", id_frame.describe(), "\n\n"
 
     normalise_columns_with_standard_score(id_frame)
 
