@@ -11,8 +11,8 @@ pub fn create(conn: &PgConnection, entry: &[NewRepositoryCommit]) -> DatabaseRes
             Err(Error::QueryBuilderError(_)) => {info!("Could not build query"); return Err(ErrorKind::Other)},
             Err(Error::SerializationError(_)) => {info!("Database could not serialise a column"); return Err(ErrorKind::Other)},
             //Err(Error::AlreadyInTransaction) => {info!("Transaction already open for client")},
-            Err(Error::DatabaseError(_,_)) => {info!("Database Error: Possible Constraint Violation"); return Err(ErrorKind::Other)},
-            Err(_) => return Err(ErrorKind::AlreadyExists),
+            Err(Error::DatabaseError(_,_)) => {info!("Database Error: Possible Constraint Violation"); return Err(ErrorKind::AlreadyExists)},
+            Err(_) => return Err(ErrorKind::Other),
         }
 }
 

@@ -14,7 +14,7 @@ CREATE TABLE repository_commit (
 CREATE TABLE commit_file (
     file_id BIGSERIAL NOT NULL PRIMARY KEY,
     commit_hash char(40) NOT NULL,
-    repository_id bigint NOT NULL REFERENCES git_repository,
+    repository_id bigint NOT NULL,
     file_path text NOT NULL,
     action char(1) NOT NULL,
     FOREIGN KEY (repository_id, commit_hash) REFERENCES repository_commit,

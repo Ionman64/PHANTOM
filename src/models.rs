@@ -36,7 +36,7 @@ pub struct GitRepository {
 }
 
 make_fields_countable! {
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     #[derive(Insertable)]
     #[table_name = "commit_file"]
     pub struct NewCommitFile {
@@ -73,8 +73,8 @@ make_fields_countable! {
     # [table_name = "repository_commit"]
     pub struct NewRepositoryCommit {
         pub repository_id: i64,
-        pub commit_date: NaiveDateTime,
         pub commit_hash: String,
+        pub commit_date: NaiveDateTime,
     }
 }
 

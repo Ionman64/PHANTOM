@@ -1,4 +1,4 @@
-use models::{ClonedProject, NewRepositoryCommit};
+use models::{ClonedProject, NewRepositoryCommit, NewCommitFile};
 use std::io::ErrorKind;
 use std::process::Command;
 use std::collections::HashMap;
@@ -24,9 +24,13 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         Ok(x) => x,
         Err(_) => return Err(ErrorKind::InvalidInput),
     };
-    //let mut commit_to_file:Vec<(String, Vec<(String, String))> = Vec::new();
-    let mut current_commit_hash;
+    let mut skip = false;
+    let mut commit_files:Vec<NewCommitFile> = Vec::new();
+    let mut current_commit_hash = String::from("");
     for line in output_string.split('\n').collect::<Vec<&str>>() {
+        if String::from(line).len() == 0 {
+            continue;
+        }
         if line.contains(">>>>") {
             //Commit Hash and Timestamp
             let mut line_replace = str::replace(line, ">>>>", "");
@@ -43,21 +47,26 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             repository_commits.push(NewRepositoryCommit::new(cloned_project.github.id, date, current_commit_hash.clone()));
         } else {
             //File Name
-            //let modifier = line.split(' ')[0];
-            //let filepath = line.split(' ')[1];
-            //let tempFile = CommitFile {commit_id:}
-            //commit_to_file.push((current_commit_hash, (line);
-            //println!("{}", line);
+            let words = line.split('\t').collect::<Vec<&str>>();
+            let action = words.first().unwrap().to_string().chars().nth(0).unwrap().to_string();
+            let file_path = words.last().unwrap().to_string();
+            let temp_commit_file = NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path, action};
+            commit_files.push(temp_commit_file);
+
         }
     }
-
     match database::create_repository_commit(repository_commits) {
         Ok(x) => { info!("{} rows inserted into database: repository_id {}", x, &cloned_project.github.id) }
         Err(ErrorKind::AlreadyExists) => { info!("{} already exists in database", &cloned_project.github.id) }
         Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id); }
         Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id) }
     };
-
+    match database::create_commit_file(commit_files) {
+        Ok(x) => { info!("{} rows inserted into database: repository_id {}", x, &cloned_project.github.id) }
+        Err(ErrorKind::AlreadyExists) => { info!("{} commit file already exists in database", &cloned_project.github.id) }
+        Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id); }
+        Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id) }
+    };
     Ok(cloned_project)
 }
 
