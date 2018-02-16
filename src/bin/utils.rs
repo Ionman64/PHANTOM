@@ -9,10 +9,6 @@ pub fn two_dimensions_euclidean_distance(point_one: (f64, f64), point_two: (f64,
     ((x1 - x2).powi(2) + (y1 - y2).powi(2)).sqrt()
 }
 
-const UP: i16 = 1;
-const NONE: i16 = 0;
-const DOWN: i16 = -1;
-
 ///Detect all the peaks in a Vec<(f64)> and returns the indexes as a Vec<i64, PEAK>
 /// #Example
 /// let data_set: Vec<i64> = vec![0.0,1.0,0.0]
@@ -25,32 +21,34 @@ const DOWN: i16 = -1;
 ///
 /// assert_eq!(y, PEAK::UP)
 pub fn detect_all_peaks(data_set: Vec<f64>) -> Vec<i16> {
+    let up_peak: i16 = 1;
+    let no_peak: i16 = 0;
+    let down_peak: i16 = -1;
+
     if data_set.len() < 3 {
         panic!("dataset must have more than three elements for peak detection");
     }
-    let mut index = 1;
-    let array_length = data_set.len();
     let mut downward_trend = false;
     let mut upward_trend = false;
-    let mut peak_point = 0;
-    let mut return_vector = vec![0; array_length];
+
+    let array_length = data_set.len();
+    let mut return_vector = vec![no_peak; array_length];
+    let mut index = 1;
     while index < array_length {
         let previous = data_set[index - 1];
         let current = data_set[index];
         if previous < current {
             upward_trend = true;
             if downward_trend {
-                return_vector[index-1] = DOWN;
+                return_vector[index-1] = down_peak;
                 downward_trend = false;
             }
-            peak_point = index;
         } else if previous > current {
             downward_trend = true;
             if upward_trend {
-                return_vector[index-1] = UP;
+                return_vector[index-1] = up_peak;
                 upward_trend = false;
             }
-            peak_point = index;
         }
         index += 1;
     }
