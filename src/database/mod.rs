@@ -13,6 +13,7 @@ type DatabaseResult<T> = Result<T, ErrorKind>;
 mod git_repository;
 mod repository_commit;
 mod commit_file;
+mod file_analysis;
 
 const MAX_QUERY_VALUES: usize = 65535;
 
@@ -37,9 +38,14 @@ pub fn create_repository_commit(entry: Vec<NewRepositoryCommit>) -> DatabaseResu
     create_in_chunks(&repository_commit::create, &conn, entry)
 }
 
-pub fn create_commit_file(entry: Vec<NewCommitFile>) -> DatabaseResult<usize> {
+pub fn create_commit_file(entry: Vec<NewCommitFile>) -> DatabaseResult<Vec<CommitFile>> {
     let conn = establish_connection();
-    create_in_chunks(&commit_file::create, &conn, entry)
+    create_in_chunks_return(&commit_file::create, &conn, entry)
+}
+
+pub fn create_file_analysis(entry: Vec<FileAnalysis>) -> DatabaseResult<usize> {
+    let conn = establish_connection();
+    create_in_chunks(&file_analysis::create, &conn, entry)
 }
 
 /// Splits the passed vector into chunks that are small enough for an INSERT statement for the database.
@@ -49,6 +55,15 @@ fn create_in_chunks<T: FieldCountable>(fun: &Fn(&PgConnection, &[T]) -> Database
         fun(conn, chunk)?;
     }
     Ok(entries.len())
+}
+
+fn create_in_chunks_return<T: FieldCountable, R>(fun: &Fn(&PgConnection, &[T]) -> DatabaseResult<Vec<R>>, conn: &PgConnection, entries: Vec<T>) -> DatabaseResult<Vec<R>> {
+    let chunks = entries.chunks(MAX_QUERY_VALUES / T::count_fields());
+    let mut return_vector: Vec<R> = Vec::new();
+    for chunk in chunks {
+        return_vector.append(&mut fun(conn, chunk)?);
+    }
+    Ok(return_vector)
 }
 
 /* Read entries ***********************************************************************************/

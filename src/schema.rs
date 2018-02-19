@@ -9,6 +9,14 @@ table! {
 }
 
 table! {
+    file_analysis (file_id, commit_hash) {
+        file_id -> Int8,
+        commit_hash -> Bpchar,
+        loc -> Int4,
+    }
+}
+
+table! {
     git_repository (id) {
         id -> Int8,
         url -> Text,
@@ -23,11 +31,11 @@ table! {
     }
 }
 
-joinable!(commit_file -> git_repository (repository_id));
 joinable!(repository_commit -> git_repository (repository_id));
 
 allow_tables_to_appear_in_same_query!(
     commit_file,
+    file_analysis,
     git_repository,
     repository_commit,
 );

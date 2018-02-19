@@ -20,10 +20,6 @@ CREATE TABLE commit_file (
     FOREIGN KEY (repository_id, commit_hash) REFERENCES repository_commit,
     UNIQUE (repository_id, commit_hash, file_path)
 );
---CREATE TABLE file_analysis (
- --   file_id bigint NOT NULL,
-   -- commit_id bigint NOT NULL
---);
 
 
 

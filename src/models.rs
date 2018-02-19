@@ -1,5 +1,8 @@
-use super::schema::{git_repository, repository_commit, commit_file};
+use super::schema::{git_repository, repository_commit, commit_file, file_analysis};
 use chrono::NaiveDateTime;
+use std::path::{Path, PathBuf, MAIN_SEPARATOR};
+use downloader::get_home_dir_path;
+use std::ops::Add;
 
 ///
 /// This macro implements 'count_fields()' for a public struct
@@ -33,6 +36,17 @@ pub trait FieldCountable {
 pub struct GitRepository {
     pub id: i64,
     pub url: String,
+}
+
+make_fields_countable! {
+    #[derive(Debug)]
+    #[derive(Insertable)]
+    #[table_name = "file_analysis"]
+    pub struct FileAnalysis {
+        pub file_id: i64,
+        pub commit_hash: String,
+        pub loc: i32,
+    }
 }
 
 make_fields_countable! {
@@ -111,10 +125,6 @@ pub struct ClonedProject {
     pub analysis_csv_file: String,
 }
 
-use std::path::{Path, PathBuf};
-use downloader::get_home_dir_path;
-use std::ops::Add;
-
 impl ClonedProject {
     /// Helper function to create a new struct
     pub fn new(github: GitRepository, file_path: PathBuf) -> ClonedProject {
@@ -131,5 +141,18 @@ impl ClonedProject {
             input_log_path: file_path.join(".git").into_os_string().into_string().unwrap(),
             path: file_path.into_os_string().into_string().unwrap(),
         }
+    }
+}
+
+impl CommitFile {
+    pub fn get_abs_path(file: &CommitFile) -> PathBuf {
+        return Path::new(&get_home_dir_path().unwrap())
+            .join("project_analyser")
+            .join("repos")
+            .join(file.repository_id.to_string())
+            .join(file.file_path.to_string());
+    }
+    pub fn get_file_name(file: &CommitFile) -> String {
+        return file.file_path.split(MAIN_SEPARATOR).collect::<Vec<&str>>().last().unwrap().to_string();
     }
 }

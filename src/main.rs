@@ -52,7 +52,7 @@ fn execute(path_to_projects_csv: String) {
     }
 
     let thread_pool = ThreadPool::new(100);
-    for project in git_repositories.into_iter() {
+    for project in git_repositories.into_iter().skip(299) {
         thread_pool.execute(move || {
             let project_id = project.id.clone();
             let cloned_project = match downloader::clone_project(project) {
@@ -81,6 +81,7 @@ fn execute(path_to_projects_csv: String) {
                     return;
                 }
             };
+
         });
     }
 }

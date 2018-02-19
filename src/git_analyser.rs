@@ -1,9 +1,14 @@
-use models::{ClonedProject, NewRepositoryCommit, NewCommitFile};
+use models::{ClonedProject, NewRepositoryCommit, NewCommitFile, CommitFile, FileAnalysis};
 use std::io::ErrorKind;
 use std::process::Command;
 use std::collections::HashMap;
 use chrono::NaiveDateTime;
 use database;
+
+
+//Used for the File Analysis
+use std::io::{BufReader,BufRead};
+use std::fs::File;
 
 /// Generate a log by calling "git log" in the specified project directory.
 /// Results with the path to the log file.
@@ -24,7 +29,6 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         Ok(x) => x,
         Err(_) => return Err(ErrorKind::InvalidInput),
     };
-    let mut skip = false;
     let mut commit_files:Vec<NewCommitFile> = Vec::new();
     let mut current_commit_hash = String::from("");
     for line in output_string.split('\n').collect::<Vec<&str>>() {
@@ -49,6 +53,7 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             //File Name
             let words = line.split('\t').collect::<Vec<&str>>();
             let action = words.first().unwrap().to_string().chars().nth(0).unwrap().to_string();
+            // Gets the last filepath, which is useful for files that have been rewritten
             let file_path = words.last().unwrap().to_string();
             let temp_commit_file = NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path, action};
             commit_files.push(temp_commit_file);
@@ -56,18 +61,40 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
         }
     }
     match database::create_repository_commit(repository_commits) {
-        Ok(x) => { info!("{} rows inserted into database: repository_id {}", x, &cloned_project.github.id) }
-        Err(ErrorKind::AlreadyExists) => { info!("{} already exists in database", &cloned_project.github.id) }
-        Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id); }
-        Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id) }
+        Ok(x) => { info!("{} rows inserted into database: repository_id {}", x, &cloned_project.github.id);}
+        Err(ErrorKind::AlreadyExists) => { info!("{} already exists in database", &cloned_project.github.id);}
+        Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id);}
+        Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id);}
     };
     match database::create_commit_file(commit_files) {
-        Ok(x) => { info!("{} rows inserted into database: repository_id {}", x, &cloned_project.github.id) }
-        Err(ErrorKind::AlreadyExists) => { info!("{} commit file already exists in database", &cloned_project.github.id) }
-        Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id); }
-        Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id) }
+        Ok(x) => { info!("{} rows inserted into database: repository_id {}", x.len(), &cloned_project.github.id); run_file_analysis(x)}
+        Err(ErrorKind::AlreadyExists) => { info!("{} commit files already exists in database", &cloned_project.github.id); return Err(ErrorKind::AlreadyExists)}
+        Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id); return Err(ErrorKind::AlreadyExists)}
+        Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id); return Err(ErrorKind::Other)}
     };
     Ok(cloned_project)
+}
+
+pub fn run_file_analysis(files: Vec<CommitFile>) {
+    info!("Running File Analysis");
+    let mut file_analyses:Vec<FileAnalysis> = Vec::new();
+    for file in files {
+        info!("Analysing file: {}", CommitFile::get_file_name(&file));
+        file_analyses.push(FileAnalysis {file_id:file.file_id.clone(), commit_hash:file.commit_hash.clone(), loc:count_loc(&file)});
+    }
+    database::create_file_analysis(file_analyses);
+}
+
+pub fn count_loc(commit_file: &CommitFile) -> i32 {
+    let file = match File::open(CommitFile::get_abs_path(commit_file)) {
+        Ok(file) => file,
+        Err(_) => {info!("File could not be found: {}", commit_file.file_path); return 0;},
+    };
+    let mut count = 0;
+    for _line in BufReader::new(file).lines() {
+        count += 1;
+    }
+    return count;
 }
 
 pub fn checkout_commit(cloned_project: &ClonedProject, commit_hash: &String) -> Result<bool, ErrorKind> {

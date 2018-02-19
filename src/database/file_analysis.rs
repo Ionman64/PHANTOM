@@ -1,14 +1,13 @@
 use super::*;
-use schema::repository_commit;
-use models::{RepositoryCommit, NewRepositoryCommit};
+use schema::file_analysis;
+use models::{FileAnalysis};
 use diesel::result::Error;
 
-pub fn create(conn: &PgConnection, entry: &[NewRepositoryCommit]) -> DatabaseResult<usize> {
-    match diesel::insert_into(repository_commit::table)
+pub fn create(conn: &PgConnection, entry: &[FileAnalysis]) -> DatabaseResult<usize> {
+    match diesel::insert_into(file_analysis::table)
         .values(entry)
         .execute(conn) {
             Ok(x) => return Ok(x),
-            //Err(Error::NotFound(_)) => {info!("Query did not insert any rows"); return Err(ErrorKind::NotFound)},
             Err(Error::QueryBuilderError(_)) => {info!("Could not build query"); return Err(ErrorKind::Other)},
             Err(Error::SerializationError(_)) => {info!("Database could not serialise a column"); return Err(ErrorKind::Other)},
             //Err(Error::AlreadyInTransaction) => {info!("Transaction already open for client")},
@@ -17,13 +16,13 @@ pub fn create(conn: &PgConnection, entry: &[NewRepositoryCommit]) -> DatabaseRes
         }
 }
 
-pub fn read(conn: &PgConnection, id: i64) -> DatabaseResult<Vec<RepositoryCommit>> {
+/*pub fn read(conn: &PgConnection, id: i64, commit_hash:String) -> DatabaseResult<Vec<FileAnalysis>> {
     use schema::repository_commit::dsl::*;
     match repository_commit
         .filter(repository_id.eq(id))
-        .order(commit_date.asc())
-        .load::<RepositoryCommit>(conn) {
+        .filter(commit_hash.eq(commit_hash))
+        .load::<FileAnalysis>(conn) {
         Ok(x) => Ok(x),
         Err(_) => Err(ErrorKind::Other),
     }
-}
+}*/
