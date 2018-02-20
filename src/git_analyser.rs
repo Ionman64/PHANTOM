@@ -55,7 +55,12 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             let action = words.first().unwrap().to_string().chars().nth(0).unwrap().to_string();
             // Gets the last filepath, which is useful for files that have been rewritten
             let file_path = words.last().unwrap().to_string();
-            let temp_commit_file = NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path, action};
+            if action == R {
+                let temp_commit_file = NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path_old, D};
+                let temp_commit_file = NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path_new, A};
+            } else {
+                let temp_commit_file = NewCommitFile { commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path, action };
+            }
             commit_files.push(temp_commit_file);
 
         }
