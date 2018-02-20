@@ -52,7 +52,7 @@ fn execute(path_to_projects_csv: String) {
     }
 
     let thread_pool = ThreadPool::new(100);
-    for project in git_repositories.into_iter().take(1) {
+    for project in git_repositories.into_iter().take(5) {
         thread_pool.execute(move || {
             let project_id = project.id.clone();
             let cloned_project = match downloader::clone_project(project) {

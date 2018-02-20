@@ -76,10 +76,8 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
 }
 
 pub fn run_file_analysis(files: Vec<CommitFile>) {
-    info!("Running File Analysis");
     let mut file_analyses:Vec<FileAnalysis> = Vec::new();
     for file in files {
-        info!("Analysing file: {}", CommitFile::get_file_name(&file));
         file_analyses.push(FileAnalysis {file_id:file.file_id.clone(), commit_hash:file.commit_hash.clone(), loc:count_loc(&file)});
     }
     println!("{:?}", file_analyses);
@@ -89,20 +87,19 @@ pub fn run_file_analysis(files: Vec<CommitFile>) {
 pub fn count_loc(commit_file: &CommitFile) -> i32 {
     let file = match File::open(CommitFile::get_abs_path(commit_file)) {
         Ok(file) => file,
-        Err(_) => {info!("File could not be found: {}", commit_file.file_path); return -1;},
+        Err(_) => {error!("File could not be found: {}", commit_file.file_path); return -1;}, // TODO This should not return -1! Return an Error!
     };
-    let mut count = 0;
-    for _line in BufReader::new(file).lines() {
-        count += 1;
-        println!("{}", _line.unwrap());
-    }
-    return count;
+
+    BufReader::new(file).lines().count() as i32
 }
 
 
 pub fn checkout_commit(cloned_project: &ClonedProject, commit_hash: &String) -> Result<bool, ErrorKind> {
     let git_checkout_cmd = match Command::new("git")
-        .args(&["--git-dir", &cloned_project.input_log_path, "checkout", &commit_hash, "-q"])
+        .args(&[
+            "--git-dir", &cloned_project.input_log_path,
+            "--work-tree", &cloned_project.path,
+            "checkout", &commit_hash, "-q"])
         .output() {
         Ok(output) => output,
         Err(_) => {
