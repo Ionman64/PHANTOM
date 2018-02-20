@@ -82,9 +82,7 @@ fn execute(path_to_projects_csv: String) {
                 }
             };
             for repository_commit in get_all_commits {
-                info!("Working on commit hash {}", &repository_commit.commit_hash);
                 git_analyser::checkout_commit(&cloned_project, &repository_commit.commit_hash);
-                std::thread::sleep(std::time::Duration::from_millis(1000));
                 let changed_files = match database::read_commits_file(&repository_commit.commit_hash) {
                     Ok(files) => files,
                     Err(_) => {info!("Could not get any files for this commit"); continue;}

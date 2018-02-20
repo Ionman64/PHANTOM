@@ -80,7 +80,6 @@ pub fn run_file_analysis(files: Vec<CommitFile>) {
     for file in files {
         file_analyses.push(FileAnalysis {file_id:file.file_id.clone(), commit_hash:file.commit_hash.clone(), loc:count_loc(&file)});
     }
-    println!("{:?}", file_analyses);
     database::create_file_analysis(file_analyses);
 }
 
@@ -116,6 +115,7 @@ pub fn checkout_commit(cloned_project: &ClonedProject, commit_hash: &String) -> 
         error!("Git checkout returned error {}", output_string);
         return Err(ErrorKind::InvalidData);
     }
+    info!("Commit hash checked out successfully {}", &repository_commit.commit_hash);
     Ok(true)
 }
 
