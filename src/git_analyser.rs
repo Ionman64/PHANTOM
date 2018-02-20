@@ -115,7 +115,6 @@ pub fn checkout_commit(cloned_project: &ClonedProject, commit_hash: &String) -> 
         error!("Git checkout returned error {}", output_string);
         return Err(ErrorKind::InvalidData);
     }
-    info!("Commit hash checked out successfully {}", &repository_commit.commit_hash);
     Ok(true)
 }
 
