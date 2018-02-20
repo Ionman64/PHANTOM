@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Confoxy</string>
+
+    <string name="rootURL">https://fix.confoxy.com/hlmng/rest/pub/</string>
+    <string name="hackingLabUrl">http://dashboard.hacking-lab.com/REST/</string>
+    <string name="teamMemberImageUrl">http://dashboard.hacking-lab.com/video/users/</string>
+    <string name="preferences_file">com.oztz.hackinglabmobile.preferences</string>
+
+    <!-- Register -->
+    <string name="register_chooseNickname">Please choose a nickname:</string>
+    <string name="register_start">Start</string>
+    <string name="error_invalid_username">Invalid username\nusername length should be
+        3-25 characters\nallowed signs are A-Z, a-z, 0-9 and _</string>
+    <string name="error_username_already_exists">This username already exists</string>
+    <string name="error_no_server_connection">No connection to server. Please try again.</string>
+    <string name="error_unknown">Unknown error</string>
+
+    <!-- Choose Event -->
+    <string name="choose_event">Please choose your event:</string>
+    <string name="no_events">No events found</string>
+    <string name="try_again">Try again</string>
+
+    <!-- Navigation -->
+    <string name="navigationTitle_whatsUp">Whats Up</string>
+    <string name="navigationTitle_conference">Conference</string>
+    <string name="navigationTitle_challenge">Challenge</string>
+    
+    <string name="navigationItem_news">News</string>
+    <string name="navigationItem_share">Share</string>
+    <string name="navigationItem_conference">Conference</string>
+    <string name="navigationItem_agenda">Agenda</string>
+    <string name="navigationItem_speaker">Speaker</string>
+    <string name="navigationItem_voting">Voting</string>
+    <string name="navigationItem_scoring">Scoring</string>
+    <string name="navigationItem_challenges">Challenges</string>
+    <string name="navigationItem_teams">Teams</string>
+
+    <!-- News / Start Activity -->
+    <string name="tabItem_news">News</string>
+    <string name="tabItem_social">Social</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="action_example">Example action</string>
+
+    <!-- Social -->
+    <string name="editText_post_hint">Share your status</string>
+    <string name="error_share_failed">Can\'t share the status. Please check your internet connection.</string>
+    <string name="share_success">Thank you for sharing! The redaction will shortly check your post</string>
+
+    <!-- Voting -->
+    <string name="criterion_speech">Speech</string>
+    <string name="criterion_solution">Solution</string>
+    <string name="criterion_presentation">Presentation</string>
+    <string name="vote">Vote!</string>
+
+    <!-- Challenges -->
+    <string name="error_no_challenge_description">No challenge description available</string>
+
+    <!-- Team -->
+    <string name="name">Name:</string>
+    <string name="nickname">Nickname:</string>
+    <string name="gender">Gender:</string>
+    <string name="age">Age:</string>
+    <string name="nationality">Nationality:</string>
+    <string name="skill">Skill:</string>
+
+    <!-- SpeakerDetail -->
+    <string name="speeches_by">Speeches by</string>
+
+    <!-- EventItemDetail -->
+    <string name="event">Event</string>
+
+    <!-- ScoringDetail -->
+    <string name="solved_challenges">Solved Challenges</string>
+
+    <!-- Action Bar -->
+    <string name="action_settings">Settings</string>
+
+    <!-- ListView -->
+    <string name="load_more_data">Load more data</string>
+
+    <!-- Push -->
+    <string name="voting_started">%1$s starts now!</string>
+
+    <!-- QR-Code -->
+    <string name="qr_successful_notification">You are now %1$s for this event!</string>
+
+</resources>

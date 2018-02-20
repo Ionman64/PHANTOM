@@ -1,0 +1,31 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.oztz.hackinglabmobile.fragment.SocialNewsFragment" >
+
+
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/SocialNews_List_View"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:dividerHeight="@dimen/activity_vertical_half_margin"
+        android:divider="@null"
+        android:layout_alignParentStart="true"
+        android:layout_weight="1" />
+
+    <ImageButton
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:id="@+id/socialNews_imageButton_share"
+        android:layout_gravity="center_horizontal"
+        android:layout_weight="1"
+        android:scaleType="fitCenter"
+        android:src="@drawable/send_text_white"
+        android:background="#FF303030"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp" />
+</LinearLayout>

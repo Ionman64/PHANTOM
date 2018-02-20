@@ -146,11 +146,13 @@ impl ClonedProject {
 
 impl CommitFile {
     pub fn get_abs_path(file: &CommitFile) -> PathBuf {
-        return Path::new(&get_home_dir_path().unwrap())
+        let path =  Path::new(&get_home_dir_path().unwrap())
             .join("project_analyser")
             .join("repos")
             .join(file.repository_id.to_string())
             .join(file.file_path.to_string());
+        println!("{} is at {}", file.file_id, path.as_os_str().to_str().unwrap());
+        return path;
     }
     pub fn get_file_name(file: &CommitFile) -> String {
         return file.file_path.split(MAIN_SEPARATOR).collect::<Vec<&str>>().last().unwrap().to_string();

@@ -1,0 +1,75 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    tools:context="com.oztz.hackinglabmobile.fragment.ShareFragment">
+
+    <ImageView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/share_img_thumbnail"
+        android:maxHeight="150dp"
+        android:scaleType="fitCenter"
+        android:adjustViewBounds="true" />
+
+    <EditText
+        android:layout_width="fill_parent"
+        android:layout_height="match_parent"
+        android:inputType="textMultiLine"
+        android:ems="10"
+        android:id="@+id/social_post_editText"
+        android:gravity="top"
+        android:layout_weight="1"
+        android:maxHeight="100dp"
+        android:hint="@string/editText_post_hint"
+        android:maxLength="140" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/linearLayout"
+        android:paddingLeft="20dp">
+
+        <ImageButton
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:id="@+id/share_button_camera"
+            android:background="@drawable/icon_camera"
+            android:layout_marginRight="30dp" />
+
+        <ImageButton
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:id="@+id/share_button_album"
+            android:padding="30dp"
+            android:background="@drawable/icon_folder" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="0/140"
+            android:id="@+id/share_text_counter"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="20dp" />
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_gravity="right"
+            android:gravity="right">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Share"
+                android:id="@+id/share_button_share" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

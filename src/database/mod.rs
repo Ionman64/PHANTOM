@@ -77,6 +77,11 @@ pub fn read_repository_commit(id: i64) -> DatabaseResult<Vec<RepositoryCommit>> 
     repository_commit::read(&conn, id)
 }
 
+pub fn read_commits_file(commit_hash: &String) ->  DatabaseResult<Vec<CommitFile>> {
+    let conn = establish_connection();
+    commit_file::read(&conn, commit_hash)
+}
+
 /* Update entries *********************************************************************************/
 
 /* Delete entries *********************************************************************************/

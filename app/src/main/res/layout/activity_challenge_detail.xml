@@ -1,0 +1,16 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    tools:context="com.oztz.hackinglabmobile.activity.SpeakerDetailActivity"
+    android:gravity="center">
+
+    <VideoView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/challenge_detail_video"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:layout_gravity="center" />
+</LinearLayout>

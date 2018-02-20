@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.android.support\support-v4\22.0.0\libs\internal_impl-22.0.0.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="b5b92f469d515a13d778900f6d50c03d12f35504">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\internal_impl-22.0.0-40c539afeb777ef36181548e37bf33815a477d7f.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-drive\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="41b3870cbe5fa546d8095b5b89d42cb69f3dd175">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-f39dbedf223140010aa477bab193f17f94ada2ea.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-wallet\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="a96b762bde4139de855735f175ec4d17dca55a6d">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-87ff0822dd3f3763b66c1743e34906b39aa62aa5.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-location\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="73ccb92b70112f2e463e415ef8d7275de7da6516">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-7467da18e2284ec8c09bbf0135063477e45b6f8d.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-panorama\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="1c5a76debf0c2857ccad422c4a80ed785982f8df">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-04911cbdb4c688330768edf043027c923d01b715.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-appindexing\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="a08d65794b844d8e7540bf9a33859bf3b2482d7f">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-40bf39ac398d05ade99b56f85904a50508e35b87.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-safetynet\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="c976518693e89ad44fbfccfc654941eaec198d08">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-7e6a858525be870ef788631b6e6136c470619dc8.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.android.support\support-v4\22.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="4e86306289ace4aa0cfec44a05ed2b410d36989d">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-cd283cbdb2b7eba25ba6aced752e7e735708f8ec.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-nearby\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="ef5f051e7308febe289dc93c67c5f32785b4260a">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-d5f673a46444307c445f7940f32d3ca8ea60d774.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-games\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="055783146ba9654a725442563be78cad303aad1f">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-2ee97d401044bbaef097deb5910d5b1c9a511552.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-base\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="4c93d99d454c975536bbe3b42283eee847f03ea3">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-871bdb5f51efafc5f8beb20a97d54b48fe33305d.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-wearable\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="3033cc3a2c68dff3e5b646d6d084bdbdf7d00b25">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-3477a4b2c6c0c48ad11dc2072977e19fd67546ef.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-plus\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="0e8228b4bc69c6a2c8d7c18498a77e53417d2574">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-18d6c6ac570327803b0ebd7a4f2ccba1424d7eae.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\libs\gson-2.3.1.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="ecb6e1f8e4b0e84c4b886c2f14a1500caf309757">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\gson-2.3.1-04b68e5f9e1e74279afcc04018a94f1464b3a68b.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\libs\universal-image-loader-1.9.3.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="a85588bec3e2c4584d593d3f15df1677321bca72">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\universal-image-loader-1.9.3-b518c720de1ecbc35faa10750d3772fb008c4011.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-gcm\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="9224bc4c54ba95147c7eabd874573763c07cb6be">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-323e7ca6e8866a421cbbb7cab14f0edf34ecfb96.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\.gradle\caches\modules-2\files-2.1\org.apache.httpcomponents\httpcore\4.3\11393498b38e9695d0850cac26fde5613ae268b9\httpcore-4.3.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="11393498b38e9695d0850cac26fde5613ae268b9">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\httpcore-4.3-4b2894c41e297c68d0496bf056573ad350422cc6.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-maps\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="17f8750d5c0749e44dd7c54aa390d9c937803825">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-fa2f3b233d364db719e069b74f8366ee5cca21db.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.android.support\appcompat-v7\22.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="d84409890828e07d344a3b9b1da545dba9897b51">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-f14a8ca031cc09b4b3fad6c3196da1a7d4c71947.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-cast\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="4cd0b093824b3228fffc21ea369b98d0b1db6566">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-860f0ebad76cc3ae24447a493ad0e8d330b4eb98.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-ads\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="e3d791b42eaa90416cd0b2d2e608092794a3baa4">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-d7760d18593fac430959833c1c6f654c12071e32.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-annotations\22.0.0\support-annotations-22.0.0.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="685d0b2c590447e85284ed84712cb363ba04eff8">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\support-annotations-22.0.0-d1ef1048be20f61049bff13da215e2dc2563d133.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-analytics\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="29fd6d3794b71491c2789708cd8d03c71feb8954">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-e8ab292fa31bfdada05251d7a3d2ef958dd077f8.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.github.alamkanak\android-week-view\1.2.3\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="f4a3823cbcd4eeee1551cb0571604dbde4029963">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-2bee98d4c69eea88f391ced6e9b1e8d8d2235e0f.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-fitness\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="3c0b099f9de16b265ecd6122fcb603e7d0d29f90">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-41536713c94a6c2650b4a894891ce32918b21551.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\.gradle\caches\modules-2\files-2.1\com.google.zxing\core\3.2.0\e019d15a13a9786f881141d2df6654b8510bce8b\core-3.2.0.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="e019d15a13a9786f881141d2df6654b8510bce8b">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\core-3.2.0-76834eed009c520dfd5b06c6b671a3b2b641064e.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-identity\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="fb04b12526b0073c7fb1ebb70c5842d82ee95596">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-ec5825bfad8d0bb4252153135d7265c40a82afe5.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\.gradle\caches\modules-2\files-2.1\org.apache.httpcomponents\httpmime\4.3\5b0002c5fb66867ca919be0fbd86de1cfaf76da7\httpmime-4.3.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="5b0002c5fb66867ca919be0fbd86de1cfaf76da7">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\httpmime-4.3-935fbfe378d269ac8943b9aa56464c37adacc899.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.google.android.gms\play-services-appstate\7.0.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="7ff613bf78ab057293892fdbd4169eda899c89b9">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-8c7798d4adb55c150d6d282a1b0e40263904057b.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.journeyapps\zxing-android-legacy\2.3.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="7a3b553d1697b52f13f8e7b7bf7ea1e20aabdbf4">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-1395148d5e1b96759679707ff31fb54ce1c021cc.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.journeyapps\zxing-android-embedded\2.3.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="64380fc4876a34f3f97cc7e59ef3182543624231">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-27a7c02a42c1521b291e7d9aa79c5786318f2247.jar" />
+    </item>
+    <item
+        jar="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\exploded-aar\com.journeyapps\zxing-android-integration\2.3.0\classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="bca1d3229113cccbb9ca38c1d2e6d51be318da9e">
+        <dex dex="C:\Users\Tobi\AndroidstudioProjects\HackingLabMobile\app\build\intermediates\pre-dexed\debug\classes-8f4dacbcf79eb4b1db10457143997d16d7ac4fd3.jar" />
+    </item>
+
+</items>

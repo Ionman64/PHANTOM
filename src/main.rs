@@ -52,7 +52,7 @@ fn execute(path_to_projects_csv: String) {
     }
 
     let thread_pool = ThreadPool::new(100);
-    for project in git_repositories.into_iter().skip(299) {
+    for project in git_repositories.into_iter().take(1) {
         thread_pool.execute(move || {
             let project_id = project.id.clone();
             let cloned_project = match downloader::clone_project(project) {
@@ -74,13 +74,23 @@ fn execute(path_to_projects_csv: String) {
                     return;
                 }
             };
-            let _get_all_commits = match database::read_repository_commit(cloned_project.github.id) {
+            let get_all_commits = match database::read_repository_commit(cloned_project.github.id) {
                 Ok(x) => x,
                 Err(_) => {
                     error!("Failed to read commits");
                     return;
                 }
             };
+            for repository_commit in get_all_commits {
+                info!("Working on commit hash {}", &repository_commit.commit_hash);
+                git_analyser::checkout_commit(&cloned_project, &repository_commit.commit_hash);
+                std::thread::sleep(std::time::Duration::from_millis(1000));
+                let changed_files = match database::read_commits_file(&repository_commit.commit_hash) {
+                    Ok(files) => files,
+                    Err(_) => {info!("Could not get any files for this commit"); continue;}
+                };
+                git_analyser::run_file_analysis(changed_files);
+            }
 
         });
     }
