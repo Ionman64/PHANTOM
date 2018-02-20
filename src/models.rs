@@ -151,7 +151,6 @@ impl CommitFile {
             .join("repos")
             .join(file.repository_id.to_string())
             .join(file.file_path.to_string());
-        println!("{} is at {}", file.file_id, path.as_os_str().to_str().unwrap());
         return path;
     }
     pub fn get_file_name(file: &CommitFile) -> String {
