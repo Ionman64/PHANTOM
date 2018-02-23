@@ -38,6 +38,11 @@ if __name__ == "__main__":
         ymax_idx = df['values'].values.argmax()
         id_frame.at[key, 'max y pos'] = ymax_idx + 1
 
+        ### y values
+        id_frame.at[key, 'mean y'] = df['values'].values.mean()
+        id_frame.at[key, 'median y'] = df['values'].median()
+        id_frame.at[key, 'sum y'] = df['values'].sum()
+
         ### number of up peak s
         peak_counts = df.groupby('peaks').count()
         id_frame.at[key, 'peakup'] = peak_counts.loc[1][0] if 1 in peak_counts.index else 0
@@ -70,8 +75,17 @@ if __name__ == "__main__":
         id_frame.at[key, 'min amplitude'] = min_amp
         id_frame.at[key, 'avg amplitude'] = avg_amp
         id_frame.at[key, 'max amplitude'] = max_amp
+        ### gradients
 
-    pd.set_option("display.max_rows", 400)
+        gradients = []
+        for idx in range(1, len(vals)):
+            gradients.append(vals[idx] - vals[idx-1])
+        gradients = np.array(gradients)
+        id_frame.at[key, 'mean +gradient'] = gradients[np.where(gradients >= 0)].mean()
+        id_frame.at[key, 'mean -gradient'] = gradients[np.where(gradients < 0)].mean()
+
+    pd.set_option("display.max_rows", 300)
+    pd.set_option('display.expand_frame_repr', False)
 
     print id_frame, "\n\n", id_frame.describe(), "\n\n"
     exit(1)
