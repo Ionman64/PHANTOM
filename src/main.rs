@@ -24,9 +24,7 @@ fn get_all_repositories_from_filesystem() -> Vec<NewGitRepository> {
     match downloader::read_project_urls_from_file(String::from("projects.csv")) {
         Ok(project_struct) => {
             match project_struct.skipped_lines {
-                None => {
-                    info!("Read projects from csv with success.");
-                }
+                None => {}
                 Some(lines) => {
                     warn!("Read project from csv with success, but skipped lines: {:?}", lines);
                 }
@@ -34,7 +32,7 @@ fn get_all_repositories_from_filesystem() -> Vec<NewGitRepository> {
             return project_struct.response;
         }
         Err(_) => {
-            warn!("Failed to read any git repositories from filesystem");
+            panic!("Failed to read any git repositories from filesystem");
         }
     }
 }
@@ -107,8 +105,8 @@ fn checkout_commits_for_project(cloned_project: &ClonedProject) {
 fn execute() {
     let repositories = get_all_repositories_from_filesystem();
     let mut git_repositories = get_all_repositories_from_database(repositories);
-    let thread_pool = ThreadPool::new(5);
-    for project in git_repositories.into_iter().take(5) {
+    let thread_pool = ThreadPool::new(75);
+    for project in git_repositories.into_iter() {
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {
@@ -116,7 +114,7 @@ fn execute() {
             }
             let cloned_project = cloned_project.unwrap();
             generate_git_log_for_project(&cloned_project);
-            checkout_commits_for_project(&cloned_project);
+            //checkout_commits_for_project(&cloned_project);
         });
     }
 }
