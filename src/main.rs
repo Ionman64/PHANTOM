@@ -17,29 +17,31 @@ fn main() {
         Ok(_) => {}
         Err(_) => { panic!("Logger setup failed") }
     };
-    execute(String::from("projects.csv"));
+    execute();
 }
 
-fn execute(path_to_projects_csv: String) {
-    let new_repositories = match downloader::read_project_urls_from_file(path_to_projects_csv) {
+fn get_all_repositories_from_filesystem() -> Vec<NewGitRepository> {
+    match downloader::read_project_urls_from_file(String::from("projects.csv")) {
         Ok(project_struct) => {
             match project_struct.skipped_lines {
                 None => {
                     info!("Read projects from csv with success.");
                 }
                 Some(lines) => {
-                    warn!("Read project from csv with succes, but skipped lines: {:?}", lines);
+                    warn!("Read project from csv with success, but skipped lines: {:?}", lines);
                 }
             }
-            project_struct.response
+            return project_struct.response;
         }
         Err(_) => {
-            panic!("Reading projects from csv failed");
+            warn!("Failed to read any git repositories from filesystem");
         }
-    };
+    }
+}
 
+fn get_all_repositories_from_database(projects: Vec<NewGitRepository>) -> Vec<GitRepository> {
     let mut git_repositories: Vec<GitRepository> = Vec::new();
-    for project in new_repositories.into_iter() {
+    for project in projects.into_iter() {
         let url = project.url.clone();
         match database::create_git_repository(project) {
             Ok(repository) => git_repositories.push(repository),
@@ -47,49 +49,74 @@ fn execute(path_to_projects_csv: String) {
                 let repository = database::read_git_repository(url).unwrap();
                 git_repositories.push(repository);
             }
-            Err(_) => panic!("Failed to read git repositories"),
+            Err(_) => panic!("Failed to read git repositories from database"),
+        }
+    }
+    git_repositories
+}
+
+fn clone_project(project: GitRepository) -> Option<ClonedProject> {
+    let project_id = project.id.clone();
+    match downloader::clone_project(project) {
+        Ok(cloned_project) => Some(cloned_project),
+        Err(_) => {
+            error!("Failed to clone project {}.", project_id);
+            return None;
         }
     }
 
-    let thread_pool = ThreadPool::new(100);
-    for project in git_repositories.into_iter().skip(5).take(3) {
-        thread_pool.execute(move || {
-            let project_id = project.id.clone();
-            let cloned_project = match downloader::clone_project(project) {
-                Ok(cloned_project) => cloned_project,
-                Err(_) => {
-                    error!("Failed to clone project {}. Skipping project.", project_id);
-                    return;
-                }
-            };
-            match git_analyser::generate_git_log(&cloned_project) { // TODO rethink error messages
-                Ok(_) => {
-                    info!("Created log in {}", &cloned_project.path);
-                }
-                Err(ErrorKind::InvalidData) => { error!("Invalid Data") }
-                Err(ErrorKind::InvalidInput) => { error!("Invalid input when creating log") }
-                Err(ErrorKind::Other) => { error!("Unknown error creating log") }
-                Err(e) => {
-                    error!("Failed to generate git log for project {}: {:?}", &cloned_project.path, e);
-                    return;
-                }
-            };
-            let get_all_commits = match database::read_repository_commit(cloned_project.github.id) {
-                Ok(x) => x,
-                Err(_) => {
-                    error!("Failed to read commits");
-                    return;
-                }
-            };
-            for repository_commit in get_all_commits {
-                git_analyser::checkout_commit(&cloned_project, &repository_commit.commit_hash);
-                let changed_files = match database::read_commits_file(&repository_commit.commit_hash) {
-                    Ok(files) => files,
-                    Err(_) => {info!("Could not get any files for this commit"); continue;}
-                };
-                git_analyser::run_file_analysis(changed_files);
-            }
+}
 
+fn get_all_commits_for_project(cloned_project: &ClonedProject) -> Option<Vec<RepositoryCommit>> {
+    match database::read_repository_commit(cloned_project.github.id) {
+        Ok(x) => Some(x),
+        Err(_) => {
+            error!("Failed to read commits");
+            return None;
+        }
+    }
+}
+
+fn generate_git_log_for_project(cloned_project: &ClonedProject) {
+    match git_analyser::generate_git_log(&cloned_project) { // TODO rethink error messages
+        Ok(_) => {}
+        Err(ErrorKind::AlreadyExists) => {}
+        Err(ErrorKind::InvalidData) => { error!("Invalid Data") }
+        Err(ErrorKind::InvalidInput) => { error!("Invalid input when creating log") }
+        Err(ErrorKind::Other) => { error!("Unknown error creating log") }
+        Err(e) => { error!("Failed to generate git log for project {}: {:?}", &cloned_project.path, e); }
+    };
+}
+
+fn checkout_commits_for_project(cloned_project: &ClonedProject) {
+    let all_commits = get_all_commits_for_project(cloned_project);
+    if all_commits.is_none(){
+        return;
+    }
+    let all_commits = all_commits.unwrap();
+    for repository_commit in  all_commits {
+        git_analyser::checkout_commit(&cloned_project, &repository_commit.commit_hash);
+        let changed_files = match database::read_commits_file(&repository_commit.commit_hash) {
+            Ok(files) => files,
+            Err(_) => {info!("Could not get any files for this commit"); continue;}
+        };
+        git_analyser::run_file_analysis(changed_files); //TODO::Pass a function to this method to enable us to easily change which analysis we want to do
+    }
+}
+
+fn execute() {
+    let repositories = get_all_repositories_from_filesystem();
+    let mut git_repositories = get_all_repositories_from_database(repositories);
+    let thread_pool = ThreadPool::new(5);
+    for project in git_repositories.into_iter().take(5) {
+        thread_pool.execute(move || {
+            let cloned_project = clone_project(project);
+            if cloned_project.is_none() {
+                return;
+            }
+            let cloned_project = cloned_project.unwrap();
+            generate_git_log_for_project(&cloned_project);
+            checkout_commits_for_project(&cloned_project);
         });
     }
 }

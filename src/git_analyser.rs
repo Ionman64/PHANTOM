@@ -10,6 +10,36 @@ use database;
 use std::io::{BufReader,BufRead};
 use std::fs::File;
 
+#[derive(PartialEq)]
+pub enum Git {
+    DELETED,
+    RENAMED,
+    ADDED,
+    MODIFIED,
+    UNKNOWN
+}
+
+impl Git {
+    pub fn to_string(&self) -> String {
+        match *self {
+            Git::DELETED => String::from("D"),
+            Git::RENAMED => String::from("R"),
+            Git::ADDED => String::from("A"),
+            Git::MODIFIED => String::from("M"),
+            Git::UNKNOWN => String::from("U")
+        }
+    }
+    pub fn to_enum(action: &String) -> Git {
+        match action.as_ref() {
+            "D" => Git::DELETED,
+            "A" => Git::ADDED,
+            "R" => Git::RENAMED,
+            "M" => Git::MODIFIED,
+            _ => Git::UNKNOWN,
+        }
+    }
+}
+
 /// Generate a log by calling "git log" in the specified project directory.
 /// Results with the path to the log file.
 pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject, ErrorKind> {
@@ -54,14 +84,15 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             let words = line.split('\t').collect::<Vec<&str>>();
             let action = words.first().unwrap().to_string().chars().nth(0).unwrap().to_string();
             // Gets the last filepath, which is useful for files that have been rewritten
-            let file_path = words.last().unwrap().to_string();
-            if action == R {
-                let temp_commit_file = NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path_old, D};
-                let temp_commit_file = NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path_new, A};
+            if Git::to_enum(&action) == Git::RENAMED {
+                let file_path = words.get(1).unwrap().to_string();
+                let new_file_path = words.get(2).unwrap().to_string();
+                commit_files.push(NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path, action:Git::to_string(&Git::DELETED)});
+                commit_files.push(NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path:new_file_path, action:Git::to_string(&Git::ADDED)});
             } else {
-                let temp_commit_file = NewCommitFile { commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path, action };
+                let file_path = words.get(1).unwrap().to_string();
+                commit_files.push(NewCommitFile { commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path, action});
             }
-            commit_files.push(temp_commit_file);
 
         }
     }
@@ -83,6 +114,9 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
 pub fn run_file_analysis(files: Vec<CommitFile>) {
     let mut file_analyses:Vec<FileAnalysis> = Vec::new();
     for file in files {
+        if Git::to_enum(&file.action) == Git::DELETED {
+            continue;
+        }
         file_analyses.push(FileAnalysis {file_id:file.file_id.clone(), commit_hash:file.commit_hash.clone(), loc:count_loc(&file)});
     }
     database::create_file_analysis(file_analyses);
