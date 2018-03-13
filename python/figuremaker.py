@@ -3,10 +3,12 @@ from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D  # 3D plots
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import seaborn as sns
 import pandas as pd
 import numpy as np
 import sys
 import os
+
 
 def load_dataframes(binary_label, path):
     path_org = str(os.path.join(path, "organization.csv"))
@@ -71,6 +73,13 @@ def scatter_matrix(frame, labels, measure_name):
     plt.tight_layout(pad=1.5, h_pad=0, w_pad=0)
 
 
+def corr(frame, measure_name):
+    mat = frame.corr()
+    sns.heatmap(mat, xticklabels=mat.columns, yticklabels=mat.columns)
+    plt.suptitle("Feature Vector %s Correlation Matrix" % measure_name)
+    plt.tight_layout(pad=3)
+
+
 def tsne(frame, labels, measure_name, n_components):
     assert n_components == 2 or 3
     model = TSNE(n_components=n_components, random_state=0)
@@ -88,7 +97,8 @@ def tsne(frame, labels, measure_name, n_components):
         if n_components == 2:
             ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], marker='x', label=lbl)
         elif n_components == 3:
-            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], transformed[label_idx, 2], marker='x', label=lbl)
+            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], transformed[label_idx, 2], marker='x',
+                       label=lbl)
     plt.legend(loc='best')
     plt.suptitle("Feature Vector %s t-SNE" % measure_name)
     plt.tight_layout(pad=3, h_pad=0, w_pad=0)
@@ -111,10 +121,12 @@ def pca(frame, labels, measure_name, n_components):
         if n_components == 2:
             ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], marker='x', label=lbl)
         elif n_components == 3:
-            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], transformed[label_idx, 2], marker='x', label=lbl)
+            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], transformed[label_idx, 2], marker='x',
+                       label=lbl)
     plt.legend(loc='best')
     plt.suptitle("Feature Vector %s PCA" % measure_name)
     plt.tight_layout(pad=3, h_pad=0, w_pad=0)
+
 
 # Assert command line args
 assert len(sys.argv) > 1
@@ -134,23 +146,26 @@ frame.drop('label', axis=1, inplace=True)
 
 
 # Pre process frame
-frame.fillna(0, inplace=True) # TODO NaN values cannot be handled by t-SNE and PCA
-#frame.drop('sum_y', axis=1, inplace=True)
-#frame.drop('peak_down', axis=1, inplace=True)
-#frame.drop('median_y', axis=1, inplace=True)
-#frame.drop('min_amp', axis=1, inplace=True)
-#frame.drop('max_amp', axis=1, inplace=True)
+# frame.fillna(0, inplace=True) # TODO NaN values cannot be handled by t-SNE and PCA
+# frame.drop('sum_y', axis=1, inplace=True)
+# frame.drop('peak_down', axis=1, inplace=True)
+# frame.drop('median_y', axis=1, inplace=True)
+# frame.drop('min_amp', axis=1, inplace=True)
+# frame.drop('max_amp', axis=1, inplace=True)
 
 mmFrame = (frame - frame.min()) / (frame.max() - frame.min())
 zFrame = (frame - frame.mean()) / frame.std()
 # Plotting... -----------------------------------------------------------------------
 # histograms(mmFrame, labels, "Commit Frequency")
 # plt.savefig('/home/joshua/Documents/commit_frequency/hist.pdf')
-#scatter_matrix(mmFrame, labels, "Commit Frequency")
+# scatter_matrix(mmFrame, labels, "Commit Frequency")
 # plt.savefig('/home/joshua/Documents/commit_frequency/scatter.pdf')
 
 
-tsne(frame, labels, "Commit Frequency", 2)
-pca(frame, labels, "Commit Frequency", 2)
+# tsne(frame, labels, "Commit Frequency", 2)
+# pca(frame, labels, "Commit Frequency", 2)
+# plt.show()
 
+corr(mmFrame, "Commit Frequency")
+corr(frame, "Commit Frequency")
 plt.show()
