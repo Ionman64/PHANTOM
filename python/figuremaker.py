@@ -71,33 +71,50 @@ def scatter_matrix(frame, labels, measure_name):
     plt.tight_layout(pad=1.5, h_pad=0, w_pad=0)
 
 
-def tsne(frame, labels, measure_name):
-    model = TSNE(n_components=3, random_state=0)
+def tsne(frame, labels, measure_name, n_components):
+    assert n_components == 2 or 3
+    model = TSNE(n_components=n_components, random_state=0)
     transformed = model.fit_transform(frame)
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+
+    if n_components == 2:
+        ax = fig.add_subplot(111)
+    elif n_components == 3:
+        ax = fig.add_subplot(111, projection='3d')
+
     for lbl in labels.unique():
         label_idx = np.where(labels == lbl)
-        ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], transformed[label_idx, 2], marker='x',
-                   label=lbl)
+        if n_components == 2:
+            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], marker='x', label=lbl)
+        elif n_components == 3:
+            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], transformed[label_idx, 2], marker='x', label=lbl)
     plt.legend(loc='best')
     plt.suptitle("Feature Vector %s t-SNE" % measure_name)
-    plt.tight_layout(pad=1, h_pad=0, w_pad=0)
+    plt.tight_layout(pad=3, h_pad=0, w_pad=0)
 
 
-def pca(frame, labels, measure_name):
-    model = PCA(n_components=3)
+def pca(frame, labels, measure_name, n_components):
+    assert n_components == 2 or 3
+    model = PCA(n_components=n_components)
     transformed = model.fit_transform(frame)
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+
+    if n_components == 2:
+        ax = fig.add_subplot(111)
+    elif n_components == 3:
+        ax = fig.add_subplot(111, projection='3d')
+
     for lbl in labels.unique():
         label_idx = np.where(labels == lbl)
-        ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], transformed[label_idx, 2], marker='x', label=lbl)
+        if n_components == 2:
+            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], marker='x', label=lbl)
+        elif n_components == 3:
+            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], transformed[label_idx, 2], marker='x', label=lbl)
     plt.legend(loc='best')
     plt.suptitle("Feature Vector %s PCA" % measure_name)
-    plt.tight_layout(pad=1, h_pad=0, w_pad=0)
+    plt.tight_layout(pad=3, h_pad=0, w_pad=0)
 
 # Assert command line args
 assert len(sys.argv) > 1
@@ -109,22 +126,31 @@ pd.set_option("display.max_rows", 500)
 pd.set_option('display.expand_frame_repr', False)
 
 # Load dataframes -------------------------------------------------------------------
-frame_map = load_dataframes(binary_label=True, path=feature_vector_csv_dir)
+frame_map = load_dataframes(binary_label=False, path=feature_vector_csv_dir)
 frame = pd.concat(frame_map.values(), ignore_index=True)
 labels = frame['label']
 frame.drop('label', axis=1, inplace=True)
 # df_all.fillna(0, inplace=True) TODO How to handle NaN values?
+
+
+# Pre process frame
+frame.fillna(0, inplace=True) # TODO NaN values cannot be handled by t-SNE and PCA
+#frame.drop('sum_y', axis=1, inplace=True)
+#frame.drop('peak_down', axis=1, inplace=True)
+#frame.drop('median_y', axis=1, inplace=True)
+#frame.drop('min_amp', axis=1, inplace=True)
+#frame.drop('max_amp', axis=1, inplace=True)
+
 mmFrame = (frame - frame.min()) / (frame.max() - frame.min())
 zFrame = (frame - frame.mean()) / frame.std()
-
 # Plotting... -----------------------------------------------------------------------
 # histograms(mmFrame, labels, "Commit Frequency")
 # plt.savefig('/home/joshua/Documents/commit_frequency/hist.pdf')
-# scatter_matrix(mmFrame, labels, "Commit Frequency")
+#scatter_matrix(mmFrame, labels, "Commit Frequency")
 # plt.savefig('/home/joshua/Documents/commit_frequency/scatter.pdf')
 
-frame.fillna(-10, inplace=True) # TODO NaN values cannot be handled by t-SNE and PCA
-#tsne(frame, labels, "Commit Frequency")
-#pca(frame, labels, "Commit Frequency")
 
-#plt.show()
+tsne(frame, labels, "Commit Frequency", 2)
+pca(frame, labels, "Commit Frequency", 2)
+
+plt.show()
