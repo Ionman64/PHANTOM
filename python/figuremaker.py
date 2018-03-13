@@ -1,5 +1,7 @@
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
+from sklearn.metrics import precision_recall_fscore_support
+from sklearn import cluster
 from mpl_toolkits.mplot3d import Axes3D  # 3D plots
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -22,11 +24,30 @@ def load_dataframes(binary_label, path):
     df_org['label'] = 'Org' if not binary_label else 'P'
     df_util['label'] = 'Util' if not binary_label else 'P'
     df_neg['label'] = 'Neg' if not binary_label else 'NP'
-    return {
-        'org': df_org,
+
+    map = {
+        #'org': df_org,
         'util': df_util,
         'neg': df_neg
     }
+    return map
+
+
+def load_validation_dataframes(binary_label, path):
+    path_val_p = str(os.path.join(path, "validation_p.csv"))
+    path_val_np = str(os.path.join(path, "validation_np.csv"))
+
+    df_val_p = pd.read_csv(path_val_p, index_col=0)
+    df_val_np = pd.read_csv(path_val_np, index_col=0)
+
+    df_val_p['label'] = 'VP' if not binary_label else 'P'
+    df_val_np['label'] = 'VNP' if not binary_label else 'NP'
+
+    map = {
+        'VP': df_val_p,
+        'VNP': df_val_np,
+    }
+    return map
 
 
 def histograms(frame, labels, measure_name):
@@ -128,6 +149,50 @@ def pca(frame, labels, measure_name, n_components):
     plt.tight_layout(pad=3, h_pad=0, w_pad=0)
 
 
+def kmeans(frame, labels, measure_name):
+    # setup
+    n_clusters = 2
+    km = cluster.KMeans(n_clusters=n_clusters)
+    # input
+    mat = frame.as_matrix()
+    fit = km.fit(mat)
+    # get labels
+    fitted_labels = pd.Series(fit.labels_)
+    cluster_p = fitted_labels[0]
+    cluster_np = abs(cluster_p - 1)
+    fitted_labels.replace(to_replace=cluster_p, value='P', inplace=True)
+    fitted_labels.replace(to_replace=cluster_np, value='NP', inplace=True)
+    # compare to ground truth
+    p, r, f, s = precision_recall_fscore_support(y_true=labels, y_pred=fitted_labels, labels=['P', 'NP'])
+    print "Measured against true labels of training data"
+    print "Precision(P)  = %.2f" % p[0]
+    print "Precision(NP) = %.2f" % p[1]
+    print
+    print "Recall(P)     = %.2f" % r[0]
+    print "Recall(NP)    = %.2f" % r[1]
+    print
+    print "F-Measure(P)  = %.2f" % f[0]
+    print "F-Measure(NP) = %.2f" % f[1]
+    # compare to validation
+    val_frames = load_validation_dataframes(binary_label=True, path=os.path.expanduser(sys.argv[1]))
+    val_frames = pd.concat(val_frames.values(), ignore_index=True)
+    labels = val_frames['label']
+    val_frames.fillna(0, inplace=True)
+    fitted_labels = pd.Series(fit.predict(val_frames.drop('label', axis=1)))
+    fitted_labels.replace(to_replace=cluster_p, value='P', inplace=True)
+    fitted_labels.replace(to_replace=cluster_np, value='NP', inplace=True)
+    p, r, f, s = precision_recall_fscore_support(y_true=labels, y_pred=fitted_labels, labels=['P', 'NP'])
+    print "Measured against true labels of validation data"
+    print "Precision(P)  = %.2f" % p[0]
+    print "Precision(NP) = %.2f" % p[1]
+    print
+    print "Recall(P)     = %.2f" % r[0]
+    print "Recall(NP)    = %.2f" % r[1]
+    print
+    print "F-Measure(P)  = %.2f" % f[0]
+    print "F-Measure(NP) = %.2f" % f[1]
+
+
 # Assert command line args
 assert len(sys.argv) > 1
 arg1 = sys.argv[1]
@@ -138,7 +203,7 @@ pd.set_option("display.max_rows", 500)
 pd.set_option('display.expand_frame_repr', False)
 
 # Load dataframes -------------------------------------------------------------------
-frame_map = load_dataframes(binary_label=False, path=feature_vector_csv_dir)
+frame_map = load_dataframes(binary_label=True, path=feature_vector_csv_dir)
 frame = pd.concat(frame_map.values(), ignore_index=True)
 labels = frame['label']
 frame.drop('label', axis=1, inplace=True)
@@ -146,26 +211,22 @@ frame.drop('label', axis=1, inplace=True)
 
 
 # Pre process frame
-# frame.fillna(0, inplace=True) # TODO NaN values cannot be handled by t-SNE and PCA
-# frame.drop('sum_y', axis=1, inplace=True)
-# frame.drop('peak_down', axis=1, inplace=True)
-# frame.drop('median_y', axis=1, inplace=True)
-# frame.drop('min_amp', axis=1, inplace=True)
-# frame.drop('max_amp', axis=1, inplace=True)
+frame.fillna(0, inplace=True)  # TODO NaN values cannot be handled by t-SNE and PCA
 
 mmFrame = (frame - frame.min()) / (frame.max() - frame.min())
 zFrame = (frame - frame.mean()) / frame.std()
 # Plotting... -----------------------------------------------------------------------
-# histograms(mmFrame, labels, "Commit Frequency")
+# histograms(frame, labels, "Commit Frequency")
 # plt.savefig('/home/joshua/Documents/commit_frequency/hist.pdf')
 # scatter_matrix(mmFrame, labels, "Commit Frequency")
 # plt.savefig('/home/joshua/Documents/commit_frequency/scatter.pdf')
 
 
-# tsne(frame, labels, "Commit Frequency", 2)
-# pca(frame, labels, "Commit Frequency", 2)
+# tsne(frame, labels, "Commit Frequency", 3)#
+# pca(frame, labels, "Commit Frequency", 3)
 # plt.show()
 
-corr(mmFrame, "Commit Frequency")
-corr(frame, "Commit Frequency")
-plt.show()
+# corr(mmFrame, "Commit Frequency")
+# corr(frame, "Commit Frequency")
+kmeans(mmFrame, labels, "Commit Frequency")
+# plt.show()
