@@ -25,11 +25,11 @@ def load_dataframes(binary_label, path):
 
     v = load_validation_dataframes(binary_label, path)
     map = {
-        #'org': df_org,
-        #'util': df_util,
-        #'neg': df_neg,
-        #'vp': v['VP'],
-        #'vn': v['VNP'],
+        'org': df_org,
+        'util': df_util,
+        'neg': df_neg,
+        'vp': v['VP'],
+        'vn': v['VNP'],
     }
     return map
 
@@ -107,7 +107,7 @@ def tsne(frame, labels, measure_name, n_components):
     model = TSNE(n_components=n_components, random_state=0)
     transformed = model.fit_transform(frame)
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(20, 10))
 
     if n_components == 2:
         ax = fig.add_subplot(111)
@@ -127,7 +127,7 @@ def tsne(frame, labels, measure_name, n_components):
 
 def tsne_by_kmeans_cluster_and_error_type(frame, kmeans_clusters, error_types, measure_name, n_components):
     assert n_components == 2 or 3
-    #assert len(frame) == len(kmeans_clusters) == len(error_types)
+    assert len(frame) == len(kmeans_clusters) == len(error_types)
 
     model = TSNE(n_components=n_components, random_state=0)
     transformed = model.fit_transform(frame)
@@ -147,18 +147,11 @@ def tsne_by_kmeans_cluster_and_error_type(frame, kmeans_clusters, error_types, m
     cluster_names = np.unique(kmeans_clusters)
     error_type_names = np.unique(error_types)
 
-    #cluster_p_data = {}
-    #cluster_np_data = {}
-    for idx, row in enumerate(frame[:-2].iterrows()):
+    for idx, row in enumerate(frame.iterrows()):
         current_cluster = kmeans_clusters[idx]
         current_error = error_types[idx]
         x, y = transformed[idx, 0], transformed[idx, 1]
         plt.scatter(x, y, color=cluster_colors[current_cluster], marker=error_type_marker[current_error], label="Cluster %s: %s" % (current_cluster, current_error), alpha=0.75)
-
-    for idx, row in enumerate(frame[-2:].iterrows()):
-        x, y = transformed[idx, 0], transformed[idx, 1]
-        plt.scatter(x, y, color='r', marker='D', alpha=0.75)
-
     #plt.legend(loc='best')
     plt.suptitle("Feature Vector %s t-SNE" % measure_name)
     plt.tight_layout(pad=3, h_pad=0, w_pad=0)
@@ -218,37 +211,36 @@ mmValFrame = (val_frame - val_frame.min()) / (val_frame.max() - val_frame.min())
 zValFrame = (val_frame - val_frame.mean()) / val_frame.std()
 
 # Plotting... -----------------------------------------------------------------------
-# histograms(frame, labels, "Commit Frequency")
-# plt.savefig('/home/joshua/Documents/commit_frequency/hist.pdf')
-# scatter_matrix(mmFrame, labels, "Commit Frequency")
-# plt.savefig('/home/joshua/Documents/commit_frequency/scatter.pdf')
-
+#histograms(frame, labels, "Commit Frequency")
+#plt.savefig('/home/joshua/Documents/commit_frequency/hist.png')
+#scatter_matrix(mmFrame, labels, "Commit Frequency")
+#plt.savefig('/home/joshua/Documents/commit_frequency/scatter.png')
 
 tsne(frame, labels, "Commit Frequency", 2)
-plt.show()
-# pca(frame, labels, "Commit Frequency", 3)
-# plt.show()
-
-# corr(mmFrame, "Commit Frequency")
-# corr(frame, "Commit Frequency")
-# kmeans(mmFrame, labels, "Commit Frequency")
-
-
+plt.savefig('/home/joshua/Documents/commit_frequency/tsne_org_util_neg_v_vp.png')
 exit()
+#pca(frame, labels, "Commit Frequency", 2)
+#plt.savefig('/home/joshua/Documents/commit_frequency/pca_org_util_neg.png')
+
+#corr(mmFrame, "Commit Frequency")
+#plt.savefig('/home/joshua/Documents/commit_frequency/corr.png')
+
+# corr(frame, "Commit Frequency")
+
 import clustering as clustering
 
 model, fitted_labels = clustering.get_kmeans_model_and_labels(mmFrame)
+print "Evalutation in Context of Training Data. (%s)" % frame_map.keys()
 clustering.print_results(labels, fitted_labels, labels.unique())
 
 error_types = clustering.get_tp_fp_tn_fn(labels, fitted_labels)
-mmFrame = pd.concat([mmFrame, pd.DataFrame(data=model.cluster_centers_, columns=mmFrame.columns)], ignore_index=True)
 tsne_by_kmeans_cluster_and_error_type(mmFrame, kmeans_clusters=fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
-plt.show()
+plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_training.png')
 
 val_fitted_labels = clustering.predict_and_get_labels(model, mmValFrame)
+print "Evalutation in Context of Validation Data. (%s)" % str(frame_map.keys())[1:-1]
 clustering.print_results(val_labels, val_fitted_labels)
-
 error_types = clustering.get_tp_fp_tn_fn(val_labels, val_fitted_labels)
 tsne_by_kmeans_cluster_and_error_type(mmValFrame, kmeans_clusters=val_fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
+plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_validation.png')
 
-plt.show()
