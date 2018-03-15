@@ -1,7 +1,5 @@
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn import cluster
 from mpl_toolkits.mplot3d import Axes3D  # 3D plots
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -25,10 +23,13 @@ def load_dataframes(binary_label, path):
     df_util['label'] = 'Util' if not binary_label else 'P'
     df_neg['label'] = 'Neg' if not binary_label else 'NP'
 
+    v = load_validation_dataframes(binary_label, path)
     map = {
         #'org': df_org,
-        'util': df_util,
-        'neg': df_neg
+        #'util': df_util,
+        #'neg': df_neg,
+        #'vp': v['VP'],
+        #'vn': v['VNP'],
     }
     return map
 
@@ -124,6 +125,43 @@ def tsne(frame, labels, measure_name, n_components):
     plt.suptitle("Feature Vector %s t-SNE" % measure_name)
     plt.tight_layout(pad=3, h_pad=0, w_pad=0)
 
+def tsne_by_kmeans_cluster_and_error_type(frame, kmeans_clusters, error_types, measure_name, n_components):
+    assert n_components == 2 or 3
+    #assert len(frame) == len(kmeans_clusters) == len(error_types)
+
+    model = TSNE(n_components=n_components, random_state=0)
+    transformed = model.fit_transform(frame)
+
+    fig = plt.figure()
+
+    cluster_colors = {
+        'P' : 'b',
+        'NP' : 'g',
+    }
+    error_type_marker = {
+        "true positive": '+',
+        "false positive": 'o',
+        "true negative": '^',
+        "false negative": 'v',
+    }
+    cluster_names = np.unique(kmeans_clusters)
+    error_type_names = np.unique(error_types)
+
+    #cluster_p_data = {}
+    #cluster_np_data = {}
+    for idx, row in enumerate(frame[:-2].iterrows()):
+        current_cluster = kmeans_clusters[idx]
+        current_error = error_types[idx]
+        x, y = transformed[idx, 0], transformed[idx, 1]
+        plt.scatter(x, y, color=cluster_colors[current_cluster], marker=error_type_marker[current_error], label="Cluster %s: %s" % (current_cluster, current_error), alpha=0.75)
+
+    for idx, row in enumerate(frame[-2:].iterrows()):
+        x, y = transformed[idx, 0], transformed[idx, 1]
+        plt.scatter(x, y, color='r', marker='D', alpha=0.75)
+
+    #plt.legend(loc='best')
+    plt.suptitle("Feature Vector %s t-SNE" % measure_name)
+    plt.tight_layout(pad=3, h_pad=0, w_pad=0)
 
 def pca(frame, labels, measure_name, n_components):
     assert n_components == 2 or 3
@@ -149,50 +187,6 @@ def pca(frame, labels, measure_name, n_components):
     plt.tight_layout(pad=3, h_pad=0, w_pad=0)
 
 
-def kmeans(frame, labels, measure_name):
-    # setup
-    n_clusters = 2
-    km = cluster.KMeans(n_clusters=n_clusters)
-    # input
-    mat = frame.as_matrix()
-    fit = km.fit(mat)
-    # get labels
-    fitted_labels = pd.Series(fit.labels_)
-    cluster_p = fitted_labels[0]
-    cluster_np = abs(cluster_p - 1)
-    fitted_labels.replace(to_replace=cluster_p, value='P', inplace=True)
-    fitted_labels.replace(to_replace=cluster_np, value='NP', inplace=True)
-    # compare to ground truth
-    p, r, f, s = precision_recall_fscore_support(y_true=labels, y_pred=fitted_labels, labels=['P', 'NP'])
-    print "Measured against true labels of training data"
-    print "Precision(P)  = %.2f" % p[0]
-    print "Precision(NP) = %.2f" % p[1]
-    print
-    print "Recall(P)     = %.2f" % r[0]
-    print "Recall(NP)    = %.2f" % r[1]
-    print
-    print "F-Measure(P)  = %.2f" % f[0]
-    print "F-Measure(NP) = %.2f" % f[1]
-    # compare to validation
-    val_frames = load_validation_dataframes(binary_label=True, path=os.path.expanduser(sys.argv[1]))
-    val_frames = pd.concat(val_frames.values(), ignore_index=True)
-    labels = val_frames['label']
-    val_frames.fillna(0, inplace=True)
-    fitted_labels = pd.Series(fit.predict(val_frames.drop('label', axis=1)))
-    fitted_labels.replace(to_replace=cluster_p, value='P', inplace=True)
-    fitted_labels.replace(to_replace=cluster_np, value='NP', inplace=True)
-    p, r, f, s = precision_recall_fscore_support(y_true=labels, y_pred=fitted_labels, labels=['P', 'NP'])
-    print "Measured against true labels of validation data"
-    print "Precision(P)  = %.2f" % p[0]
-    print "Precision(NP) = %.2f" % p[1]
-    print
-    print "Recall(P)     = %.2f" % r[0]
-    print "Recall(NP)    = %.2f" % r[1]
-    print
-    print "F-Measure(P)  = %.2f" % f[0]
-    print "F-Measure(NP) = %.2f" % f[1]
-
-
 # Assert command line args
 assert len(sys.argv) > 1
 arg1 = sys.argv[1]
@@ -203,18 +197,26 @@ pd.set_option("display.max_rows", 500)
 pd.set_option('display.expand_frame_repr', False)
 
 # Load dataframes -------------------------------------------------------------------
-frame_map = load_dataframes(binary_label=True, path=feature_vector_csv_dir)
+frame_map = load_dataframes(binary_label=False, path=feature_vector_csv_dir)
 frame = pd.concat(frame_map.values(), ignore_index=True)
 labels = frame['label']
 frame.drop('label', axis=1, inplace=True)
-# df_all.fillna(0, inplace=True) TODO How to handle NaN values?
 
+val_frame_map = load_validation_dataframes(binary_label=True, path=feature_vector_csv_dir)
+val_frame = pd.concat(val_frame_map.values(), ignore_index=True)
+val_labels = val_frame['label']
+val_frame.drop('label', axis=1, inplace=True)
+# Handle NaN
+frame.fillna(0, inplace=True)
+val_frame.fillna(0, inplace=True)
 
-# Pre process frame
-frame.fillna(0, inplace=True)  # TODO NaN values cannot be handled by t-SNE and PCA
-
+# Preprocess frames
 mmFrame = (frame - frame.min()) / (frame.max() - frame.min())
 zFrame = (frame - frame.mean()) / frame.std()
+
+mmValFrame = (val_frame - val_frame.min()) / (val_frame.max() - val_frame.min())
+zValFrame = (val_frame - val_frame.mean()) / val_frame.std()
+
 # Plotting... -----------------------------------------------------------------------
 # histograms(frame, labels, "Commit Frequency")
 # plt.savefig('/home/joshua/Documents/commit_frequency/hist.pdf')
@@ -222,11 +224,31 @@ zFrame = (frame - frame.mean()) / frame.std()
 # plt.savefig('/home/joshua/Documents/commit_frequency/scatter.pdf')
 
 
-# tsne(frame, labels, "Commit Frequency", 3)#
+tsne(frame, labels, "Commit Frequency", 2)
+plt.show()
 # pca(frame, labels, "Commit Frequency", 3)
 # plt.show()
 
 # corr(mmFrame, "Commit Frequency")
 # corr(frame, "Commit Frequency")
-kmeans(mmFrame, labels, "Commit Frequency")
-# plt.show()
+# kmeans(mmFrame, labels, "Commit Frequency")
+
+
+exit()
+import clustering as clustering
+
+model, fitted_labels = clustering.get_kmeans_model_and_labels(mmFrame)
+clustering.print_results(labels, fitted_labels, labels.unique())
+
+error_types = clustering.get_tp_fp_tn_fn(labels, fitted_labels)
+mmFrame = pd.concat([mmFrame, pd.DataFrame(data=model.cluster_centers_, columns=mmFrame.columns)], ignore_index=True)
+tsne_by_kmeans_cluster_and_error_type(mmFrame, kmeans_clusters=fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
+plt.show()
+
+val_fitted_labels = clustering.predict_and_get_labels(model, mmValFrame)
+clustering.print_results(val_labels, val_fitted_labels)
+
+error_types = clustering.get_tp_fp_tn_fn(val_labels, val_fitted_labels)
+tsne_by_kmeans_cluster_and_error_type(mmValFrame, kmeans_clusters=val_fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
+
+plt.show()
