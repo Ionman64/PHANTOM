@@ -37,22 +37,6 @@ fn get_all_repositories_from_filesystem() -> Vec<NewGitRepository> {
     }
 }
 
-fn get_all_repositories_from_database(projects: Vec<NewGitRepository>) -> Vec<GitRepository> {
-    let mut git_repositories: Vec<GitRepository> = Vec::new();
-    for project in projects.into_iter() {
-        let url = project.url.clone();
-        match database::create_git_repository(project) {
-            Ok(repository) => git_repositories.push(repository),
-            Err(ErrorKind::AlreadyExists) => {
-                let repository = database::read_git_repository(url).unwrap();
-                git_repositories.push(repository);
-            }
-            Err(_) => panic!("Failed to read git repositories from database"),
-        }
-    }
-    git_repositories
-}
-
 fn clone_project(project: GitRepository) -> Option<ClonedProject> {
     let project_id = project.id.clone();
     match downloader::clone_project(project) {
@@ -104,9 +88,9 @@ fn checkout_commits_for_project(cloned_project: &ClonedProject) {
 
 fn execute() {
     let repositories = get_all_repositories_from_filesystem();
-    let mut git_repositories = get_all_repositories_from_database(repositories);
+
     let thread_pool = ThreadPool::new(75);
-    for project in git_repositories.into_iter() {
+    for project in repositories.into_iter() {
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {

@@ -4,7 +4,8 @@ use std::process::Command;
 use std::collections::HashMap;
 use chrono::NaiveDateTime;
 use database;
-
+use std::io;
+use std::path::{Path, PathBuf}
 
 //Used for the File Analysis
 use std::io::{BufReader,BufRead};
@@ -40,20 +41,28 @@ impl Git {
     }
 }
 
+pub fn get_git_log_path(cloned_project: &ClonedProject) -> PathBuf {
+    let home_path = get_home_dir_path().expect("Could not get home directory");
+
+    Path::new(&home_path)
+        .join(String::from("project_analyser"))
+        .join(String::from("git_logs"))
+        .join(project.id.to_string())
+}
+
+pub fn save_git_log_to_file(cloned_project: &ClonedProject) -> io::Error{
+    Command::new("./scripts/save_git_log.sh")
+        .args(&[&cloned_project.input_log_path, cloned_project.analysis_csv_file])
+        .exec()?
+}
+
 /// Generate a log by calling "git log" in the specified project directory.
 /// Results with the path to the log file.
 pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject, ErrorKind> {
     let mut repository_commits: Vec<NewRepositoryCommit> = Vec::new();
     let mut date_count = HashMap::new();
-    let git_files_and_dates_command = match Command::new("git")
-        .args(&["--git-dir", &cloned_project.input_log_path, "log", "--name-status", "--format=\">>>>%H,%ct\""])
-        .output() {
-        Ok(output) => output,
-        Err(_) => {
-            warn!("Could not create git log");
-            return Err(ErrorKind::InvalidInput);
-        }
-    };
+
+
     let output = git_files_and_dates_command.stdout;
     let output_string = match String::from_utf8(output) {
         Ok(x) => x,
