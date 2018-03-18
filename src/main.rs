@@ -10,9 +10,12 @@ use project_analyser::thread_helper::ThreadPool;
 use project_analyser::git_analyser;
 use std::io::ErrorKind;
 use std::process::Command;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use std::fs;
 use std::ops::Add;
+use std::fs::File;
+use std::io::BufReader;
+use std::io::BufRead;
 
 const THREAD_POOL_SIZE:usize = 75;
 const ROOT_FOLDER:&str = "project_analyser";
@@ -30,7 +33,12 @@ fn main() {
                 return;
             }
             let cloned_project = cloned_project.unwrap();
-            save_git_log_to_file(&cloned_project);
+            if !save_git_log_to_file(&cloned_project) {
+                return;
+            }
+            if !parse_git_log(&cloned_project) {
+                error!("Could not parse git log");
+            }
             //generate_git_log_for_project(&cloned_project);
             //checkout_commits_for_project(&cloned_project);
         });
@@ -42,12 +50,74 @@ pub fn get_git_log_file_path_as_string(cloned_project:&ClonedProject) -> String 
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
         .join("git_log")
-        .join(&cloned_project.github.id.to_string().add(".csv"));
+        .join(&cloned_project.github.id.to_string().add(".log"));
+    csv_path.into_os_string().into_string().unwrap()
+}
+
+pub fn get_git_log_output_file_path_as_string(cloned_project:&ClonedProject) -> String {
+    let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+    let csv_path = Path::new(&home_dir)
+        .join(ROOT_FOLDER)
+        .join("analysis_csv")
+        .join(&cloned_project.github.id.to_string().add(".log"));
     csv_path.into_os_string().into_string().unwrap()
 }
 
 pub fn save_git_log_to_file(cloned_project: &ClonedProject) -> bool {
-    Command::new("./scripts/save_git_log.sh").args(&[&cloned_project.input_log_path, &get_git_log_file_path_as_string(cloned_project)]).spawn().is_err()
+    Command::new("./scripts/save_git_log.sh").args(&[&cloned_project.input_log_path, &get_git_log_file_path_as_string(cloned_project)]).spawn().is_ok()
+}
+
+pub struct Commit {
+    pub hash: String,
+    pub author: String,
+    pub date: String,
+    pub comment: String,
+}
+
+pub fn parse_git_log(cloned_project: &ClonedProject) -> bool {
+    let input_file = match File::open(get_git_log_file_path_as_string(&cloned_project)) {
+        Ok(f) => f,
+        Err(_) => {error!("could not read input_file");return false;}
+    };
+    let output_file = match File::create(get_git_log_output_file_path_as_string(&cloned_project)) {
+        Ok(f) => f,
+        Err(_) => {error!("could not read output_file");return false;}
+    };
+    let mut in_commit = false;
+    let mut file_buf = BufReader::new(&input_file);
+    for line_result in file_buf.lines() {
+        let mut line = match line_result {
+            Ok(x) => x,
+            Err(_) => {return false;},
+        };
+        if line.len() == 0 {
+            continue;
+        }
+        line = line.replace("\n", "");
+        let first_word = line.split_whitespace().collect::<Vec<&str>>().get(0).unwrap();
+        match first_word {
+            &"commit" => {
+                if in_commit {
+                    in_commit = false;
+                }
+                else {
+                    println!("{}", line.replace("commit ", ""));
+                    in_commit = true;
+                }
+            },
+            &"Author:" => {
+                println!("{}", line.replace("Author: ", ""));
+            },
+            &"Date:" => {
+                println!("{}", line.replace("Date: ", ""));
+            },
+            _ => {
+                println!("Cannot Read this {}", line);
+            }
+        }
+
+    }
+    return true;
 }
 
 /*pub fn get_file_name(file: &CommitFile) -> String {
