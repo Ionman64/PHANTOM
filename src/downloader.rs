@@ -7,7 +7,7 @@ use std::process::Command;
 use std::str;
 use std::io::ErrorKind;
 use models::{ClonedProject, GitRepository};
-
+use std::ops::Add;
 pub struct LinesResponse<T> {
     pub response: Vec<T>,
     pub skipped_lines: Option<Vec<u32>>,
@@ -46,7 +46,11 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse<Git
         let columns: Vec<&str> = str_line.trim().split(',').collect();
         if columns.len() > 2 {
             let id = columns.get(0).unwrap().to_string();
-            let url = columns.get(1).unwrap().to_string();
+            let mut url = columns.get(1).unwrap().to_string();
+            if character_count(&url, ':') == 0 {
+                let url_lead = String::from("https://www.github.com/");
+                url = url_lead.add(&url);
+            }
             projects.push(GitRepository {id:count.clone(), url});
             count = count + 1;
         } else {
