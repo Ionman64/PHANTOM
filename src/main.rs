@@ -27,7 +27,7 @@ fn main() {
     setup_file_system();
     let repositories = get_all_repositories_from_filesystem();
     let thread_pool = ThreadPool::new(THREAD_POOL_SIZE);
-    for project in repositories.into_iter().take(1) {
+    for project in repositories.into_iter() {
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {
