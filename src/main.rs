@@ -13,9 +13,13 @@ use std::process::Command;
 use std::path::{Path};
 use std::fs;
 use std::ops::Add;
+use std::io::prelude::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
+use std::collections::HashMap;
+
+
 
 const THREAD_POOL_SIZE:usize = 75;
 const ROOT_FOLDER:&str = "project_analyser";
@@ -59,7 +63,7 @@ pub fn get_git_log_output_file_path_as_string(cloned_project:&ClonedProject) -> 
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
         .join("analysis_csv")
-        .join(&cloned_project.github.id.to_string().add(".log"));
+        .join(&cloned_project.github.id.to_string().add(".csv"));
     csv_path.into_os_string().into_string().unwrap()
 }
 
@@ -75,47 +79,45 @@ pub struct Commit {
 }
 
 pub fn parse_git_log(cloned_project: &ClonedProject) -> bool {
+    //let datehash_map = HashMap::new();
     let input_file = match File::open(get_git_log_file_path_as_string(&cloned_project)) {
         Ok(f) => f,
         Err(_) => {error!("could not read input_file");return false;}
     };
-    let output_file = match File::create(get_git_log_output_file_path_as_string(&cloned_project)) {
+    let mut output_file = match File::create(get_git_log_output_file_path_as_string(&cloned_project)) {
         Ok(f) => f,
         Err(_) => {error!("could not read output_file");return false;}
     };
-    let mut in_commit = false;
+    let mut count = 0;
     let mut file_buf = BufReader::new(&input_file);
+    let mut current_date= String::new();
     for line_result in file_buf.lines() {
         let mut line = match line_result {
             Ok(x) => x,
             Err(_) => {return false;},
         };
-        if line.len() == 0 {
+        if line.len() <= 1 {
             continue;
         }
-        line = line.replace("\n", "");
-        let first_word = line.split_whitespace().collect::<Vec<&str>>().get(0).unwrap();
-        match first_word {
-            &"commit" => {
-                if in_commit {
-                    in_commit = false;
-                }
-                else {
-                    println!("{}", line.replace("commit ", ""));
-                    in_commit = true;
-                }
-            },
-            &"Author:" => {
-                println!("{}", line.replace("Author: ", ""));
-            },
-            &"Date:" => {
-                println!("{}", line.replace("Date: ", ""));
-            },
-            _ => {
-                println!("Cannot Read this {}", line);
+        line = line.replace("\n", "").replace("\t", "");
+        println!("{}", line);
+        if count > 0 && !current_date.eq(&line) {
+            if (!current_date.eq(&"")) {
+                output_file.write(format!("{},{}\n", current_date, count).as_bytes());
             }
+            println!("{},{}", current_date, count);
+            count = 0;
+            current_date = line.clone();
         }
-
+        count = count + 1;
+    }
+    match output_file.sync_data() {
+        Ok(_) => {},
+        Err(_) => {error!("Could not sync file data for project {}", cloned_project.github.id)},
+    };
+    match output_file.flush() {
+        Ok(_) => {},
+        Err(_) => {error!("Could not flush file data for project {}", cloned_project.github.id)},
     }
     return true;
 }
