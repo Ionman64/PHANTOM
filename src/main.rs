@@ -2,13 +2,10 @@ extern crate project_analyser;
 extern crate fern;
 #[macro_use]
 extern crate log;
-extern crate chrono;
 
 use project_analyser::models::*;
 use project_analyser::downloader;
 use project_analyser::thread_helper::ThreadPool;
-use project_analyser::git_analyser;
-use std::io::ErrorKind;
 use std::process::Command;
 use std::path::{Path};
 use std::fs;
@@ -41,10 +38,8 @@ fn main() {
                 return;
             }
             if !parse_git_log(&cloned_project) {
-                error!("Could not parse git log");
+                return;
             }
-            //generate_git_log_for_project(&cloned_project);
-            //checkout_commits_for_project(&cloned_project);
         });
     }
 }
@@ -68,48 +63,29 @@ pub fn get_git_log_output_file_path_as_string(cloned_project:&ClonedProject) -> 
 }
 
 pub fn save_git_log_to_file(cloned_project: &ClonedProject) -> bool {
-    Command::new("./scripts/save_git_log.sh").args(&[&cloned_project.input_log_path, &get_git_log_file_path_as_string(cloned_project)]).spawn().is_ok()
-}
-
-pub struct Commit {
-    pub hash: String,
-    pub author: String,
-    pub date: String,
-    pub comment: String,
+    Command::new("./scripts/save_git_log.sh").args(&[&cloned_project.input_log_path, &get_git_log_file_path_as_string(cloned_project)]).output().is_ok()
 }
 
 pub fn parse_git_log(cloned_project: &ClonedProject) -> bool {
-    //let datehash_map = HashMap::new();
+    let mut date_hashmap = HashMap::new();
     let input_file = match File::open(get_git_log_file_path_as_string(&cloned_project)) {
         Ok(f) => f,
         Err(_) => {error!("could not read input_file");return false;}
     };
+    for (i, line_result) in BufReader::new(input_file).lines().enumerate() {
+        let line = match line_result {
+            Ok(x) => x,
+            Err(_) => {error!("Could not read line {} of git log: Skipping Project {}", i, &cloned_project.github.id); return false;},
+        };
+        let count = date_hashmap.entry(line).or_insert(0);
+        *count += 1;
+    }
     let mut output_file = match File::create(get_git_log_output_file_path_as_string(&cloned_project)) {
         Ok(f) => f,
         Err(_) => {error!("could not read output_file");return false;}
     };
-    let mut count = 0;
-    let mut file_buf = BufReader::new(&input_file);
-    let mut current_date= String::new();
-    for line_result in file_buf.lines() {
-        let mut line = match line_result {
-            Ok(x) => x,
-            Err(_) => {return false;},
-        };
-        if line.len() <= 1 {
-            continue;
-        }
-        line = line.replace("\n", "").replace("\t", "");
-        println!("{}", line);
-        if count > 0 && !current_date.eq(&line) {
-            if (!current_date.eq(&"")) {
-                output_file.write(format!("{},{}\n", current_date, count).as_bytes());
-            }
-            println!("{},{}", current_date, count);
-            count = 0;
-            current_date = line.clone();
-        }
-        count = count + 1;
+    for (key, value) in date_hashmap {
+        output_file.write(format!("{},{}\n", key, value).as_bytes()).unwrap();
     }
     match output_file.sync_data() {
         Ok(_) => {},
@@ -169,17 +145,5 @@ fn clone_project(project: GitRepository) -> Option<ClonedProject> {
             return None;
         }
     }
-
-}
-
-fn generate_git_log_for_project(cloned_project: &ClonedProject) {
-    match git_analyser::parse_git_log(&cloned_project) { // TODO rethink error messages
-        Ok(_) => {}
-        Err(ErrorKind::AlreadyExists) => {}
-        Err(ErrorKind::InvalidData) => { error!("Invalid Data") }
-        Err(ErrorKind::InvalidInput) => { error!("Invalid input when creating log") }
-        Err(ErrorKind::Other) => { error!("Unknown error creating log") }
-        Err(e) => { error!("Failed to generate git log for project {}: {:?}", &cloned_project.path, e); }
-    };
 }
 
