@@ -25,6 +25,7 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse<Git
     let skip_rows = 1;
     let mut skipped_lines: Vec<u32> = Vec::new();
     let mut line_num: u32 = 1;
+    let mut count = 1;
     for line in reader.lines().skip(skip_rows) {
         line_num += 1;
         let str_line = match line {
@@ -44,8 +45,10 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse<Git
 
         let columns: Vec<&str> = str_line.trim().split(',').collect();
         if columns.len() > 2 {
+            let id = columns.get(0).unwrap().to_string();
             let url = columns.get(1).unwrap().to_string();
-            projects.push(GitRepository {id:1, url});
+            projects.push(GitRepository {id:count.clone(), url});
+            count = count + 1;
         } else {
             warn!("Err: Line {} is not formatted correctly and has been skipped.", line_num);
             skipped_lines.push(line_num);
