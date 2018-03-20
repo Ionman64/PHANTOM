@@ -273,12 +273,16 @@ if __name__ == '__main__':
     # read environment variable from '.env' ----------------------------------------------------------------------------
 
     # get data from database -------------------------------------------------------------------------------------------
-    engine = create_engine(get_db_connection_string())
-    frame = pd.read_sql_query(
-        "SELECT repository_id, commit_date::DATE as commit_date, COUNT(commit_date::DATE) as frequency FROM repository_commit WHERE repository_id in (%s) GROUP BY commit_date::DATE, repository_id;" % str(arg_ids)[1:-1],
-        con=engine,
-        index_col='commit_date',
-        parse_dates="commit_date")
+    #engine = create_engine(get_db_connection_string())
+    #frame = pd.read_sql_query(
+    #    "SELECT repository_id, commit_date::DATE as commit_date, COUNT(commit_date::DATE) as frequency FROM repository_commit WHERE repository_id in (%s) GROUP BY commit_date::DATE, repository_id;" % str(arg_ids)[1:-1],
+    #    con=engine,
+    #    index_col='commit_date',
+    #    parse_dates="commit_date")
+
+    frame = pd.read_csv("/home/joshua/Documents/commit_frequency/csv/organization.csv", index_col=0, parse_dates=True)
+    frame = frame[frame.repository_id < 20]
+    arg_ids = range(1, 4)
     # setup figures and axes -------------------------------------------------------------------------------------------
     fig, ax = get_fig_and_ax_map(arg_time_unit, arg_rollingmean, arg_window)
     # setup data structures to store information -----------------------------------------------------------------------
@@ -324,33 +328,31 @@ if __name__ == '__main__':
         populate_figure_with_standard_plots(max_peakshifted, peak_series=peaks if arg_mark_peaks else None,
                                             ax_line=ax['max-peak-line'], ax_norm=ax['max-peak-norm'],
                                             ax_acc=ax['max-peak-acc'], ax_acc_norm=ax['max-peak-acc-norm'])
-        populate_figure_with_standard_plots(sequence_shifted, peak_series=peaks if arg_mark_peaks else None,
-                                            ax_line=ax['sequence-line'], ax_norm=ax['sequence-norm'],
-                                            ax_acc=ax['sequence-acc'], ax_acc_norm=ax['sequence-acc-norm'])
+        #populate_figure_with_standard_plots(sequence_shifted, peak_series=peaks if arg_mark_peaks else None,
+        #                                    ax_line=ax['sequence-line'], ax_norm=ax['sequence-norm'],
+        #                                    ax_acc=ax['sequence-acc'], ax_acc_norm=ax['sequence-acc-norm'])
 
         ### percentage before and after max peak -----------------------------------------------------------------------
         len_mps = len(max_peakshifted.index)
         get_portion = lambda length: np.multiply(np.true_divide(length, len_mps), 100)
         pid_frame.at[key, 'pre-peak-portion'] = get_portion(len(np.where(max_peakshifted.index < 0)[0]))
         pid_frame.at[key, 'post-peak-portion'] = get_portion(len(np.where(max_peakshifted.index > 0)[0]))
-
     ### portion before and after the maximum peak ----------------------------------------------------------------------
     portion_ax = pid_frame[['pre-peak-portion', 'post-peak-portion']].plot(kind='bar', legend=False,
                                                                            ax=ax['max-peak-le-ge-zero'])
 
     ### euclidean distance ---------------------------------------------------------------------------------------------
     # for normal plots
-    for prefix in ['left', 'max-peak', 'sequence']:
-        populate_figure_with_euclidean(pid_series=shifted_pid_series[prefix],
-                                       series_was_shifted_to=prefix,
-                                       ax_line_euclidean=ax['%s-line-euclidean' % prefix],
-                                       ax_norm_euclidean=ax['%s-norm-euclidean' % prefix],
-                                       ax_acc_euclidean=ax['%s-acc-euclidean' % prefix],
-                                       ax_acc_norm_euclidean=ax['%s-acc-norm-euclidean' % prefix])
+    #for prefix in ['left', 'max-peak', 'sequence']:
+        #populate_figure_with_euclidean(pid_series=shifted_pid_series[prefix],
+        #                               series_was_shifted_to=prefix,
+        #                               ax_line_euclidean=ax['%s-line-euclidean' % prefix],
+        #                               ax_norm_euclidean=ax['%s-norm-euclidean' % prefix],
+        #                               ax_acc_euclidean=ax['%s-acc-euclidean' % prefix],
+        #                               ax_acc_norm_euclidean=ax['%s-acc-norm-euclidean' % prefix])
 
     # ------------------------------------------------------------------------------------------------------------------
     post_plot_figure_style(fig, arg_ids)
     post_plot_axes_style(ax, arg_ids, silent=True)
-
     if not arg_hide:
         plt.show()
