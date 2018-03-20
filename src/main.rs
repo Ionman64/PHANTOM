@@ -80,10 +80,10 @@ pub fn extract_git_repo_from_line(line_num: usize, str_line: String) -> Result<G
         warn!("Err: Line {} is not formatted correctly and has been skipped.", &line_num);
         return Err(ErrorKind::InvalidInput);
     }
-    let _id = columns.get(0).unwrap().to_string();
-    let mut url = columns.get(1).unwrap().to_string();
+
+    let mut url = columns.get(2).unwrap().to_string();
     if character_count(&url, ':') == 0 {
-        let url_lead = String::from("https://www.github.com/");
+        let url_lead = String::from("https://github.com/");
         url = url_lead.add(&url);
     }
     Ok(GitRepository {id:line_num, url})
