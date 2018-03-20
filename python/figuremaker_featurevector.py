@@ -180,67 +180,68 @@ def pca(frame, labels, measure_name, n_components):
     plt.tight_layout(pad=3, h_pad=0, w_pad=0)
 
 
-# Assert command line args
-assert len(sys.argv) > 1
-arg1 = sys.argv[1]
-assert os.path.isdir(arg1)
-feature_vector_csv_dir = os.path.expanduser(arg1)
-# Configure pandas options ----------------------------------------------------------
-pd.set_option("display.max_rows", 500)
-pd.set_option('display.expand_frame_repr', False)
+if __name__ == "__main__":
+    # Assert command line args
+    assert len(sys.argv) > 1
+    arg1 = sys.argv[1]
+    assert os.path.isdir(arg1)
+    feature_vector_csv_dir = os.path.expanduser(arg1)
+    # Configure pandas options ----------------------------------------------------------
+    pd.set_option("display.max_rows", 500)
+    pd.set_option('display.expand_frame_repr', False)
 
-# Load dataframes -------------------------------------------------------------------
-frame_map = load_dataframes(binary_label=False, path=feature_vector_csv_dir)
-frame = pd.concat(frame_map.values(), ignore_index=True)
-labels = frame['label']
-frame.drop('label', axis=1, inplace=True)
+    # Load dataframes -------------------------------------------------------------------
+    frame_map = load_dataframes(binary_label=False, path=feature_vector_csv_dir)
+    frame = pd.concat(frame_map.values(), ignore_index=True)
+    labels = frame['label']
+    frame.drop('label', axis=1, inplace=True)
 
-val_frame_map = load_validation_dataframes(binary_label=True, path=feature_vector_csv_dir)
-val_frame = pd.concat(val_frame_map.values(), ignore_index=True)
-val_labels = val_frame['label']
-val_frame.drop('label', axis=1, inplace=True)
-# Handle NaN
-frame.fillna(0, inplace=True)
-val_frame.fillna(0, inplace=True)
+    val_frame_map = load_validation_dataframes(binary_label=True, path=feature_vector_csv_dir)
+    val_frame = pd.concat(val_frame_map.values(), ignore_index=True)
+    val_labels = val_frame['label']
+    val_frame.drop('label', axis=1, inplace=True)
+    # Handle NaN
+    frame.fillna(0, inplace=True)
+    val_frame.fillna(0, inplace=True)
 
-# Preprocess frames
-mmFrame = (frame - frame.min()) / (frame.max() - frame.min())
-zFrame = (frame - frame.mean()) / frame.std()
+    # Preprocess frames
+    mmFrame = (frame - frame.min()) / (frame.max() - frame.min())
+    zFrame = (frame - frame.mean()) / frame.std()
 
-mmValFrame = (val_frame - val_frame.min()) / (val_frame.max() - val_frame.min())
-zValFrame = (val_frame - val_frame.mean()) / val_frame.std()
+    mmValFrame = (val_frame - val_frame.min()) / (val_frame.max() - val_frame.min())
+    zValFrame = (val_frame - val_frame.mean()) / val_frame.std()
 
-# Plotting... -----------------------------------------------------------------------
-#histograms(frame, labels, "Commit Frequency")
-#plt.savefig('/home/joshua/Documents/commit_frequency/hist.png')
-#scatter_matrix(mmFrame, labels, "Commit Frequency")
-#plt.savefig('/home/joshua/Documents/commit_frequency/scatter.png')
+    # Plotting... -----------------------------------------------------------------------
+    #histograms(frame, labels, "Commit Frequency")
+    #plt.savefig('/home/joshua/Documents/commit_frequency/hist.png')
+    #scatter_matrix(mmFrame, labels, "Commit Frequency")
+    #plt.savefig('/home/joshua/Documents/commit_frequency/scatter.png')
 
-tsne(frame, labels, "Commit Frequency", 2)
-plt.savefig('/home/joshua/Documents/commit_frequency/tsne_org_util_neg_v_vp.png')
-exit()
-#pca(frame, labels, "Commit Frequency", 2)
-#plt.savefig('/home/joshua/Documents/commit_frequency/pca_org_util_neg.png')
+    tsne(frame, labels, "Commit Frequency", 2)
+    plt.savefig('/home/joshua/Documents/commit_frequency/tsne_org_util_neg_v_vp.png')
+    exit()
+    #pca(frame, labels, "Commit Frequency", 2)
+    #plt.savefig('/home/joshua/Documents/commit_frequency/pca_org_util_neg.png')
 
-#corr(mmFrame, "Commit Frequency")
-#plt.savefig('/home/joshua/Documents/commit_frequency/corr.png')
+    #corr(mmFrame, "Commit Frequency")
+    #plt.savefig('/home/joshua/Documents/commit_frequency/corr.png')
 
-# corr(frame, "Commit Frequency")
+    # corr(frame, "Commit Frequency")
 
-import clustering as clustering
+    import clustering as clustering
 
-model, fitted_labels = clustering.get_kmeans_model_and_labels(mmFrame)
-print "Evalutation in Context of Training Data. (%s)" % frame_map.keys()
-clustering.print_results(labels, fitted_labels, labels.unique())
+    model, fitted_labels = clustering.get_kmeans_model_and_labels(mmFrame)
+    print "Evalutation in Context of Training Data. (%s)" % frame_map.keys()
+    clustering.print_results(labels, fitted_labels, labels.unique())
 
-error_types = clustering.get_tp_fp_tn_fn(labels, fitted_labels)
-tsne_by_kmeans_cluster_and_error_type(mmFrame, kmeans_clusters=fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
-plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_training.png')
+    error_types = clustering.get_tp_fp_tn_fn(labels, fitted_labels)
+    tsne_by_kmeans_cluster_and_error_type(mmFrame, kmeans_clusters=fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
+    plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_training.png')
 
-val_fitted_labels = clustering.predict_and_get_labels(model, mmValFrame)
-print "Evalutation in Context of Validation Data. (%s)" % str(frame_map.keys())[1:-1]
-clustering.print_results(val_labels, val_fitted_labels)
-error_types = clustering.get_tp_fp_tn_fn(val_labels, val_fitted_labels)
-tsne_by_kmeans_cluster_and_error_type(mmValFrame, kmeans_clusters=val_fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
-plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_validation.png')
+    val_fitted_labels = clustering.predict_and_get_labels(model, mmValFrame)
+    print "Evalutation in Context of Validation Data. (%s)" % str(frame_map.keys())[1:-1]
+    clustering.print_results(val_labels, val_fitted_labels)
+    error_types = clustering.get_tp_fp_tn_fn(val_labels, val_fitted_labels)
+    tsne_by_kmeans_cluster_and_error_type(mmValFrame, kmeans_clusters=val_fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
+    plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_validation.png')
 
