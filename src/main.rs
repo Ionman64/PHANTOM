@@ -80,40 +80,44 @@ pub fn extract_git_repo_from_line(line_num: usize, str_line: String) -> Result<G
         warn!("Err: Line {} is not formatted correctly and has been skipped.", &line_num);
         return Err(ErrorKind::InvalidInput);
     }
-
-    let mut url = columns.get(2).unwrap().to_string();
-    if character_count(&url, ':') == 0 {
-        let url_lead = String::from("https://github.com/");
-        url = url_lead.add(&url);
-    }
-    Ok(GitRepository {id:line_num, url})
+    let mut url_context = columns.get(0).unwrap().to_string();
+    url_context.replace("https://github.com/", "");
+    let mut full_url = String::from("https://github.com/").add(&url_context);
+    Ok(GitRepository {id:url_context.replace("/", "_"), url:full_url})
 }
 
 pub fn get_git_log_file_path_as_string(cloned_project:&ClonedProject) -> String {
     let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+    let id = cloned_project.github.id.to_owned();
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
         .join("git_log")
-        .join(&cloned_project.github.url.to_string()
-            .replace("https://github.com/", "")
-            .replace("/", "_")
-            .add(".log"));
+        .join(id.add(".log"));
+    csv_path.into_os_string().into_string().unwrap()
+}
+
+pub fn get_git_folder_from_project_as_string(cloned_project:&ClonedProject) -> String {
+    let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+    let id = cloned_project.github.id.to_owned();
+    let csv_path = Path::new(&home_dir)
+        .join(ROOT_FOLDER)
+        .join("repos")
+        .join(id)
+        .join(".git");
     csv_path.into_os_string().into_string().unwrap()
 }
 
 pub fn get_git_log_output_file_path_as_string(cloned_project:&ClonedProject) -> String {
     let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+    let id = cloned_project.github.id.to_owned();
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
         .join("analysis_csv")
-        .join(&cloned_project.github.url.to_string()
-            .replace("https://github.com/", "")
-            .replace("/", "_")
-            .add(".csv"));
+        .join(id.add(".csv"));
     csv_path.into_os_string().into_string().unwrap()
 }
 pub fn save_git_log_to_file(cloned_project: &ClonedProject) -> bool {
-    Command::new("./scripts/save_git_log.sh").args(&[&cloned_project.input_log_path, &get_git_log_file_path_as_string(cloned_project)]).output().is_ok()
+    Command::new("./scripts/save_git_log.sh").args(&[get_git_folder_from_project_as_string(cloned_project), get_git_log_file_path_as_string(cloned_project)]).output().is_ok()
 }
 
 pub fn parse_git_log(cloned_project: &ClonedProject) -> bool {
@@ -165,23 +169,6 @@ fn setup_file_system() {
                 Err(_) => {panic!("ERROR (could not create {})", &project_path.to_str().unwrap())},
                 Ok(_) => {println!("SUCCESS")}
             }
-        }
-    }
-}
-
-fn get_all_repositories_from_filesystem() -> Vec<GitRepository> {
-    match downloader::read_project_urls_from_file(String::from("dataset.csv")) {
-        Ok(project_struct) => {
-            match project_struct.skipped_lines {
-                None => {}
-                Some(lines) => {
-                    warn!("Read project from csv with success, but skipped lines: {:?}", lines);
-                }
-            }
-            return project_struct.response;
-        }
-        Err(_) => {
-            panic!("Failed to read any git repositories from filesystem");
         }
     }
 }

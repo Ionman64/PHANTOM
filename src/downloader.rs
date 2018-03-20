@@ -14,52 +14,6 @@ pub struct LinesResponse<T> {
 }
 
 
-/// Reads  the csv file "projects.csv" (see project root directory) and extracts the id and url for each row.
-pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse<GitRepository>, ErrorKind> {
-    let csv_file = match File::open(filepath) {
-        Ok(file) => file,
-        Err(_) => { panic!("Could not open urls file") }
-    };
-    let reader = BufReader::new(csv_file);
-    let mut projects: Vec<GitRepository> = Vec::new();
-    let skip_rows = 1;
-    let mut skipped_lines: Vec<u32> = Vec::new();
-    let mut line_num: u32 = 1;
-    let mut count = 1;
-    for line in reader.lines().skip(skip_rows) {
-        line_num += 1;
-        let str_line = match line {
-            Ok(line) => line,
-            Err(_) => {
-                warn!("Could not read line {}", line_num);
-                skipped_lines.push(line_num);
-                continue;
-            }
-        };
-
-        if character_count(&str_line, ',') == 0 {
-            warn!("Does not contain expected comma character on line {}", line_num);
-            skipped_lines.push(line_num);
-            continue;
-        }
-
-        let columns: Vec<&str> = str_line.trim().split(',').collect();
-        if columns.len() > 2 {
-            let _id = columns.get(0).unwrap().to_string();
-            let mut url = columns.get(1).unwrap().to_string();
-            if character_count(&url, ':') == 0 {
-                let url_lead = String::from("https://www.github.com/");
-                url = url_lead.add(&url);
-            }
-            projects.push(GitRepository {id:count.clone(), url});
-            count = count + 1;
-        } else {
-            warn!("Err: Line {} is not formatted correctly and has been skipped.", line_num);
-            skipped_lines.push(line_num);
-        }
-    }
-    Ok(LinesResponse { response: projects, skipped_lines: None })
-}
 
 ///Counts the number of matching characters in a String
 fn character_count(str_line: &String, matching_character: char) -> u32 {
@@ -78,7 +32,7 @@ pub fn clone_project(project: GitRepository) -> Result<ClonedProject, ErrorKind>
     let project_path = Path::new(&home_path)
         .join(String::from("project_analyser"))
         .join(String::from("repos"))
-        .join(project.id.to_string());
+        .join(&project.id);
 
     match check_url_http_code(&[200, 301], &project.url) { // TODO use constant for valid codes
         Ok(_) => {},
