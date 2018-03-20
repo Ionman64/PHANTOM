@@ -1,12 +1,26 @@
-use chrono::NaiveDateTime;
-use std::path::{Path, PathBuf, MAIN_SEPARATOR};
+use std::path::{Path, PathBuf};
 use downloader::get_home_dir_path;
 use std::ops::Add;
+use downloader;
 
 pub struct GitRepository {
-    pub id: i64,
+    pub id: usize,
     pub url: String,
 }
+
+/*impl GitRepository {
+    pub fn new(url:String) -> GitRepository {
+        let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+        let csv_path = Path::new(&home_dir)
+            .join(ROOT_FOLDER)
+            .join("git_log")
+            .join(&cloned_project.github.url.to_string()
+                .replace("https://github.com/", "")
+                .replace("/", "_")
+                .add(".log"));
+        csv_path.into_os_string().into_string().unwrap()
+    }
+}*/
 
 pub struct ClonedProject {
     pub github: GitRepository,

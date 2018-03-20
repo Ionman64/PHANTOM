@@ -1,7 +1,5 @@
 use models::{ClonedProject};
 use std::io::ErrorKind;
-use std::process::Command;
-use std::collections::HashMap;
 use chrono::NaiveDateTime;
 use std::io;
 use std::path::{Path, PathBuf};

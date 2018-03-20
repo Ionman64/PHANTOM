@@ -12,28 +12,45 @@ use std::fs;
 use std::ops::Add;
 use std::io::prelude::*;
 use std::fs::File;
-use std::io::BufReader;
-use std::io::BufRead;
 use std::collections::HashMap;
-
+use std::io::{BufReader, BufRead};
+use std::io::ErrorKind;
 
 
 const THREAD_POOL_SIZE:usize = 75;
 const ROOT_FOLDER:&str = "project_analyser";
+const PROJECTS_FILE:&str = "projects.csv";
+const PROJECT_LIMIT:usize = 5; //Set Project Download Limit, -1 will not limit
 
 
 fn main() {
     project_analyser::setup_logger().expect("Logger Setup Failed");
     setup_file_system();
-    let repositories = get_all_repositories_from_filesystem();
     let thread_pool = ThreadPool::new(THREAD_POOL_SIZE);
-    for project in repositories.into_iter().take(1) {
+    let mut project_limit = PROJECT_LIMIT.clone();
+    let f = match File::open(PROJECTS_FILE) {
+        Ok(f) => f,
+        Err(_) => {panic!("Could not open projects file!");}
+    };
+    for (line_num, line) in BufReader::new(f).lines().skip(1).enumerate() {
+        let str_line = match line {
+            Ok(line) => line,
+            Err(_) => {
+                warn!("Could not read line {}", &line_num);
+                continue;
+            }
+        };
+        let project = match extract_git_repo_from_line(line_num, str_line) {
+            Ok(x) => x,
+            Err(_) => {continue;},
+        };
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {
                 return;
             }
             let cloned_project = cloned_project.unwrap();
+            println!("Here {}", &cloned_project.github.id);
             if !save_git_log_to_file(&cloned_project) {
                 return;
             }
@@ -41,7 +58,42 @@ fn main() {
                 return;
             }
         });
+        if project_limit == line_num {
+            info!("Project Limit {} reached - Exiting", &project_limit);
+            break;
+        }
     }
+}
+
+fn character_count(str_line: &String, matching_character: char) -> u32 {
+    let mut count: u32 = 0;
+
+    for character in str_line.chars() {
+        if character == matching_character {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+pub fn extract_git_repo_from_line(line_num: usize, str_line: String) -> Result<GitRepository, ErrorKind> {
+    if character_count(&str_line, ',') == 0 {
+        warn!("Does not contain expected comma character on line {}", &line_num);
+        return Err(ErrorKind::InvalidInput);
+    }
+
+    let columns: Vec<&str> = str_line.trim().split(',').collect();
+    if columns.len() <= 2 {
+        warn!("Err: Line {} is not formatted correctly and has been skipped.", &line_num);
+        return Err(ErrorKind::InvalidInput);
+    }
+    let _id = columns.get(0).unwrap().to_string();
+    let mut url = columns.get(1).unwrap().to_string();
+    if character_count(&url, ':') == 0 {
+        let url_lead = String::from("https://www.github.com/");
+        url = url_lead.add(&url);
+    }
+    Ok(GitRepository {id:line_num, url})
 }
 
 pub fn get_git_log_file_path_as_string(cloned_project:&ClonedProject) -> String {
@@ -125,7 +177,7 @@ fn setup_file_system() {
 }
 
 fn get_all_repositories_from_filesystem() -> Vec<GitRepository> {
-    match downloader::read_project_urls_from_file(String::from("projects.csv")) {
+    match downloader::read_project_urls_from_file(String::from("dataset.csv")) {
         Ok(project_struct) => {
             match project_struct.skipped_lines {
                 None => {}
@@ -142,11 +194,11 @@ fn get_all_repositories_from_filesystem() -> Vec<GitRepository> {
 }
 
 fn clone_project(project: GitRepository) -> Option<ClonedProject> {
-    let project_id = project.id.clone();
+    let id = project.id.clone();
     match downloader::clone_project(project) {
         Ok(cloned_project) => Some(cloned_project),
         Err(_) => {
-            error!("Failed to clone project {}.", project_id);
+            error!("Failed to clone project {}.", id);
             return None;
         }
     }
