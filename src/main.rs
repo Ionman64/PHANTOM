@@ -19,15 +19,13 @@ use std::io::ErrorKind;
 
 const THREAD_POOL_SIZE:usize = 75;
 const ROOT_FOLDER:&str = "project_analyser";
-const PROJECTS_FILE:&str = "projects.csv";
-const PROJECT_LIMIT:usize = 5; //Set Project Download Limit, -1 will not limit
+const PROJECTS_FILE:&str = "dataset.csv";
 
 
 fn main() {
     project_analyser::setup_logger().expect("Logger Setup Failed");
     setup_file_system();
     let thread_pool = ThreadPool::new(THREAD_POOL_SIZE);
-    let mut project_limit = PROJECT_LIMIT.clone();
     let f = match File::open(PROJECTS_FILE) {
         Ok(f) => f,
         Err(_) => {panic!("Could not open projects file!");}
@@ -50,7 +48,6 @@ fn main() {
                 return;
             }
             let cloned_project = cloned_project.unwrap();
-            println!("Here {}", &cloned_project.github.id);
             if !save_git_log_to_file(&cloned_project) {
                 return;
             }
@@ -58,10 +55,6 @@ fn main() {
                 return;
             }
         });
-        if project_limit == line_num {
-            info!("Project Limit {} reached - Exiting", &project_limit);
-            break;
-        }
     }
 }
 
