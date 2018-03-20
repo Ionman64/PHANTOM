@@ -102,8 +102,7 @@ pub fn get_git_folder_from_project_as_string(cloned_project:&ClonedProject) -> S
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
         .join("repos")
-        .join(id)
-        .join(".git");
+        .join(id);
     csv_path.into_os_string().into_string().unwrap()
 }
 
