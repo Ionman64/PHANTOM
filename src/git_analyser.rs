@@ -1,15 +1,13 @@
-use models::{ClonedProject, NewRepositoryCommit, NewCommitFile, CommitFile, FileAnalysis};
+use models::{ClonedProject};
 use std::io::ErrorKind;
-use std::process::Command;
-use std::collections::HashMap;
 use chrono::NaiveDateTime;
-use database;
 use std::io;
-use std::path::{Path, PathBuf}
+use std::path::{Path, PathBuf};
 
 //Used for the File Analysis
 use std::io::{BufReader,BufRead};
 use std::fs::File;
+use downloader;
 
 #[derive(PartialEq)]
 pub enum Git {
@@ -42,33 +40,28 @@ impl Git {
 }
 
 pub fn get_git_log_path(cloned_project: &ClonedProject) -> PathBuf {
-    let home_path = get_home_dir_path().expect("Could not get home directory");
+    let home_path = downloader::get_home_dir_path().expect("Could not get home directory");
 
     Path::new(&home_path)
         .join(String::from("project_analyser"))
         .join(String::from("git_logs"))
-        .join(project.id.to_string())
+        .join(cloned_project.github.id.to_string())
 }
 
-pub fn save_git_log_to_file(cloned_project: &ClonedProject) -> io::Error{
-    Command::new("./scripts/save_git_log.sh")
-        .args(&[&cloned_project.input_log_path, cloned_project.analysis_csv_file])
-        .exec()?
-}
+
 
 /// Generate a log by calling "git log" in the specified project directory.
 /// Results with the path to the log file.
-pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject, ErrorKind> {
-    let mut repository_commits: Vec<NewRepositoryCommit> = Vec::new();
-    let mut date_count = HashMap::new();
+pub fn parse_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject, ErrorKind> {
+    /*let mut date_count = HashMap::new();
 
-
+    let git_files_and_dates_command = Command::new("git")
+        .args(&["--git-dir", &cloned_project.analysis_csv_file, ]).spawn().is_err()
     let output = git_files_and_dates_command.stdout;
     let output_string = match String::from_utf8(output) {
         Ok(x) => x,
         Err(_) => return Err(ErrorKind::InvalidInput),
     };
-    let mut commit_files:Vec<NewCommitFile> = Vec::new();
     let mut current_commit_hash = String::from("");
     for line in output_string.split('\n').collect::<Vec<&str>>() {
         if String::from(line).len() == 0 {
@@ -87,7 +80,7 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
             let date = NaiveDateTime::from_timestamp(timestamp, 0);
             let count = date_count.entry(date).or_insert(0);
             *count += 1;
-            repository_commits.push(NewRepositoryCommit::new(cloned_project.github.id, date, current_commit_hash.clone()));
+            //repository_commits.push(NewRepositoryCommit::new(cloned_project.github.id, date, current_commit_hash.clone()));
         } else {
             //File Name
             let words = line.split('\t').collect::<Vec<&str>>();
@@ -100,89 +93,9 @@ pub fn generate_git_log(cloned_project: &ClonedProject) -> Result<&ClonedProject
                 commit_files.push(NewCommitFile {commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path:new_file_path, action:Git::to_string(&Git::ADDED)});
             } else {
                 let file_path = words.get(1).unwrap().to_string();
-                commit_files.push(NewCommitFile { commit_hash: current_commit_hash.clone(), repository_id: cloned_project.github.id, file_path, action});
             }
 
         }
-    }
-    match database::create_repository_commit(repository_commits) {
-        Ok(x) => { info!("{} rows inserted into database: repository_id {}", x, &cloned_project.github.id);}
-        Err(ErrorKind::AlreadyExists) => { info!("{} already exists in database", &cloned_project.github.id);}
-        Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id);}
-        Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id);}
-    };
-    match database::create_commit_file(commit_files) {
-        Ok(x) => { info!("{} rows inserted into database: repository_id {}", x.len(), &cloned_project.github.id);}
-        Err(ErrorKind::AlreadyExists) => { info!("{} commit files already exists in database", &cloned_project.github.id); return Err(ErrorKind::AlreadyExists)}
-        Err(ErrorKind::Other) => { info!("Other Error when inserting {} into database", &cloned_project.github.id); return Err(ErrorKind::AlreadyExists)}
-        Err(_) => { info!("Unknown Error when inserting {} into database", &cloned_project.github.id); return Err(ErrorKind::Other)}
-    };
+    }*/
     Ok(cloned_project)
-}
-
-pub fn run_file_analysis(files: Vec<CommitFile>) {
-    let mut file_analyses:Vec<FileAnalysis> = Vec::new();
-    for file in files {
-        if Git::to_enum(&file.action) == Git::DELETED {
-            continue;
-        }
-        file_analyses.push(FileAnalysis {file_id:file.file_id.clone(), commit_hash:file.commit_hash.clone(), loc:count_loc(&file)});
-    }
-    database::create_file_analysis(file_analyses);
-}
-
-pub fn count_loc(commit_file: &CommitFile) -> i32 {
-    let file = match File::open(CommitFile::get_abs_path(commit_file)) {
-        Ok(file) => file,
-        Err(_) => {error!("File could not be found: {}", commit_file.file_path); return -1;}, // TODO This should not return -1! Return an Error!
-    };
-
-    BufReader::new(file).lines().count() as i32
-}
-
-
-pub fn checkout_commit(cloned_project: &ClonedProject, commit_hash: &String) -> Result<bool, ErrorKind> {
-    let git_checkout_cmd = match Command::new("git")
-        .args(&[
-            "--git-dir", &cloned_project.input_log_path,
-            "--work-tree", &cloned_project.path,
-            "checkout", &commit_hash, "-q"])
-        .output() {
-        Ok(output) => output,
-        Err(_) => {
-            warn!("Could not checkout {}: repository id {}", &commit_hash, &cloned_project.github.id);
-            return Err(ErrorKind::InvalidInput);
-        }
-    };
-    let output = git_checkout_cmd.stdout;
-    if output.len() > 0 {
-        let output_string = match String::from_utf8(output) {
-            Ok(x) => x,
-            Err(_) => return Err(ErrorKind::InvalidInput),
-        };
-        error!("Git checkout returned error {}", output_string);
-        return Err(ErrorKind::InvalidData);
-    }
-    Ok(true)
-}
-
-#[cfg(tests)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn read_commits_per_day_correct_url() {
-        let github_project = GitRepository { id: -2, url: String::from("https://github.com/bitcoin/bitcoin") };
-        let home_path = get_home_dir_path().expect("Could not get home directory");
-        let project_path = Path::new(&home_path)
-            .join(String::from("project_analyser"))
-            .join(String::from("repos"))
-            .join(github_project.id.to_string());
-        let cloned_project = ClonedProject::new(github_project, project_path);
-        let result = match count_commits_per_day(&cloned_project) {
-            Ok(date_count) => true,
-            Err(_) => false,
-        };
-        assert!(result);
-    }
 }
