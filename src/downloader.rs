@@ -45,7 +45,7 @@ pub fn read_project_urls_from_file(filepath: String) -> Result<LinesResponse<Git
 
         let columns: Vec<&str> = str_line.trim().split(',').collect();
         if columns.len() > 2 {
-            let id = columns.get(0).unwrap().to_string();
+            let _id = columns.get(0).unwrap().to_string();
             let mut url = columns.get(1).unwrap().to_string();
             if character_count(&url, ':') == 0 {
                 let url_lead = String::from("https://www.github.com/");

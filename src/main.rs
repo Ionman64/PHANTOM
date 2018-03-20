@@ -27,7 +27,7 @@ fn main() {
     setup_file_system();
     let repositories = get_all_repositories_from_filesystem();
     let thread_pool = ThreadPool::new(THREAD_POOL_SIZE);
-    for project in repositories.into_iter() {
+    for project in repositories.into_iter().take(1) {
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {
@@ -49,7 +49,10 @@ pub fn get_git_log_file_path_as_string(cloned_project:&ClonedProject) -> String 
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
         .join("git_log")
-        .join(&cloned_project.github.id.to_string().add(".log"));
+        .join(&cloned_project.github.url.to_string()
+            .replace("https://github.com/", "")
+            .replace("/", "_")
+            .add(".log"));
     csv_path.into_os_string().into_string().unwrap()
 }
 
@@ -58,10 +61,12 @@ pub fn get_git_log_output_file_path_as_string(cloned_project:&ClonedProject) -> 
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
         .join("analysis_csv")
-        .join(&cloned_project.github.id.to_string().add(".csv"));
+        .join(&cloned_project.github.url.to_string()
+            .replace("https://github.com/", "")
+            .replace("/", "_")
+            .add(".csv"));
     csv_path.into_os_string().into_string().unwrap()
 }
-
 pub fn save_git_log_to_file(cloned_project: &ClonedProject) -> bool {
     Command::new("./scripts/save_git_log.sh").args(&[&cloned_project.input_log_path, &get_git_log_file_path_as_string(cloned_project)]).output().is_ok()
 }
