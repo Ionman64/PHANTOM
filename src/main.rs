@@ -38,10 +38,25 @@ fn main() {
                 continue;
             }
         };
+
         let project = match extract_git_repo_from_line(line_num, str_line) {
             Ok(x) => x,
             Err(_) => {continue;},
         };
+
+        // ------------
+        let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+        let id = project.id.to_owned();
+        let csv_path = Path::new(&home_dir)
+            .join(ROOT_FOLDER)
+            .join("analysis_csv")
+            .join(id.add(".csv"));
+        if csv_path.exists() {
+            println!("Skipped project with id {}", project.id);
+            continue
+        }
+        // ------------
+
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {

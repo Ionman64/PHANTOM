@@ -77,4 +77,5 @@ for key, series in df_in.groupby('repository_id')['frequency']:
 pd.set_option("display.max_rows", 300)
 pd.set_option('display.expand_frame_repr', False)
 
-df_feature_table.to_csv(path_to_csv_out)
+#df_feature_table.to_csv(path_to_csv_out)
+print df_feature_table[0:19]
