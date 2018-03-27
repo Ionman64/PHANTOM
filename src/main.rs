@@ -17,7 +17,7 @@ use std::io::{BufReader, BufRead};
 use std::io::ErrorKind;
 
 
-const THREAD_POOL_SIZE:usize = 75;
+const THREAD_POOL_SIZE:usize = 3;
 const ROOT_FOLDER:&str = "project_analyser";
 const PROJECTS_FILE:&str = "dataset.csv";
 
@@ -96,7 +96,7 @@ pub fn extract_git_repo_from_line(line_num: usize, str_line: String) -> Result<G
         return Err(ErrorKind::InvalidInput);
     }
     let mut url_context = columns.get(0).unwrap().to_string();
-    url_context.replace("https://github.com/", "");
+    url_context = url_context.replace("https://github.com/", "");
     let mut full_url = String::from("https://github.com/").add(&url_context);
     Ok(GitRepository {id:url_context.replace("/", "_"), url:full_url})
 }
@@ -189,10 +189,11 @@ fn setup_file_system() {
 
 fn clone_project(project: GitRepository) -> Option<ClonedProject> {
     let id = project.id.clone();
+    let url = project.url.clone();
     match downloader::clone_project(project) {
         Ok(cloned_project) => Some(cloned_project),
         Err(_) => {
-            error!("Failed to clone project {}.", id);
+            error!("Failed to clone project {}.", url);
             return None;
         }
     }
