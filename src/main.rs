@@ -4,10 +4,9 @@ extern crate fern;
 extern crate log;
 
 use project_analyser::models::*;
-use project_analyser::downloader;
 use project_analyser::thread_helper::ThreadPool;
 use std::process::Command;
-use std::path::{Path};
+use std::path::{Path, PathBuf};
 use std::fs;
 use std::ops::Add;
 use std::io::prelude::*;
@@ -15,16 +14,12 @@ use std::fs::File;
 use std::collections::HashMap;
 use std::io::{BufReader, BufRead};
 use std::io::ErrorKind;
+use std::env;
 
 
 const THREAD_POOL_SIZE:usize = 3;
-<<<<<<< HEAD
 const ROOT_FOLDER:&str = "project_downloader";
 const PROJECTS_FILE:&str = "organization.csv";
-=======
-const ROOT_FOLDER:&str = "project_analyser";
-const PROJECTS_FILE:&str = "dataset.csv";
->>>>>>> a867fca25fbde6aabb9e726384fa11b2b3cdd640
 
 
 fn main() {
@@ -50,7 +45,7 @@ fn main() {
         };
 
         // ------------
-        let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+        /*let home_dir = get_home_dir_path().expect("Could not get home directory");
         let id = project.id.to_owned();
         let csv_path = Path::new(&home_dir)
             .join(ROOT_FOLDER)
@@ -60,8 +55,7 @@ fn main() {
             println!("Skipped project with id {}", project.id);
             continue
         }
-        // ------------
-
+        */
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {
@@ -93,20 +87,14 @@ pub fn extract_git_repo_from_line(line_num: usize, str_line: String) -> Result<G
         warn!("Err: Line {} is not formatted correctly and has been skipped.", &line_num);
         return Err(ErrorKind::InvalidInput);
     }
-<<<<<<< HEAD
-    let url_context = columns.get(0).unwrap().to_string();
-    url_context.replace("https://github.com/", "");
-    let full_url = String::from("https://github.com/").add(&url_context);
-=======
-    let mut url_context = columns.get(0).unwrap().to_string();
+    let mut url_context = columns.get(1).unwrap().to_string();
     url_context = url_context.replace("https://github.com/", "");
-    let mut full_url = String::from("https://github.com/").add(&url_context);
->>>>>>> a867fca25fbde6aabb9e726384fa11b2b3cdd640
+    let full_url = String::from("https://github.com/").add(&url_context);
     Ok(GitRepository {id:url_context.replace("/", "_"), url:full_url})
 }
 
 pub fn get_git_log_file_path_as_string(cloned_project:&ClonedProject) -> String {
-    let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+    let home_dir = get_home_dir_path().expect("Could not get home directory");
     let id = cloned_project.github.id.to_owned();
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
@@ -116,7 +104,7 @@ pub fn get_git_log_file_path_as_string(cloned_project:&ClonedProject) -> String 
 }
 
 pub fn get_git_folder_from_project_as_string(cloned_project:&ClonedProject) -> String {
-    let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+    let home_dir = get_home_dir_path().expect("Could not get home directory");
     let id = cloned_project.github.id.to_owned();
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
@@ -126,7 +114,7 @@ pub fn get_git_folder_from_project_as_string(cloned_project:&ClonedProject) -> S
 }
 
 pub fn get_git_log_output_file_path_as_string(cloned_project:&ClonedProject) -> String {
-    let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+    let home_dir = get_home_dir_path().expect("Could not get home directory");
     let id = cloned_project.github.id.to_owned();
     let csv_path = Path::new(&home_dir)
         .join(ROOT_FOLDER)
@@ -135,7 +123,8 @@ pub fn get_git_log_output_file_path_as_string(cloned_project:&ClonedProject) -> 
     csv_path.into_os_string().into_string().unwrap()
 }
 pub fn save_git_log_to_file(cloned_project: &ClonedProject) -> bool {
-    Command::new("./scripts/save_git_log.sh").args(&[get_git_folder_from_project_as_string(cloned_project), get_git_log_file_path_as_string(cloned_project)]).output().is_ok()
+    //Command::new("./scripts/save_git_log.sh").args(&[get_git_folder_from_project_as_string(cloned_project), get_git_log_file_path_as_string(cloned_project)]).output().is_ok()
+    return true;
 }
 
 pub fn parse_git_log(cloned_project: &ClonedProject) -> bool {
@@ -175,7 +164,7 @@ pub fn parse_git_log(cloned_project: &ClonedProject) -> bool {
 }*/
 
 fn setup_file_system() {
-    let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+    let home_dir = get_home_dir_path().expect("Could not get home directory");
     let folders = vec!{"repos", "git_log", "analysis_csv", "feature_vectors"};
     for folder in folders {
         let project_path = Path::new(&home_dir)
@@ -192,14 +181,13 @@ fn setup_file_system() {
 }
 
 fn clone_project(project: GitRepository) -> Option<ClonedProject> {
-<<<<<<< HEAD
-    let home_path = downloader::get_home_dir_path().expect("Could not get home directory");
+    let home_path = get_home_dir_path().expect("Could not get home directory");
     let project_path = Path::new(&home_path)
         .join(String::from(ROOT_FOLDER))
         .join(String::from("repos"))
         .join(&project.id);
 
-    match check_url_http_code(&[200, 301], &project.url) { // TODO use constant for valid codes
+    match check_url_http_code(&[200, 301], &project.url) {
         Ok(_) => {},
         Err(_) => { return None},
     }
@@ -207,19 +195,10 @@ fn clone_project(project: GitRepository) -> Option<ClonedProject> {
     if !project_path.exists() {
         if fs::create_dir_all(&project_path).is_err() {
             warn!("Could not create project directory");
-=======
+        }
+    }
     let id = project.id.clone();
     let url = project.url.clone();
-    match downloader::clone_project(project) {
-        Ok(cloned_project) => Some(cloned_project),
-        Err(_) => {
-            error!("Failed to clone project {}.", url);
->>>>>>> a867fca25fbde6aabb9e726384fa11b2b3cdd640
-            return None;
-        };
-    }
-
-
     let cloned_project = ClonedProject::new(project, project_path);
 
     info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
@@ -276,5 +255,19 @@ fn utf8_to_http_code(data: Vec<u8>) -> Result<i32, ()> {
         }
     };
     Ok(result)
+}
+
+pub fn get_home_dir_path() -> Result<String, ErrorKind> {
+    let home_dir = match env::home_dir() {
+        None => PathBuf::from(""),
+        Some(path) => PathBuf::from(path),
+    };
+    match home_dir.into_os_string().into_string() {
+        Ok(s) => Ok(s),
+        Err(_) => {
+            error!("Could not convert home dir into string.");
+            return Err(ErrorKind::Other); //("Could not convert home dir into string");
+        }
+    }
 }
 

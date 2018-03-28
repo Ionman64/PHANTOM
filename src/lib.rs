@@ -7,8 +7,6 @@ extern crate chrono;
 
 pub mod models;
 pub mod thread_helper;
-pub mod downloader;
-pub mod git_analyser;
 pub mod config;
 
 

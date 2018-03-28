@@ -1,7 +1,4 @@
-use std::path::{Path, PathBuf};
-use downloader::get_home_dir_path;
-use std::ops::Add;
-use downloader;
+use std::path::PathBuf;
 
 pub struct GitRepository {
     pub id: String,
