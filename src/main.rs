@@ -18,8 +18,13 @@ use std::io::ErrorKind;
 
 
 const THREAD_POOL_SIZE:usize = 3;
+<<<<<<< HEAD
 const ROOT_FOLDER:&str = "project_downloader";
 const PROJECTS_FILE:&str = "organization.csv";
+=======
+const ROOT_FOLDER:&str = "project_analyser";
+const PROJECTS_FILE:&str = "dataset.csv";
+>>>>>>> a867fca25fbde6aabb9e726384fa11b2b3cdd640
 
 
 fn main() {
@@ -38,10 +43,25 @@ fn main() {
                 continue;
             }
         };
+
         let project = match extract_git_repo_from_line(line_num, str_line) {
             Ok(x) => x,
             Err(_) => {continue;},
         };
+
+        // ------------
+        let home_dir = downloader::get_home_dir_path().expect("Could not get home directory");
+        let id = project.id.to_owned();
+        let csv_path = Path::new(&home_dir)
+            .join(ROOT_FOLDER)
+            .join("analysis_csv")
+            .join(id.add(".csv"));
+        if csv_path.exists() {
+            println!("Skipped project with id {}", project.id);
+            continue
+        }
+        // ------------
+
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {
@@ -73,9 +93,15 @@ pub fn extract_git_repo_from_line(line_num: usize, str_line: String) -> Result<G
         warn!("Err: Line {} is not formatted correctly and has been skipped.", &line_num);
         return Err(ErrorKind::InvalidInput);
     }
+<<<<<<< HEAD
     let url_context = columns.get(0).unwrap().to_string();
     url_context.replace("https://github.com/", "");
     let full_url = String::from("https://github.com/").add(&url_context);
+=======
+    let mut url_context = columns.get(0).unwrap().to_string();
+    url_context = url_context.replace("https://github.com/", "");
+    let mut full_url = String::from("https://github.com/").add(&url_context);
+>>>>>>> a867fca25fbde6aabb9e726384fa11b2b3cdd640
     Ok(GitRepository {id:url_context.replace("/", "_"), url:full_url})
 }
 
@@ -166,6 +192,7 @@ fn setup_file_system() {
 }
 
 fn clone_project(project: GitRepository) -> Option<ClonedProject> {
+<<<<<<< HEAD
     let home_path = downloader::get_home_dir_path().expect("Could not get home directory");
     let project_path = Path::new(&home_path)
         .join(String::from(ROOT_FOLDER))
@@ -180,6 +207,14 @@ fn clone_project(project: GitRepository) -> Option<ClonedProject> {
     if !project_path.exists() {
         if fs::create_dir_all(&project_path).is_err() {
             warn!("Could not create project directory");
+=======
+    let id = project.id.clone();
+    let url = project.url.clone();
+    match downloader::clone_project(project) {
+        Ok(cloned_project) => Some(cloned_project),
+        Err(_) => {
+            error!("Failed to clone project {}.", url);
+>>>>>>> a867fca25fbde6aabb9e726384fa11b2b3cdd640
             return None;
         };
     }
