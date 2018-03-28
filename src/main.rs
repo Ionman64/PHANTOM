@@ -17,9 +17,9 @@ use std::io::{BufReader, BufRead};
 use std::io::ErrorKind;
 
 
-const THREAD_POOL_SIZE:usize = 75;
-const ROOT_FOLDER:&str = "project_analyser";
-const PROJECTS_FILE:&str = "dataset.csv";
+const THREAD_POOL_SIZE:usize = 3;
+const ROOT_FOLDER:&str = "project_downloader";
+const PROJECTS_FILE:&str = "organization.csv";
 
 
 fn main() {
@@ -45,13 +45,6 @@ fn main() {
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {
-                return;
-            }
-            let cloned_project = cloned_project.unwrap();
-            if !save_git_log_to_file(&cloned_project) {
-                return;
-            }
-            if !parse_git_log(&cloned_project) {
                 return;
             }
         });
@@ -80,9 +73,9 @@ pub fn extract_git_repo_from_line(line_num: usize, str_line: String) -> Result<G
         warn!("Err: Line {} is not formatted correctly and has been skipped.", &line_num);
         return Err(ErrorKind::InvalidInput);
     }
-    let mut url_context = columns.get(0).unwrap().to_string();
+    let url_context = columns.get(0).unwrap().to_string();
     url_context.replace("https://github.com/", "");
-    let mut full_url = String::from("https://github.com/").add(&url_context);
+    let full_url = String::from("https://github.com/").add(&url_context);
     Ok(GitRepository {id:url_context.replace("/", "_"), url:full_url})
 }
 
@@ -173,13 +166,80 @@ fn setup_file_system() {
 }
 
 fn clone_project(project: GitRepository) -> Option<ClonedProject> {
-    let id = project.id.clone();
-    match downloader::clone_project(project) {
-        Ok(cloned_project) => Some(cloned_project),
-        Err(_) => {
-            error!("Failed to clone project {}.", id);
+    let home_path = downloader::get_home_dir_path().expect("Could not get home directory");
+    let project_path = Path::new(&home_path)
+        .join(String::from(ROOT_FOLDER))
+        .join(String::from("repos"))
+        .join(&project.id);
+
+    match check_url_http_code(&[200, 301], &project.url) { // TODO use constant for valid codes
+        Ok(_) => {},
+        Err(_) => { return None},
+    }
+
+    if !project_path.exists() {
+        if fs::create_dir_all(&project_path).is_err() {
+            warn!("Could not create project directory");
             return None;
+        };
+    }
+
+
+    let cloned_project = ClonedProject::new(project, project_path);
+
+    info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
+    Command::new("git")
+        .args(&["clone", &cloned_project.github.url, &cloned_project.path])
+        .output()
+        .expect("Could not clone project");
+    info!("Downloaded {} from {}", &cloned_project.github.id, &cloned_project.github.url);
+
+    Some(cloned_project)
+}
+pub fn check_url_http_code(expected_codes: &[i32], url: &str) -> Result<(), ()> {
+    // curl -s -o /dev/null-I  -I -w "%{http_code}"
+    let curl = match Command::new("curl")
+        .args(&["-s", "-o", "/dev/null", "-I", "-w", "\"%{http_code}\"", url])
+        .output() {
+        Ok(response) => response,
+        Err(_) => { return Err(()); }
+    };
+    let http_code = utf8_to_http_code(curl.stdout)?;
+
+    for expected_code in expected_codes {
+        if http_code == *expected_code {
+            return Ok(());
         }
     }
+    warn!("Invalid http code for {}. Found {} .Valid codes are {:?}", url, http_code, expected_codes);
+    Err(())
+}
+
+
+/// Tries to parse the specified data into a string and then into an integer
+fn utf8_to_http_code(data: Vec<u8>) -> Result<i32, ()> {
+    let code_string = match String::from_utf8(data) {
+        Ok(code_string) => {
+            code_string
+        }
+        Err(e) => {
+            error!("Could not create string from curl's output. Treating url as not existent. Err: {}", e);
+            return Err(());
+        }
+    };
+    let stripped_code_string = code_string.replace('"', "");
+    if stripped_code_string.len() != 3 {
+        //Invalid HTTP response code
+        error!("Invalid response code from curl");
+        return Err(());
+    }
+    let result = match stripped_code_string.parse::<i32>() {
+        Ok(code_i32) => code_i32,
+        Err(e) => {
+            error!("Could not parse http code '{}' into int. Treating url as not existent. Err: {}", code_string, e);
+            return Err(());
+        }
+    };
+    Ok(result)
 }
 
