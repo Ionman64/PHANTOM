@@ -19,7 +19,7 @@ use std::env;
 
 const THREAD_POOL_SIZE:usize = 3;
 const ROOT_FOLDER:&str = "project_downloader";
-const PROJECTS_FILE:&str = "organization.csv";
+const PROJECTS_FILE:&str = "projects.csv";
 
 
 fn main() {
@@ -45,7 +45,7 @@ fn main() {
         };
 
         // ------------
-        /*let home_dir = get_home_dir_path().expect("Could not get home directory");
+        let home_dir = get_home_dir_path().expect("Could not get home directory");
         let id = project.id.to_owned();
         let csv_path = Path::new(&home_dir)
             .join(ROOT_FOLDER)
@@ -55,12 +55,18 @@ fn main() {
             println!("Skipped project with id {}", project.id);
             continue
         }
-        */
         thread_pool.execute(move || {
             let cloned_project = clone_project(project);
             if cloned_project.is_none() {
                 return;
             }
+            let cloned_project = cloned_project.unwrap();
+            if !save_git_log_to_file(&cloned_project) {
+                return;
+            }
+            /*if !parse_git_log(&cloned_project) {
+                return;
+            }*/
         });
     }
 }
@@ -123,15 +129,17 @@ pub fn get_git_log_output_file_path_as_string(cloned_project:&ClonedProject) -> 
     csv_path.into_os_string().into_string().unwrap()
 }
 pub fn save_git_log_to_file(cloned_project: &ClonedProject) -> bool {
-    //Command::new("./scripts/save_git_log.sh").args(&[get_git_folder_from_project_as_string(cloned_project), get_git_log_file_path_as_string(cloned_project)]).output().is_ok()
-    return true;
+    Command::new("./scripts/save_git_log.sh").args(&[get_git_folder_from_project_as_string(cloned_project), get_git_log_file_path_as_string(cloned_project)]).output().is_ok()
 }
 
 pub fn parse_git_log(cloned_project: &ClonedProject) -> bool {
     let mut date_hashmap = HashMap::new();
     let input_file = match File::open(get_git_log_file_path_as_string(&cloned_project)) {
         Ok(f) => f,
-        Err(_) => {error!("could not read input_file");return false;}
+        Err(_) => {
+            error!("could not read input_file");
+            return false;
+        }
     };
     for (i, line_result) in BufReader::new(input_file).lines().enumerate() {
         let line = match line_result {
@@ -192,14 +200,19 @@ fn clone_project(project: GitRepository) -> Option<ClonedProject> {
         Err(_) => { return None},
     }
 
+    let id = project.id.clone();
+    let url = project.url.clone();
+    let cloned_project = ClonedProject::new(project, project_path.to_owned());
+
+
     if !project_path.exists() {
         if fs::create_dir_all(&project_path).is_err() {
             warn!("Could not create project directory");
         }
     }
-    let id = project.id.clone();
-    let url = project.url.clone();
-    let cloned_project = ClonedProject::new(project, project_path);
+    else {
+        return Some(cloned_project);
+    }
 
     info!("Downloading {} from {}", &cloned_project.github.id, &cloned_project.github.url);
     Command::new("git")
