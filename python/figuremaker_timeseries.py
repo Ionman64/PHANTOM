@@ -7,7 +7,7 @@ from plotter import leftshift_series, maxpeakshift_series
 def plot_timeseries(frame, key_range, file_suffix):
     figures = []
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(5, 5))
     ax2 = fig.add_subplot(111)
     figures.append(fig)
 
@@ -20,7 +20,7 @@ def plot_timeseries(frame, key_range, file_suffix):
         if not key in key_range:
             continue
         project_keys.append(key)
-        series = series.frequency.resample('W').sum()
+        series = series.frequency.resample('Q').sum()
 
         print "%s " % key, series.max()
 
@@ -32,6 +32,7 @@ def plot_timeseries(frame, key_range, file_suffix):
 
         leftshifted.plot(ax=ax2, legend=False)
         #maxpeakshifted.plot(ax=ax3, legend=False)
+
 
     ax2.set_xlabel('week number after start')
     #ax3.set_xlabel('week number w.r.t highest peak')
@@ -55,20 +56,21 @@ def plot_timeseries(frame, key_range, file_suffix):
     #for fig, name in zip(figures, ['date', 'left', 'peak']):
         #plt.figure(fig.number)
     plt.tight_layout()
-    plt.savefig("/home/joshua/Documents/commit_frequency/timeseries_plots/ts_%s_%s.png" % (file_suffix, "left"))
-    plt.close()
-    #plt.show()
+    #plt.savefig("/home/joshua/Documents/commit_frequency/timeseries_plots/ts_%s_%s.png" % (file_suffix, "left"))
+    #plt.close()
+    plt.show()
 
 if __name__ == "__main__":
     frame = pd.read_csv("/home/joshua/Documents/commit_frequency/csv/organization.csv", index_col=0, parse_dates=True)
     plt.rc('figure', figsize=(10, 4))
 
-    plot_timeseries(frame, [10], "10")
-    plot_timeseries(frame, [3, 5, 6, 2, 9], "3-5-6-2-9")
-    plot_timeseries(frame, [16, 7, 20], "16-7-20")
-    plot_timeseries(frame, [8, 4, 11, 15], "8-4-11-15")
-    plot_timeseries(frame, [14, 18, 19], "14-18-19")
-    plot_timeseries(frame, [1, 12, 17], "1-12-17")
+    plot_timeseries(frame, [3, 5], "3 and 6")
+    #plot_timeseries(frame, [10], "10")
+    #plot_timeseries(frame, [3, 5, 6, 2, 9], "3-5-6-2-9")
+    #plot_timeseries(frame, [16, 7, 20], "16-7-20")
+    #plot_timeseries(frame, [8, 4, 11, 15], "8-4-11-15")
+    #plot_timeseries(frame, [14, 18, 19], "14-18-19")
+    #plot_timeseries(frame, [1, 12, 17], "1-12-17")
 
 
 

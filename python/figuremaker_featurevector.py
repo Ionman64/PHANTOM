@@ -15,21 +15,21 @@ def load_dataframes(binary_label, path):
     path_util = str(os.path.join(path, "utility.csv"))
     path_neg = str(os.path.join(path, "negative_instances.csv"))
 
-    df_org = pd.read_csv(path_org, index_col=0)
-    df_util = pd.read_csv(path_util, index_col=0)
-    df_neg = pd.read_csv(path_neg, index_col=0)
+    df_org = pd.read_csv(path_org, index_col=0).drop('commits', axis=1)
+    df_util = pd.read_csv(path_util, index_col=0).drop('commits', axis=1)
+    df_neg = pd.read_csv(path_neg, index_col=0).drop('commits', axis=1)
 
-    df_org['label'] = 'Org' if not binary_label else 'P'
-    df_util['label'] = 'Util' if not binary_label else 'P'
-    df_neg['label'] = 'Neg' if not binary_label else 'NP'
+    df_org['label'] = 'Organisation' if not binary_label else 'P'
+    df_util['label'] = 'Utility' if not binary_label else 'P'
+    df_neg['label'] = 'Negative Instances' if not binary_label else 'NP'
 
     v = load_validation_dataframes(binary_label, path)
     map = {
-        'org': df_org,
+        #'org': df_org,
         'util': df_util,
         'neg': df_neg,
-        'vp': v['VP'],
-        'vn': v['VNP'],
+        #'vp': v['VP'],
+        #'vn': v['VNP'],
     }
     return map
 
@@ -38,11 +38,11 @@ def load_validation_dataframes(binary_label, path):
     path_val_p = str(os.path.join(path, "validation_p.csv"))
     path_val_np = str(os.path.join(path, "validation_np.csv"))
 
-    df_val_p = pd.read_csv(path_val_p, index_col=0)
-    df_val_np = pd.read_csv(path_val_np, index_col=0)
+    df_val_p = pd.read_csv(path_val_p, index_col=0).drop('commits', axis=1)
+    df_val_np = pd.read_csv(path_val_np, index_col=0).drop('commits', axis=1)
 
-    df_val_p['label'] = 'VP' if not binary_label else 'P'
-    df_val_np['label'] = 'VNP' if not binary_label else 'NP'
+    df_val_p['label'] = 'Validation Project' if not binary_label else 'P'
+    df_val_np['label'] = 'Validation Non-Project' if not binary_label else 'NP'
 
     map = {
         'VP': df_val_p,
@@ -80,7 +80,7 @@ def scatter_matrix(frame, labels, measure_name):
             ax.yaxis.set_visible(False)
 
             for lbl in labels.unique():
-                x, y = frame[labels == lbl][col1], frame[labels == lbl][col2]
+                x, y = frame[labels == lbl][col2], frame[labels == lbl][col1]
                 ax.scatter(x, y, label=lbl, alpha=0.8, marker='x', s=30)
 
             if i - j == 0:
@@ -91,14 +91,15 @@ def scatter_matrix(frame, labels, measure_name):
                 ax.yaxis.set_visible(True)
                 ax.set_ylabel(col1, fontsize=12, rotation=0, labelpad=35)
     fig.legend(labels.unique(), loc='upper right', prop={'size': 12})
-    plt.suptitle("Feature Vector %s Correlations" % measure_name)
+    #plt.suptitle("Feature Vector %s Correlations" % measure_name)
     plt.tight_layout(pad=1.5, h_pad=0, w_pad=0)
 
 
 def corr(frame, measure_name):
     mat = frame.corr()
+    print mat
     sns.heatmap(mat, xticklabels=mat.columns, yticklabels=mat.columns)
-    plt.suptitle("Feature Vector %s Correlation Matrix" % measure_name)
+    #plt.suptitle("Feature Vector %s Correlation Matrix" % measure_name)
     plt.tight_layout(pad=3)
 
 
@@ -107,22 +108,29 @@ def tsne(frame, labels, measure_name, n_components):
     model = TSNE(n_components=n_components, random_state=0)
     transformed = model.fit_transform(frame)
 
-    fig = plt.figure(figsize=(20, 10))
+    fig = plt.figure(figsize=(7, 7))
 
     if n_components == 2:
         ax = fig.add_subplot(111)
     elif n_components == 3:
         ax = fig.add_subplot(111, projection='3d')
 
-    for lbl in labels.unique():
+    marker_map = {
+        'Organisation': '.',
+        'Utility': '.',
+        'Negative Instances': '.',
+        'Validation Project': 'x',
+        'Validation Non-Project': 'x',
+    }
+    for lbl in ['Utility', 'Organisation', 'Negative Instances', 'Validation Project', 'Validation Non-Project']:#labels.unique():
         label_idx = np.where(labels == lbl)
         if n_components == 2:
-            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], marker='x', label=lbl)
+            ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], marker=marker_map[lbl], label=lbl)
         elif n_components == 3:
             ax.scatter(transformed[label_idx, 0], transformed[label_idx, 1], transformed[label_idx, 2], marker='x',
                        label=lbl)
     plt.legend(loc='best')
-    plt.suptitle("Feature Vector %s t-SNE" % measure_name)
+    #plt.suptitle("Feature Vector %s t-SNE" % measure_name)
     plt.tight_layout(pad=3, h_pad=0, w_pad=0)
 
 def tsne_by_kmeans_cluster_and_error_type(frame, kmeans_clusters, error_types, measure_name, n_components):
@@ -191,7 +199,7 @@ if __name__ == "__main__":
     pd.set_option('display.expand_frame_repr', False)
 
     # Load dataframes -------------------------------------------------------------------
-    frame_map = load_dataframes(binary_label=False, path=feature_vector_csv_dir)
+    frame_map = load_dataframes(binary_label=True, path=feature_vector_csv_dir)
     frame = pd.concat(frame_map.values(), ignore_index=True)
     labels = frame['label']
     frame.drop('label', axis=1, inplace=True)
@@ -200,6 +208,14 @@ if __name__ == "__main__":
     val_frame = pd.concat(val_frame_map.values(), ignore_index=True)
     val_labels = val_frame['label']
     val_frame.drop('label', axis=1, inplace=True)
+
+    to_drop = ['peak_down', 'peak_none', 'peak_up', 'median_y',  # correlation >90%
+               'ATBP_up', 'ATBP_down', 'min_amp', 'max_y',
+               # stacking values as to see in scatter plot(no big influence on prediction)
+               ]
+    frame.drop(to_drop, axis=1, inplace=True)
+    val_frame.drop(to_drop, axis=1, inplace=True)
+
     # Handle NaN
     frame.fillna(0, inplace=True)
     val_frame.fillna(0, inplace=True)
@@ -212,36 +228,33 @@ if __name__ == "__main__":
     zValFrame = (val_frame - val_frame.mean()) / val_frame.std()
 
     # Plotting... -----------------------------------------------------------------------
-    #histograms(frame, labels, "Commit Frequency")
-    #plt.savefig('/home/joshua/Documents/commit_frequency/hist.png')
-    #scatter_matrix(mmFrame, labels, "Commit Frequency")
-    #plt.savefig('/home/joshua/Documents/commit_frequency/scatter.png')
-
-    tsne(frame, labels, "Commit Frequency", 2)
-    plt.savefig('/home/joshua/Documents/commit_frequency/tsne_org_util_neg_v_vp.png')
-    exit()
-    #pca(frame, labels, "Commit Frequency", 2)
-    #plt.savefig('/home/joshua/Documents/commit_frequency/pca_org_util_neg.png')
 
     #corr(mmFrame, "Commit Frequency")
-    #plt.savefig('/home/joshua/Documents/commit_frequency/corr.png')
+    #plt.savefig('/home/joshua/Documents/commit_frequency/corr_all_features.png')
 
-    # corr(frame, "Commit Frequency")
+    #scatter_matrix(mmFrame, labels, "Commit Frequency")
+    #plt.savefig('/home/joshua/Documents/commit_frequency/scatter_cf.png')
 
+    #tsne(mmFrame, labels, "Commit Frequency", 2)
+    # plt.savefig('/home/joshua/Documents/commit_frequency/tsne_cf_final.png')
+    #plt.savefig('/home/joshua/Documents/commit_frequency/tsne_cf_final_with_validation.png')
+
+    #########################################################################################################
     import clustering as clustering
 
     model, fitted_labels = clustering.get_kmeans_model_and_labels(mmFrame)
     print "Evalutation in Context of Training Data. (%s)" % frame_map.keys()
     clustering.print_results(labels, fitted_labels, labels.unique())
 
-    error_types = clustering.get_tp_fp_tn_fn(labels, fitted_labels)
-    tsne_by_kmeans_cluster_and_error_type(mmFrame, kmeans_clusters=fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
-    plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_training.png')
+    #error_types = clustering.get_tp_fp_tn_fn(labels, fitted_labels)
+    #tsne_by_kmeans_cluster_and_error_type(mmFrame, kmeans_clusters=fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
+    #plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_training.png')
 
     val_fitted_labels = clustering.predict_and_get_labels(model, mmValFrame)
     print "Evalutation in Context of Validation Data. (%s)" % str(frame_map.keys())[1:-1]
     clustering.print_results(val_labels, val_fitted_labels)
-    error_types = clustering.get_tp_fp_tn_fn(val_labels, val_fitted_labels)
-    tsne_by_kmeans_cluster_and_error_type(mmValFrame, kmeans_clusters=val_fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
-    plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_validation.png')
+
+    #error_types = clustering.get_tp_fp_tn_fn(val_labels, val_fitted_labels)
+    #tsne_by_kmeans_cluster_and_error_type(mmValFrame, kmeans_clusters=val_fitted_labels, error_types=error_types, measure_name="Commit Frequency", n_components=2)
+    #plt.savefig('/home/joshua/Documents/commit_frequency/cluster_error_types_util_validation.png')
 
