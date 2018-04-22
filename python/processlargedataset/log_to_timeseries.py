@@ -117,12 +117,16 @@ if __name__ == "__main__":
                     error_logs.append((log_path, e.message))
                     break
             extracted_data_frame = pd.DataFrame(data=extracted_data, columns=['hash', 'is_merge', 'author_date', 'author_mail', 'commiter_date', 'commiter_mail'])
-            frame = transform(
-                merges=extracted_data_frame['is_merge'].values,
-                author_dates=extracted_data_frame['author_date'].values,
-                author_names=extracted_data_frame['author_mail'].values,
-                commiter_dates=extracted_data_frame['commiter_date'].values,
-                commiter_names=extracted_data_frame['commiter_mail'].values)
+            try:
+                frame = transform(
+                    merges=extracted_data_frame['is_merge'].values,
+                    author_dates=extracted_data_frame['author_date'].values,
+                    author_names=extracted_data_frame['author_mail'].values,
+                    commiter_dates=extracted_data_frame['commiter_date'].values,
+                    commiter_names=extracted_data_frame['commiter_mail'].values)
+            except Exception as e:
+                error_logs.append((log_path, e.message))
+                continue
             # append to csv file
             pd.concat([frame], keys=[log_name], names=["repo", "date"]).to_csv(timeseries_output_file, mode='a', header=None)
             # cleanup
