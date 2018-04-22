@@ -91,8 +91,8 @@ if __name__ == "__main__":
     COL_COMMITTER_MAIL = 6
     COL_COMMITTER_DATE = 7
 
-    SKIP = 50 # This number of project is skipped at the beginning
-    LIMIT = 10 # This is how many logs are read
+    SKIP = 2000 # This number of project is skipped at the beginning
+    LIMIT = 1000 # This is how many logs are read
 
     with open(timeseries_output_file, 'a+') as output_file:
         output_file.write('filename,date,merges,commits,integrations,commiters,integrators\n')
