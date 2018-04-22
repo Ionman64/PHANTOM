@@ -97,19 +97,25 @@ if __name__ == "__main__":
     with open(timeseries_output_file, 'a+') as output_file:
         output_file.write('filename,date,merges,commits,integrations,commiters,integrators\n')
 
-    poor_format = [] # stores the path to the logs that are poorly formatted
+    poor_format_logs = [] # stores the path to the logs that are poorly formatted
+    error_logs = []
+    counter = 1
     for log_path, log_name in get_log_paths(log_directory_path):
         #if SKIP > 0:
         #    SKIP = SKIP - 1
         #    continue
         # -----------------------------------------------------------------------
-        with open(log_path, 'rb') as csvfile:
-            extracted_data = []
+        with open(log_path, 'rb') as csvfile: # open the git log
+            extracted_data = [] # stores the data extracted from each row
             for idx, row in enumerate(csv.reader(csvfile, delimiter=',')):
-                if (len(row) != 8):
-                    poor_format.append(log_path)
+                if (len(row) != 8): # if there are not 8 columns in the row, then the format is wrong
+                    poor_format_logs.append(log_path)
                     break
-                extracted_data.append(extract_data_from_row(row))
+                try:
+                    extracted_data.append(extract_data_from_row(row))
+                except Exception as e:
+                    error_logs.append((log_path, e.message))
+                    break
             extracted_data_frame = pd.DataFrame(data=extracted_data, columns=['hash', 'is_merge', 'author_date', 'author_mail', 'commiter_date', 'commiter_mail'])
             frame = transform(
                 merges=extracted_data_frame['is_merge'].values,
@@ -117,16 +123,28 @@ if __name__ == "__main__":
                 author_names=extracted_data_frame['author_mail'].values,
                 commiter_dates=extracted_data_frame['commiter_date'].values,
                 commiter_names=extracted_data_frame['commiter_mail'].values)
+            # append to csv file
+            pd.concat([frame], keys=[log_name], names=["repo", "date"]).to_csv(timeseries_output_file, mode='a', header=None)
+            # cleanup
             del extracted_data
             del extracted_data_frame
-            pd.concat([frame], keys=[log_name], names=["repo", "date"]).to_csv(timeseries_output_file, mode='a', header=None)
             del frame
         # -----------------------------------------------------------------------
         #if LIMIT == 1:
         #    break
         #LIMIT = LIMIT - 1
+        counter = counter + 1
+        if counter % 50000 == 0:
+            print "[", dt.now(), "]", "Transformed projects: ", counter
 
-    print "Skipped due to poor format: ", len(poor_format)
-    print poor_format
+    print "*** Skipped due to poor format: ", len(poor_format_logs), " ***"
+    for log in poor_format_logs:
+        print log
+
+    print
+    print "*** Aborted due to exception: ", len(error_logs), " ***"
+    for log in error_logs:
+        print log
+
 
 
