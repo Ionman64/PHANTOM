@@ -91,17 +91,17 @@ if __name__ == "__main__":
     COL_COMMITTER_MAIL = 6
     COL_COMMITTER_DATE = 7
 
-    SKIP = 2000 # This number of project is skipped at the beginning
-    LIMIT = 1000 # This is how many logs are read
+    #SKIP = 2000 # This number of project is skipped at the beginning
+    #LIMIT = 1000 # This is how many logs are read
 
     with open(timeseries_output_file, 'a+') as output_file:
         output_file.write('filename,date,merges,commits,integrations,commiters,integrators\n')
 
     poor_format = [] # stores the path to the logs that are poorly formatted
     for log_path, log_name in get_log_paths(log_directory_path):
-        if SKIP > 0:
-            SKIP = SKIP - 1
-            continue
+        #if SKIP > 0:
+        #    SKIP = SKIP - 1
+        #    continue
         # -----------------------------------------------------------------------
         with open(log_path, 'rb') as csvfile:
             extracted_data = []
@@ -122,9 +122,9 @@ if __name__ == "__main__":
             pd.concat([frame], keys=[log_name], names=["repo", "date"]).to_csv(timeseries_output_file, mode='a', header=None)
             del frame
         # -----------------------------------------------------------------------
-        if LIMIT == 1:
-            break
-        LIMIT = LIMIT - 1
+        #if LIMIT == 1:
+        #    break
+        #LIMIT = LIMIT - 1
 
     print "Skipped due to poor format: ", len(poor_format)
     print poor_format
