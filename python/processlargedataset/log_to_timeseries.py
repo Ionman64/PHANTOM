@@ -105,9 +105,15 @@ if __name__ == "__main__":
         #    SKIP = SKIP - 1
         #    continue
         # -----------------------------------------------------------------------
-        with open(log_path, 'rb') as csvfile: # open the git log
+        with open(log_path, 'rU') as csvfile: # open the git log
             extracted_data = [] # stores the data extracted from each row
-            for idx, row in enumerate(csv.reader(csvfile, delimiter=',')):
+            try:
+                reader = csv.reader(csvfile, delimiter=',')
+            except Exception as e:
+                error_logs.append(log_path, e.message)
+                continue
+
+            for idx, row in enumerate(reader):
                 if (len(row) != 8): # if there are not 8 columns in the row, then the format is wrong
                     poor_format_logs.append(log_path)
                     break
