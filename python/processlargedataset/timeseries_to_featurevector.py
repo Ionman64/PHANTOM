@@ -13,12 +13,8 @@ path_to_timeseries = os.path.expanduser(sys.argv[1])
 assert os.path.isfile(path_to_timeseries)
 path_to_featuretable_output = os.path.expanduser(sys.argv[2])
 
-# Read the time-series to a dataframe
-frame = pd.read_csv(path_to_timeseries, index_col=[0, 1], parse_dates=[1], usecols=[0,1,4], dtype={'integrations': np.float64})  # , usecols=[0, 14])
-
-#with open(path_to_featuretable_output, 'w+') as out:
-#   out.write("filename,duration,max_y,max_y_pos,mean_y,median_y,sum_y,peak_down,peak_none,peak_up,atbp_up,atbp_down,min_amp,avg_amp,max_amp,mpg,mng\n")
-
+frame = pd.read_csv(path_to_timeseries, index_col=[0, 1], parse_dates=[1], usecols=[0,1,4],
+                    dtype={'integrations': np.float64})
 
 write_header=True
 for filename, group in frame.groupby(level=0):
