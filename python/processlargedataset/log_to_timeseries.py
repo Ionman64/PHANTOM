@@ -25,7 +25,7 @@ def transform_to_commit_frequency(author_dates):
     return pd.DataFrame(data={"Commits": np.ones(len(author_dates))}, index=pd.DatetimeIndex(author_dates)).resample(RESAMPLE_KEY).sum()
 
 def transform_to_merge_frequency(committer_date, merges):
-    return pd.DataFrame(data={'Merges': merges}, index=pd.DatetimeIndex(committer_date)).resample(RESAMPLE_KEY).sum()
+    return pd.DataFrame(data={'Merges': merges}, index=pd.DatetimeIndex(committer_date), dtype=np.int8).resample(RESAMPLE_KEY).sum()
 
 def transform_to_author_frequency(author_dates, author_names):
     frame = pd.DataFrame(data={'Authors': author_names}, index=pd.DatetimeIndex(author_dates))
@@ -90,10 +90,8 @@ if __name__ == "__main__":
     COL_COMMITTER = 5
     COL_COMMITTER_MAIL = 6
     COL_COMMITTER_DATE = 7
-
-    #SKIP = 2000 # This number of project is skipped at the beginning
-    #LIMIT = 1000 # This is how many logs are read
-
+    COLUMN_NAMES = ['hash', 'is_merge', 'author_date', 'author_mail', 'commiter_date', 'commiter_mail']
+    TIMESERIES_INDEX_NAMES=['repo', 'date']
     with open(timeseries_output_file, 'a+') as output_file:
         output_file.write('filename,date,merges,commits,integrations,commiters,integrators\n')
 
@@ -101,28 +99,30 @@ if __name__ == "__main__":
     error_logs = []
     counter = 1
     for log_path, log_name in get_log_paths(log_directory_path):
-        #if SKIP > 0:
-        #    SKIP = SKIP - 1
-        #    continue
-        # -----------------------------------------------------------------------
         with open(log_path, 'rU') as csvfile: # open the git log
-            extracted_data = [] # stores the data extracted from each row
             try:
                 reader = csv.reader(csvfile, delimiter=',')
             except Exception as e:
                 error_logs.append(log_path, e.message)
                 continue
 
+            skip_iteration = False # indicates whether something went wrong while iterating over the rows of the csv
+            extracted_data = []  # stores the data extracted from each row
             for idx, row in enumerate(reader):
                 if (len(row) != 8): # if there are not 8 columns in the row, then the format is wrong
                     poor_format_logs.append(log_path)
+                    skip_iteration = True
                     break
                 try:
                     extracted_data.append(extract_data_from_row(row))
                 except Exception as e:
                     error_logs.append((log_path, e.message))
+                    skip_iteration = True
                     break
-            extracted_data_frame = pd.DataFrame(data=extracted_data, columns=['hash', 'is_merge', 'author_date', 'author_mail', 'commiter_date', 'commiter_mail'])
+            if skip_iteration:
+                continue # in case something went wrong continue with the next csv file
+
+            extracted_data_frame = pd.DataFrame(data=extracted_data, columns=COLUMN_NAMES)
             try:
                 frame = transform(
                     merges=extracted_data_frame['is_merge'].values,
@@ -130,19 +130,16 @@ if __name__ == "__main__":
                     author_names=extracted_data_frame['author_mail'].values,
                     commiter_dates=extracted_data_frame['commiter_date'].values,
                     commiter_names=extracted_data_frame['commiter_mail'].values)
+                # append to csv file
+                pd.concat([frame], keys=[log_name], names=TIMESERIES_INDEX_NAMES
+                          ).to_csv(timeseries_output_file, mode='a',header=None)
             except Exception as e:
                 error_logs.append((log_path, e.message))
                 continue
-            # append to csv file
-            pd.concat([frame], keys=[log_name], names=["repo", "date"]).to_csv(timeseries_output_file, mode='a', header=None)
             # cleanup
             del extracted_data
             del extracted_data_frame
             del frame
-        # -----------------------------------------------------------------------
-        #if LIMIT == 1:
-        #    break
-        #LIMIT = LIMIT - 1
         counter = counter + 1
         if counter % 50000 == 0:
             print "[", dt.now(), "]", "Transformed projects: ", counter
