@@ -17,8 +17,11 @@ use std::collections::HashMap;
 use std::io::{BufReader, BufRead};
 use std::io::ErrorKind;
 use std::env;
-use chrono::Date;
+use chrono::{Date, NaiveDateTime, Weekday, Duration};
 use std::cmp;
+use chrono::Datelike;
+use std::ops::Sub;
+
 
 
 const THREAD_POOL_SIZE:usize = 3;
@@ -35,6 +38,7 @@ const AUTHOR_DATE:usize = 4;
 const INTEGRATOR_NAME:usize = 5;
 const INTEGRATOR_EMAIL:usize = 6;
 const INTEGRATOR_DATE:usize = 7;
+
 
 
 struct FeatureVector {
@@ -143,20 +147,38 @@ fn main() {
         };
         let integration_frequency:Vec<i64> = Vec::new();
         println!("Looking for earliest commit");
-        let mut earliest_commit:usize;
+        let mut earliest_commit:usize = 9999999999;
         let file_lines = BufReader::new(f).lines();
         for (line_num, line) in file_lines.enumerate() {
             let csv_row = line.unwrap();
-            let columns:Vec<&str> = csv_row.split(",").collect();
+            let columns: Vec<&str> = csv_row.split(",").collect();
             if columns.len() != EXPECTED_CSV_COLUMNS {
                 add_project_to_bad_log_file(&log_path.as_os_str().to_str().unwrap());
-                println!("Malformed line in {}", &log_path.as_os_str().to_str().unwrap());
+                error!("Malformed line in {}", &log_path.as_os_str().to_str().unwrap());
             }
-            let new_commit_date:usize = columns.get(INTEGRATOR_DATE).unwrap()
-                .parse().expect("Could not parse to usize");
+            let new_commit_string = columns.get(INTEGRATOR_DATE).unwrap();
+            let new_commit_date: usize = new_commit_string.parse().expect("Could not parse to usize");
             earliest_commit = cmp::min(new_commit_date, earliest_commit);
         }
-        println!("{}", earliest_commit);
+        let naive_date = NaiveDateTime::from_timestamp(earliest_commit as i64, 0);
+        while naive_date.weekday() != Weekday::Mon {
+            naive_date.sub(Duration::days(1));
+            break;
+        }
+        println!("earliest_commit {} timestamp {}", earliest_commit, naive_date.timestamp());
+        return;
+        for (line_num, line) in file_lines.enumerate() {
+            let csv_row = line.unwrap();
+            let columns: Vec<&str> = csv_row.split(",").collect();
+            if columns.len() != EXPECTED_CSV_COLUMNS {
+                add_project_to_bad_log_file(&log_path.as_os_str().to_str().unwrap());
+                error!("Malformed line in {}", &log_path.as_os_str().to_str().unwrap());
+            }
+            let new_commit_string = columns.get(INTEGRATOR_DATE).unwrap();
+            let new_commit_date: usize = new_commit_string.parse().expect("Could not parse to usize");
+
+        }
+        println!("found earliest commit: {}", earliest_commit);
     }
     return;
     let f = match File::open(PROJECTS_FILE) {
@@ -202,6 +224,11 @@ fn main() {
             }*/
         });
     }
+}
+
+fn calculate_week_num(base_time:&usize, week_time:&usize) -> usize {
+    const SECS_IN_WEEK:usize = 604800;
+    return (week_time - base_time) / SECS_IN_WEEK;
 }
 
 fn add_project_to_bad_log_file(project_file_name:&str) {
