@@ -1,15 +1,7 @@
-from sklearn.manifold import TSNE
-from sklearn.decomposition import PCA
 from sklearn.metrics import precision_recall_fscore_support, confusion_matrix
 from sklearn import cluster
-from mpl_toolkits.mplot3d import Axes3D  # 3D plots
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import seaborn as sns
 import pandas as pd
 import numpy as np
-import sys
-import os
 
 def __convert_numeric_labels_to_string_label(numeric_labels, string_labels = ["P", "NP"]):
     assert len(np.unique(numeric_labels)) == 2

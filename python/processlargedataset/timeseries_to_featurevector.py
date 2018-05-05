@@ -18,12 +18,8 @@ frame = pd.read_csv(path_to_timeseries, index_col=[0, 1], parse_dates=[1], useco
 
 write_header=True
 for filename, group in frame.groupby(level=0):
-    print filename
     # group.reset_index("filename", drop=True, inplace=True)
     series = group.reset_index("filename", drop=True).integrations
-    if filename == "DRMF_SeedingProject.log":
-        print series
-
     peaks = peak_analysis(series, path_to_utils_binary="../../target/debug/utils")
     df = pd.DataFrame(data={'values': series.values, 'peaks': peaks.values}, index=series.index)
 

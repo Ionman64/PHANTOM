@@ -152,7 +152,8 @@ fn main() {
                 add_project_to_bad_log_file(&log_path.as_os_str().to_str().unwrap());
                 println!("Malformed line in {}", &log_path.as_os_str().to_str().unwrap());
             }
-            let new_commit_date:usize = columns.get(INTEGRATOR_DATE).unwrap();
+            let new_commit_date:usize = columns.get(INTEGRATOR_DATE).unwrap()
+                .parse().expect("Could not parse to usize");
             earliest_commit = cmp::min(new_commit_date, earliest_commit);
         }
         println!("{}", earliest_commit);

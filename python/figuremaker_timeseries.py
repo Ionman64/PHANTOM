@@ -7,7 +7,7 @@ from plotter import leftshift_series, maxpeakshift_series
 def plot_timeseries(frame, key_range, file_suffix):
     figures = []
 
-    fig = plt.figure(figsize=(5, 5))
+    fig = plt.figure(figsize=(10, 5))
     ax2 = fig.add_subplot(111)
     figures.append(fig)
 
@@ -37,11 +37,11 @@ def plot_timeseries(frame, key_range, file_suffix):
     ax2.set_xlabel('week number after start')
     #ax3.set_xlabel('week number w.r.t highest peak')
 
-    y_label = "number of commits"
+    y_label = "number of integrations"
     ax2.set_ylabel(y_label)
     #ax3.set_ylabel(y_label)
 
-    ax2.legend(project_keys, loc='upper right')
+    #ax2.legend(project_keys, loc='upper right')
     #ax3.legend(project_keys, loc='upper right')
 
     def set_xticks(ax):
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     frame = pd.read_csv("/home/joshua/Documents/commit_frequency/csv/organization.csv", index_col=0, parse_dates=True)
     plt.rc('figure', figsize=(10, 4))
 
-    plot_timeseries(frame, [3, 5], "3 and 6")
+    plot_timeseries(frame, [3], "3")
     #plot_timeseries(frame, [10], "10")
     #plot_timeseries(frame, [3, 5, 6, 2, 9], "3-5-6-2-9")
     #plot_timeseries(frame, [16, 7, 20], "16-7-20")
