@@ -1,12 +1,13 @@
 use std::fs;
 use super::*;
 use std::io::{BufReader, BufRead, Write, BufWriter};
-use chrono::{NaiveDateTime, Weekday, Duration};
+use chrono::{NaiveDateTime, Weekday, Duration, Timelike};
 use std::cmp;
 use chrono::Datelike;
 use std::ops::Sub;
 use std::fs::{OpenOptions, File};
 use std::path::{Path, PathBuf};
+use self::csv::ReaderBuilder;
 
 extern crate csv;
 
@@ -131,15 +132,6 @@ pub fn extract_from_directory(path_to_dir: String) {
 }
 
 fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Option<FeatureVector> {
-    let integration_frequency: Vec<i64> = Vec::new();
-    println!("Looking for earliest commit");
-    let mut earliest_commit: usize = 9999999999;
-    //let file_lines = BufReader::new(log_file).lines();
-    //for (line_num, line) in file_lines.enumerate() {
-    //    let csv_row = line.unwrap();
-    //    let columns: Vec<&str> = csv_row.split(",").collect();
-
-    use self::csv::ReaderBuilder;
     let mut csv_log_reader = ReaderBuilder::new()
         .has_headers(false)
         .delimiter(b',')
@@ -147,15 +139,20 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
         .flexible(true)
         .from_path(log_file_path).unwrap();
 
+    let mut earliest_integration_date: i64 = 9999999999;
+    let mut latest_integration_date: i64 = 0;
+    let mut earliest_author_date: i64 = 9999999999;
+    let mut latest_author_date: i64 = 0;
     for commit in csv_log_reader.records() {
-        //let (hash, parents, author_name, author_email, author_date, committer_name, committer_email, committer_date): (String, String, String, String, usize, String, String, usize) = commit.unwrap();
         let commit = commit.unwrap();
+        // reject csv with too few/many columns
         if commit.len() != EXPECTED_CSV_COLUMNS {
             add_project_to_bad_log_file(&file_name);
             error!("Malformed line in {}", &file_name);
             return None;
         }
-        let new_commit_date: usize = match commit.get(INTEGRATOR_DATE) {
+        // get earliest and latest integration date
+        let current_integration_date: i64 = match commit.get(INTEGRATOR_DATE) {
             None => {
                 add_project_to_bad_log_file(&file_name);
                 error!("Malformed line in {}", &file_name);
@@ -165,19 +162,26 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
                 value.parse().unwrap()
             },
         };
-        earliest_commit = cmp::min(new_commit_date, earliest_commit);
-
-        if file_name == "/home/joshua/Documents/backups/logs/sample/testlog.log" {
-            println!("{:?}", commit);
-        }
-
+        earliest_integration_date = cmp::min(current_integration_date, earliest_integration_date);
+        latest_integration_date = cmp::max(current_integration_date, latest_integration_date);
+        // get earliest and latest author date
+        let current_author_date: i64 = match commit.get(AUTHOR_DATE) {
+            None => {
+                add_project_to_bad_log_file(&file_name);
+                error!("Malformed line in {}", &file_name);
+                return None;
+            },
+            Some(value) => {
+                value.parse().unwrap()
+            },
+        };
+        earliest_author_date = cmp::min(current_author_date, earliest_author_date);
+        latest_author_date = cmp::max(current_author_date, latest_author_date);
     }
-    let naive_date = NaiveDateTime::from_timestamp(earliest_commit as i64, 0);
-    while naive_date.weekday() != Weekday::Mon {
-        naive_date.sub(Duration::days(1));
-        break;
-    }
-    println!("earliest_commit {} timestamp {}", earliest_commit, naive_date.timestamp());
+    let time1 = get_timestamp_for_first_day_of_the_week(earliest_integration_date);
+    let time2 = get_timestamp_for_first_day_of_the_week(latest_integration_date);
+    let time3 = get_timestamp_for_first_day_of_the_week(earliest_author_date);
+    let time4 = get_timestamp_for_first_day_of_the_week(latest_author_date);
 
     return Some(FeatureVector::new(String::from("Dummy")));
 
@@ -195,6 +199,14 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
     }
     println!("found earliest commit: {}", earliest_commit);
     */
+}
+
+fn get_timestamp_for_first_day_of_the_week(timestamp: i64) -> i64 {
+    const SECONDS_PER_DAY:i64 = 86400;
+    let naive_date = NaiveDateTime::from_timestamp(timestamp, 0);
+    let seconds_from_midnight = naive_date.num_seconds_from_midnight() as i64;
+    let days_from_monday = naive_date.weekday().num_days_from_monday() as i64;
+    naive_date.timestamp() - (days_from_monday * SECONDS_PER_DAY) - seconds_from_midnight
 }
 
 fn calculate_week_num(base_time: &usize, week_time: &usize) -> usize {
