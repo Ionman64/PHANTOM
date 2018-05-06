@@ -1,6 +1,7 @@
 extern crate project_analyser;
 extern crate fern;
 extern crate chrono;
+extern crate csv;
 #[macro_use]
 extern crate log;
 
