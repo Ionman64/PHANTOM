@@ -23,23 +23,24 @@ const INTEGRATOR_NAME: usize = 5;
 const INTEGRATOR_EMAIL: usize = 6;
 const INTEGRATOR_DATE: usize = 7;
 
+#[derive(Debug)]
 struct FeatureVector {
     project_name: String,
-    duration: Option<f32>,
-    may_y: Option<f32>,
-    max_y_pos: Option<f32>,
-    mean_y: Option<f32>,
-    sum_y: Option<f32>,
-    q25: Option<f32>,
-    q50: Option<f32>,
-    q75: Option<f32>,
+    duration: usize,
+    max_y: usize,
+    max_y_pos: usize,
+    mean_y: f32,
+    sum_y: usize,
+    q25: Option<usize>,
+    q50: Option<usize>,
+    q75: Option<usize>,
     std_y: Option<f32>,
-    peak_down: Option<f32>,
-    peak_none: Option<f32>,
-    peak_up: Option<f32>,
-    min_tbp_up: Option<f32>,
+    peak_down: Option<usize>,
+    peak_none: Option<usize>,
+    peak_up: Option<usize>,
+    min_tbp_up: Option<usize>,
     avg_tbp_up: Option<f32>,
-    max_tbp_up: Option<f32>,
+    max_tbp_up: Option<usize>,
     min_amplitude: Option<f32>,
     avg_amplitude: Option<f32>,
     max_amplitude: Option<f32>,
@@ -49,22 +50,22 @@ struct FeatureVector {
     min_npd: Option<f32>,
     avg_npd: Option<f32>,
     max_npd: Option<f32>,
-    min_ps: Option<f32>,
+    min_ps: Option<usize>,
     mean_ps: Option<f32>,
-    max_ps: Option<f32>,
-    sum_ps: Option<f32>,
-    min_ns: Option<f32>,
+    max_ps: Option<usize>,
+    sum_ps: Option<usize>,
+    min_ns: Option<usize>,
     mean_ns: Option<f32>,
-    max_ns: Option<f32>,
-    sum_ns: Option<f32>,
+    max_ns: Option<usize>,
+    sum_ns: Option<usize>,
     min_pg: Option<f32>,
     avg_pg: Option<f32>,
     max_pg: Option<f32>,
     min_ng: Option<f32>,
     avg_ng: Option<f32>,
     max_ng: Option<f32>,
-    pg_count: Option<f32>,
-    ng_count: Option<f32>,
+    pg_count: Option<usize>,
+    ng_count: Option<usize>,
 }
 
 impl FeatureVector {
@@ -72,11 +73,11 @@ impl FeatureVector {
     pub fn new(name: String) -> FeatureVector {
         FeatureVector {
             project_name: name,
-            duration: None,
-            may_y: None,
-            max_y_pos: None,
-            mean_y: None,
-            sum_y: None,
+            duration: 0,
+            max_y: 0,
+            max_y_pos: 0,
+            mean_y: 0.0,
+            sum_y: 0,
             q25: None,
             q50: None,
             q75: None,
@@ -204,7 +205,25 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
         integration_frequency_timeseries[week_number] += 1;
     }
 
-    return Some(FeatureVector::new(String::from("Dummy")));
+    let mut max_value = 0;
+    let mut max_value_week = 0;
+    let mut features = FeatureVector::new(String::from(file_name)); // TODO name should be "account_repo" (without ".log" at the end!)
+    features.duration = integration_frequency_timeseries.len();
+    features.max_y = 0;
+    features.max_y_pos = 0;
+    for (current_week_index, current_value) in integration_frequency_timeseries.iter().enumerate() {
+        if current_value > &features.max_y {
+            features.max_y = *current_value;
+            features.max_y_pos = current_week_index + 1;
+        }
+        features.sum_y += current_value;
+
+        // TODO If current_week_index > 0, then store gradient in a vector (see __extract_gradient_features__() in feature_extraction.py)
+    }
+    features.mean_y = features.sum_y as f32 / features.duration as f32;
+
+    println!("{:?}", features);
+    return Some(features);
 }
 
 fn get_monday_timestamp(timestamp: i64) -> i64 {
