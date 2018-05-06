@@ -143,7 +143,7 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
     let mut csv_log_reader = ReaderBuilder::new()
         .has_headers(false)
         .delimiter(b',')
-        .double_quote(true)
+        .double_quote(false)
         .flexible(true)
         .from_path(log_file_path).unwrap();
 
@@ -166,6 +166,11 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
             },
         };
         earliest_commit = cmp::min(new_commit_date, earliest_commit);
+
+        if file_name == "/home/joshua/Documents/backups/logs/sample/testlog.log" {
+            println!("{:?}", commit);
+        }
+
     }
     let naive_date = NaiveDateTime::from_timestamp(earliest_commit as i64, 0);
     while naive_date.weekday() != Weekday::Mon {
