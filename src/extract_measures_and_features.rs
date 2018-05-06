@@ -1,7 +1,7 @@
 use std::fs;
 use super::*;
 use std::io::{BufReader, BufRead, Write, BufWriter};
-use chrono::{NaiveDateTime, Weekday, Duration, Timelike};
+use chrono::{DateTime, NaiveDateTime, Weekday, Duration, Timelike};
 use std::cmp;
 use chrono::Datelike;
 use std::ops::Sub;
@@ -178,30 +178,36 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
         earliest_author_date = cmp::min(current_author_date, earliest_author_date);
         latest_author_date = cmp::max(current_author_date, latest_author_date);
     }
-    let time1 = get_timestamp_for_first_day_of_the_week(earliest_integration_date);
-    let time2 = get_timestamp_for_first_day_of_the_week(latest_integration_date);
-    let time3 = get_timestamp_for_first_day_of_the_week(earliest_author_date);
-    let time4 = get_timestamp_for_first_day_of_the_week(latest_author_date);
+    let earliest_integration_date = get_monday_timestamp(earliest_integration_date);
+    let latest_integration_date = get_monday_timestamp(latest_integration_date);
+    let earliest_author_date = get_monday_timestamp(earliest_author_date);
+    let latest_author_date = get_monday_timestamp(latest_author_date);
+
+    let total_weeks_integration = calculate_week_num(&earliest_integration_date, &latest_integration_date) + 1;
+    let total_weeks_commits= calculate_week_num(&earliest_author_date, &latest_author_date) + 1;
+
+    println!("Weeks int: {}. Weeks com: {}", total_weeks_integration, total_weeks_commits);
+
+    let mut integration_frequency_timeseries = vec![0; total_weeks_integration];
+
+    let mut csv_log_reader = ReaderBuilder::new()
+        .has_headers(false)
+        .delimiter(b',')
+        .double_quote(false)
+        .flexible(true)
+        .from_path(log_file_path).unwrap();
+
+    for commit in csv_log_reader.records() {
+        let commit = commit.unwrap();
+        let current_date: i64 = commit.get(INTEGRATOR_DATE).unwrap().parse().unwrap(); // unwrap because this has worked in the first for loop
+        let week_number = calculate_week_num(&earliest_integration_date, &current_date);
+        integration_frequency_timeseries[week_number] += 1;
+    }
 
     return Some(FeatureVector::new(String::from("Dummy")));
-
-    /*
-    for (line_num, line) in file_lines.enumerate() {
-        let csv_row = line.unwrap();
-        let columns: Vec<&str> = csv_row.split(",").collect();
-        if columns.len() != EXPECTED_CSV_COLUMNS {
-            add_project_to_bad_log_file(&file_name);
-            error!("Malformed line in {}", &file_name);
-        }
-        let new_commit_string = columns.get(INTEGRATOR_DATE).unwrap();
-        let new_commit_date: usize = new_commit_string.parse().expect("Could not parse to usize");
-
-    }
-    println!("found earliest commit: {}", earliest_commit);
-    */
 }
 
-fn get_timestamp_for_first_day_of_the_week(timestamp: i64) -> i64 {
+fn get_monday_timestamp(timestamp: i64) -> i64 {
     const SECONDS_PER_DAY:i64 = 86400;
     let naive_date = NaiveDateTime::from_timestamp(timestamp, 0);
     let seconds_from_midnight = naive_date.num_seconds_from_midnight() as i64;
@@ -209,9 +215,9 @@ fn get_timestamp_for_first_day_of_the_week(timestamp: i64) -> i64 {
     naive_date.timestamp() - (days_from_monday * SECONDS_PER_DAY) - seconds_from_midnight
 }
 
-fn calculate_week_num(base_time: &usize, week_time: &usize) -> usize {
-    const SECS_IN_WEEK: usize = 604800;
-    return (week_time - base_time) / SECS_IN_WEEK;
+fn calculate_week_num(base_time: &i64, week_time: &i64) -> usize{
+    const SECS_IN_WEEK: i64 = 604800;
+    return ((week_time - base_time) / SECS_IN_WEEK) as usize;
 }
 
 fn add_project_to_bad_log_file(project_file_name: &str) {
