@@ -48,6 +48,17 @@ pub fn get_home_dir_path() -> Result<String, ErrorKind> {
     }
 }
 
+fn character_count(str_line: &String, matching_character: char) -> u32 {
+    let mut count: u32 = 0;
+
+    for character in str_line.chars() {
+        if character == matching_character {
+            count += 1;
+        }
+    }
+    return count;
+}
+
 pub fn get_root_folder() -> String {
     return String::from(ROOT_FOLDER)
 }

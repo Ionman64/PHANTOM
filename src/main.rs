@@ -9,20 +9,14 @@ use project_analyser::models::*;
 use project_analyser::extract_measures_and_features;
 use project_analyser::thread_helper::ThreadPool;
 use std::process::Command;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use std::fs;
 use std::ops::Add;
-use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::fs::File;
 use std::collections::HashMap;
 use std::io::{BufReader, BufRead};
 use std::io::ErrorKind;
-use std::env;
-use chrono::{Date, NaiveDateTime, Weekday, Duration};
-use std::cmp;
-use chrono::Datelike;
-use std::ops::Sub;
 
 use project_analyser::get_home_dir_path;
 use project_analyser::ROOT_FOLDER;
@@ -31,7 +25,7 @@ use project_analyser::ROOT_FOLDER;
 const THREAD_POOL_SIZE:usize = 3;
 
 const PROJECTS_FILE:&str = "projects.csv";
-const LOGS_FOLDER:&str = "/home/joshua/Documents/backups/logs/sample";
+const LOGS_FOLDER:&str = "/home/pa/Desktop/sample";
 
 
 
@@ -221,8 +215,6 @@ fn clone_project(project: GitRepository) -> Option<ClonedProject> {
         Err(_) => { return None},
     }
 
-    let id = project.id.clone();
-    let url = project.url.clone();
     let cloned_project = ClonedProject::new(project, project_path.to_owned());
 
 
