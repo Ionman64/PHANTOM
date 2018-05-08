@@ -25,7 +25,7 @@ use project_analyser::ROOT_FOLDER;
 const THREAD_POOL_SIZE:usize = 3;
 
 const PROJECTS_FILE:&str = "projects.csv";
-const LOGS_FOLDER:&str = "/home/pa/Desktop/sample";
+const LOGS_FOLDER:&str = "/home/joshua/Documents/backups/logs/sample";
 
 
 

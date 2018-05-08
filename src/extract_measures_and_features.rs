@@ -221,7 +221,6 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
     let mut author_activity_count = vec![UniqueDeveloperList::new(); total_weeks_commits];
     let mut author_activity_timeseries = vec![0; total_weeks_commits];
 
-
     let mut merge_frequency_timeseries = vec![0; total_weeks_integration];
 
     let mut csv_log_reader = ReaderBuilder::new()
@@ -267,11 +266,11 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
             merge_frequency_timeseries[integration_week_number] += 1;
         }
     }
-    let integration_frequency_feature_vector = calculate_feature_vector_from_time_series(integration_frequency_timeseries);
-    let integrator_activity_feature_vector = calculate_feature_vector_from_time_series(integrator_activity_timeseries);
-    let commit_frequency_feature_vector = calculate_feature_vector_from_time_series(commit_frequency_timeseries);
-    let author_activity_feature_vector = calculate_feature_vector_from_time_series(author_activity_timeseries);
-    let merge_frequency_feature_vector = calculate_feature_vector_from_time_series(merge_frequency_timeseries);
+    let integration_frequency_feature_vector = calculate_feature_vector_from_time_series(&mut integration_frequency_timeseries);
+    let integrator_activity_feature_vector = calculate_feature_vector_from_time_series(&mut integrator_activity_timeseries);
+    let commit_frequency_feature_vector = calculate_feature_vector_from_time_series(&mut commit_frequency_timeseries);
+    let author_activity_feature_vector = calculate_feature_vector_from_time_series(&mut author_activity_timeseries);
+    let merge_frequency_feature_vector = calculate_feature_vector_from_time_series(&mut merge_frequency_timeseries);
 
     println!("{}", file_name);
     println!("{:?}", integration_frequency_feature_vector);
@@ -282,7 +281,7 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
     Some(integration_frequency_feature_vector)
 }
 
-fn calculate_feature_vector_from_time_series(timeseries: Vec<usize>) -> FeatureVector {
+fn calculate_feature_vector_from_time_series(timeseries: &mut Vec<usize>) -> FeatureVector {
     let mut max_value = 0;
     let mut max_value_week = 0;
     let mut features = FeatureVector::new(); // TODO name should be "account_repo" (without ".log" at the end!)
@@ -300,7 +299,7 @@ fn calculate_feature_vector_from_time_series(timeseries: Vec<usize>) -> FeatureV
     features.mean_y = features.sum_y as f64 / features.duration as f64;
     features.std_y = Some(standard_deviation(&timeseries));
 
-    let (peaks, features) = detect_peaks_and_set_features(&timeseries, features);
+    let (peaks, features) = detect_peaks_and_set_features(timeseries, features);
 
     features
 }
@@ -385,10 +384,9 @@ fn min_value(v1:f64, v2:f64) -> f64 {
     v2
 }
 
-fn calculate_gradient(v1:f64, v2:f64, total:usize) -> f64 {
-    let gradient_start = v1 / total as f64;
-    let gradient_end = v2 / total as f64;
-    gradient_end - gradient_start
+fn calculate_gradient(v1:f64, v2:f64) -> f64 {
+    // the difference on the x axis is expected to be always 1 week
+    v2 - v1
 }
 
 
@@ -403,18 +401,37 @@ fn calculate_gradient(v1:f64, v2:f64, total:usize) -> f64 {
 /// assert_eq!(x, 1)
 ///
 /// assert_eq!(y, PEAK::UP)
-fn detect_peaks_and_set_features(data_set: &Vec<usize>, mut features:FeatureVector) -> (Vec<i8>, FeatureVector) {
+fn detect_peaks_and_set_features(data_set: &mut Vec<usize>, mut features:FeatureVector) -> (Vec<i8>, FeatureVector) {
     let mut return_vector:Vec<i8> = vec![PEAK_NONE;data_set.len()];
+
+    let mut current_gradient:f64 = 0.0;
+    let mut previous_gradient_value:f64= 0.0;
+
+    let mut positive_gradients:Vec<f64> = Vec::new();
+    let mut negative_gradients:Vec<f64> = Vec::new();
+    if data_set.len() == 2 {
+        let gradient = (data_set[1] - data_set[0]) as f64;
+        if gradient > 0.0 {
+            positive_gradients.push(gradient);
+        } else if gradient < 0.0 {
+            negative_gradients.push(gradient);
+        }
+        // TODO Refactor this code clone into a method
+        features.pg_count = Some(positive_gradients.len());
+        features.ng_count = Some(negative_gradients.len());
+        let (min_pg, avg_pg, max_pg, _) = min_mean_max_sum_f64(positive_gradients.clone()); // TODO make work without cloning
+        let (min_ng, avg_ng, max_ng, _) = min_mean_max_sum_f64(negative_gradients.clone()); // TODO make work without cloning
+        features.min_pg = Some(min_pg);
+        features.avg_pg = Some(avg_pg);
+        features.max_pg = Some(max_pg);
+        features.min_ng = Some(min_ng);
+        features.avg_ng = Some(avg_ng);
+        features.max_ng = Some(max_ng);
+    }
 
     if data_set.len() < 3 {
         return (return_vector, features);
     }
-
-    let mut index = 1;
-    let array_length = data_set.len();
-
-    let mut downward_trend = false;
-    let mut upward_trend = false;
 
     let mut peak_up:usize = 0;
     let mut peak_down:usize = 0;
@@ -430,13 +447,6 @@ fn detect_peaks_and_set_features(data_set: &Vec<usize>, mut features:FeatureVect
     let mut positive_deviations:Vec<f64> = Vec::new();
     let mut negative_deviations:Vec<f64> = Vec::new();
 
-
-    let mut current_gradient:f64 = 0.0;
-    let mut previous_gradient_value:f64 = 0.0;
-
-    let mut positive_gradients:Vec<f64> = Vec::new();
-    let mut negative_gradients:Vec<f64> = Vec::new();
-
     let mut last_peak_up = 0;
     let mut last_peak_down = 0;
 
@@ -445,51 +455,57 @@ fn detect_peaks_and_set_features(data_set: &Vec<usize>, mut features:FeatureVect
 
     let mut amplitudes:Vec<f64> = Vec::new();
 
+    let mut index = 1;
+    let array_length = data_set.len();
+    let mut downward_trend = false;
+    let mut upward_trend = false;
+    let mut last_peak_down_value = data_set[0] as f64;
     while index < array_length {
-
-        let previous = data_set[index-1];
-        let current = data_set[index];
-
-        amplitudes.push(((current as f64 - previous as f64) / features.max_y as f64).abs());
+        let previous = data_set[index-1] as f64;
+        let current = data_set[index] as f64;
 
         if previous < current {
             current_seq += 1;
             upward_trend = true;
             if downward_trend {
                 return_vector[index-1] = PEAK_DOWN;
+                last_peak_down_value = previous;
                 peak_down += 1;
                 peak_none -= 1;
                 ns_sequence.push(current_seq);
-                negative_deviations.push(previous as f64 - mean);
-                negative_gradients.push(calculate_gradient(previous_gradient_value, current as f64, features.max_y));
-                previous_gradient_value = current as f64;
+                negative_deviations.push(previous - mean);
+                negative_gradients.push(current - previous_gradient_value);
+                previous_gradient_value = current;
                 current_seq = 0;
                 time_between_peaks_down.push(index - last_peak_down);
                 last_peak_down = index;
                 downward_trend = false;
             }
         }
-
         if previous > current {
             downward_trend = true;
             if upward_trend {
+                amplitudes.push(((previous - last_peak_down_value) / features.max_y as f64).abs());
                 return_vector[index-1] = PEAK_UP;
+                positive_deviations.push(previous - mean);
                 peak_up += 1;
                 peak_none -= 1;
                 ps_sequence.push(current_seq);
-                positive_deviations.push(previous as f64 - mean);
-                positive_gradients.push(calculate_gradient(previous_gradient_value, current as f64, features.max_y));
-                previous_gradient_value = current as f64;
+                positive_gradients.push(current - previous_gradient_value);
+                previous_gradient_value = current;
                 current_seq = 0;
                 time_between_peaks_up.push(index - last_peak_up);
                 last_peak_up = index;
                 upward_trend = false;
-
             }
         }
         index += 1;
     }
-
+    if upward_trend {
+        ns_sequence.push(current_seq);
+    } else {
+        ps_sequence.push(current_seq);
+    }
     features.peak_up = Some(peak_up);
     features.peak_down = Some(peak_down);
     features.peak_none = Some(peak_none);
@@ -525,11 +541,9 @@ fn detect_peaks_and_set_features(data_set: &Vec<usize>, mut features:FeatureVect
     let (min_pg, avg_pg, max_pg, _) = min_mean_max_sum_f64(positive_gradients);
     let (min_ng, avg_ng, max_ng, _) = min_mean_max_sum_f64(negative_gradients);
 
-
     features.min_pg = Some(min_pg);
     features.avg_pg = Some(avg_pg);
     features.max_pg = Some(max_pg);
-
 
     features.min_ng = Some(min_ng);
     features.avg_ng = Some(avg_ng);
@@ -542,7 +556,7 @@ fn detect_peaks_and_set_features(data_set: &Vec<usize>, mut features:FeatureVect
     features.avg_tbp_up = Some(avg_tbp_up);
     features.max_tbp_up = Some(max_tbp_up);
 
-    //features.min_tbp_down = min_tbp_down;
+    // TODO features.min_tbp_down = min_tbp_down;
 
     let (min_amp, avg_amp, max_amp, _) = min_mean_max_sum_f64(amplitudes);
 
@@ -550,14 +564,14 @@ fn detect_peaks_and_set_features(data_set: &Vec<usize>, mut features:FeatureVect
     features.avg_amplitude = Some(avg_amp);
     features.max_amplitude = Some(max_amp);
 
-    /*let sorted_timeseries:Vec<usize> = data_set.clone().sort();
 
-    let (q25, q50, q75) = quartiles(sorted_timeseries);
+    data_set.sort();
+    let (q25, q50, q75) = quartiles(data_set);
 
     features.q25 = Some(q25);
     features.q50 = Some(q50);
     features.q75 = Some(q75);
-    */
+
     //let (min_tbp_up, avg_tbp_up, max_tbp_up) = min_mean_max(ps_sequence);
     /*features.avg_tbp_up = Some(avg_tbp_up);
     features.max_tbp_up = Some(max_tbp_up);
@@ -566,21 +580,16 @@ fn detect_peaks_and_set_features(data_set: &Vec<usize>, mut features:FeatureVect
 }
 
 fn quartiles(timeseries:&Vec<usize>) -> (f64, f64, f64) {
-    (find_quartile(timeseries, 0.25), find_quartile(timeseries, 0.5), find_quartile(timeseries, 0.75))
+    (find_quantile(timeseries, 0.25), find_quantile(timeseries, 0.5), find_quantile(timeseries, 0.75))
 }
 
-fn find_quartile(timeseries:&Vec<usize>, quartile:f64) -> f64 {
-    let length = timeseries.len() as f64;
-    if length <= 2.0_f64 {
-        return 0.0;
-    }
-    let upper_index = (length*quartile).ceil() as usize;
-    let lower_index = (length*quartile).floor() as usize;
-    let upper_value = timeseries[upper_index] as f64;
-    let lower_value = timeseries[lower_index] as f64;
-    println!("upper value {}", upper_value);
-    println!("lower value {}", lower_value);
-    ((upper_value + lower_value) / 2.0)
+fn find_quantile(data_set:&Vec<usize>, quantile:f64) -> f64 {
+    let length = (data_set.len() - 1) as f64;
+    let upper_index = (length*quantile).ceil() as usize;
+    let lower_index = (length*quantile).floor() as usize;
+    let upper_value = data_set[upper_index];
+    let lower_value = data_set[lower_index];
+    (upper_value + lower_value) as f64 / 2.0
 }
 
 fn get_monday_timestamp(timestamp: i64) -> i64 {
