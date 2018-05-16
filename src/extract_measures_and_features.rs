@@ -142,7 +142,7 @@ impl FeatureVector {
     }
 }
 
-pub fn extract_from_directory(path_to_dir: String) {
+pub fn extract_from_directory(path_to_dir: String) -> bool {
     let log_folder_dir = fs::read_dir(path_to_dir).expect("Could not read projects dir");
     for log_file_path_result in log_folder_dir {
         let log_path = log_file_path_result.unwrap().path();
@@ -153,11 +153,20 @@ pub fn extract_from_directory(path_to_dir: String) {
                 continue;
             }
         };
-        extract_all_measures_from_file(&log_path, (&log_path).as_os_str().to_str().unwrap());
+        let feature_vectors = match extract_all_measures_from_file(&log_path, (&log_path).as_os_str().to_str().unwrap()) {
+            None => {error!("Could not read feature vector in {:?}", &log_path); continue;},
+            Some(fv) => {fv},
+        };
+
+        println!("{:?}", &log_path);
+        for feature_vec in feature_vectors {
+            println!("{:?}", feature_vec);
+        }
     }
+    true
 }
 
-fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Option<FeatureVector> {
+fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Option<Vec<FeatureVector>> {
     let mut csv_log_reader = ReaderBuilder::new()
         .has_headers(false)
         .delimiter(b',')
@@ -171,7 +180,7 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
     let mut latest_author_date: i64 = 0;
     for commit in csv_log_reader.records() {
         let commit = commit.unwrap();
-        // reject csv with too few/many columns
+        // reject csv with too few/many columnszoon
         if commit.len() != EXPECTED_CSV_COLUMNS {
             add_project_to_bad_log_file(&file_name);
             error!("Malformed line in {}", &file_name);
@@ -272,13 +281,7 @@ fn extract_all_measures_from_file(log_file_path: &Path, file_name: &str) -> Opti
     let author_activity_feature_vector = calculate_feature_vector_from_time_series(&mut author_activity_timeseries);
     let merge_frequency_feature_vector = calculate_feature_vector_from_time_series(&mut merge_frequency_timeseries);
 
-    println!("{}", file_name);
-    println!("{:?}", integration_frequency_feature_vector);
-    println!("{:?}", integrator_activity_feature_vector);
-    println!("{:?}", commit_frequency_feature_vector);
-    println!("{:?}", author_activity_feature_vector);
-    println!("{:?}", merge_frequency_feature_vector);
-    Some(integration_frequency_feature_vector)
+    Some(vec![integration_frequency_feature_vector, integrator_activity_feature_vector, commit_frequency_feature_vector, author_activity_feature_vector, merge_frequency_feature_vector])
 }
 
 fn calculate_feature_vector_from_time_series(timeseries: &mut Vec<usize>) -> FeatureVector {
@@ -409,27 +412,8 @@ fn detect_peaks_and_set_features(data_set: &mut Vec<usize>, mut features:Feature
 
     let mut positive_gradients:Vec<f64> = Vec::new();
     let mut negative_gradients:Vec<f64> = Vec::new();
-    if data_set.len() == 2 {
-        let gradient = (data_set[1] - data_set[0]) as f64;
-        if gradient > 0.0 {
-            positive_gradients.push(gradient);
-        } else if gradient < 0.0 {
-            negative_gradients.push(gradient);
-        }
-        // TODO Refactor this code clone into a method
-        features.pg_count = Some(positive_gradients.len());
-        features.ng_count = Some(negative_gradients.len());
-        let (min_pg, avg_pg, max_pg, _) = min_mean_max_sum_f64(positive_gradients.clone()); // TODO make work without cloning
-        let (min_ng, avg_ng, max_ng, _) = min_mean_max_sum_f64(negative_gradients.clone()); // TODO make work without cloning
-        features.min_pg = Some(min_pg);
-        features.avg_pg = Some(avg_pg);
-        features.max_pg = Some(max_pg);
-        features.min_ng = Some(min_ng);
-        features.avg_ng = Some(avg_ng);
-        features.max_ng = Some(max_ng);
-    }
 
-    if data_set.len() < 3 {
+    if data_set.len() <= 1 {
         return (return_vector, features);
     }
 
@@ -506,6 +490,22 @@ fn detect_peaks_and_set_features(data_set: &mut Vec<usize>, mut features:Feature
     } else {
         ps_sequence.push(current_seq);
     }
+
+    // TODO Refactor this code clone into a method
+    features.pg_count = Some(positive_gradients.len());
+    features.ng_count = Some(negative_gradients.len());
+    let (min_pg, avg_pg, max_pg, _) = min_mean_max_sum_f64(positive_gradients.clone()); // TODO make work without cloning
+    let (min_ng, avg_ng, max_ng, _) = min_mean_max_sum_f64(negative_gradients.clone()); // TODO make work without cloning
+    features.min_pg = Some(min_pg);
+    features.avg_pg = Some(avg_pg);
+    features.max_pg = Some(max_pg);
+    features.min_ng = Some(min_ng);
+    features.avg_ng = Some(avg_ng);
+    features.max_ng = Some(max_ng);
+
+
+
+
     features.peak_up = Some(peak_up);
     features.peak_down = Some(peak_down);
     features.peak_none = Some(peak_none);

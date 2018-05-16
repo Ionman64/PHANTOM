@@ -25,11 +25,7 @@ use project_analyser::ROOT_FOLDER;
 const THREAD_POOL_SIZE:usize = 3;
 
 const PROJECTS_FILE:&str = "projects.csv";
-const LOGS_FOLDER:&str = "/home/joshua/Documents/backups/logs/sample";
-
-
-
-
+const LOGS_FOLDER:&str = "/home/pa2/project_downloader/git_log";
 
 fn main() {
     project_analyser::setup_logger().expect("Logger Setup Failed");
@@ -57,7 +53,6 @@ fn main() {
             Err(_) => {continue;},
         };
 
-        // ------------
         let home_dir = project_analyser::get_home_dir_path().expect("Could not get home directory");
         let id = project.id.to_owned();
         let csv_path = Path::new(&home_dir)
