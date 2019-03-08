@@ -15,16 +15,6 @@ The following packages are required to setup the project.
 	make
 	curl
 	clang
-	postgresql-9.6 
-	postgresql-contrib-9.6 
-	postgresql-server-dev-9.6 
-
-## Setup database user and password
-After successfully installing the PostgreSql related packages the database user has to be configured. By default, the user name is *postgres* and no password is set. Set a password by running the folling commands.
-
-	$ sudo -i -u postgres
-	$ psql
-	$ \password
 
 
 ## Install rust
