@@ -1,5 +1,5 @@
-# RHINO: Repository History INformation Obtainer
-Repository for RHINO developed as part of the **masters thesis** 
+# PHANTOM Toolset
+Repository for PHANTOM developed as part of the **masters thesis** 
 
 > Characterising Software Development Projects based on git commit data and static code analysis -- A case study of open source GitHub projects
 
