@@ -35,9 +35,38 @@ Next, clone the project to your machine and change your directory to the top fol
 	$ git clone https://github.com/Ionman64/ProjectAnalyser.git
 	$ cd ProjectAnalyser
 
-# Run the test suite
-To make sure the project is setup correctly run the following script.
+# Configuration
+There are several lines in the project in the main.rs file which allow for some configuration; 
 
-    $ ./scripts/test_runner.sh
+	$ const THREAD_POOL_SIZE:usize = 3;
+	$ const PROJECTS_FILE:&str = "projects.csv";
+	$ const LOGS_FOLDER:&str = "/home/pa2/project_downloader/git_log";
+	
+## THREAD_POOL_SIZE 
+Specifies how many projects should be downloaded at the same time (each download is in one thread); Note: there is a limit at which you will be throttled by GitHub, so if you are using that as your repository source you should put this number as low as possible. If it is from another service (such as an internal repository store) then setting this higher will speed up the process.
 
-**Note:** The script runs all tests for the project. Some tests need to be run single-threaded (Such as the database), which is why using *cargo test* would produces unreliable test results. The script invokes *cargo test* with the required flags to make sure that tests are executed correctly.
+## PROJECTS_FILE
+Specifies where the file containing the repositories which the program will clone. It will be read (line by line) until all the repositories have been downloaded
+
+## LOGS_FOLDER 
+Specifies the folder where the git logs will be copied to after the respository is downloaded.
+
+
+# Additional Configuration
+You can avoid deleting the downloaded project after the git log is extracted by **removing** the following line from `scripts/save_git_log.sh`
+
+	$ rm -r $path_to_git
+
+Be aware that with a large number of projects, this could be many terabytes of stored data and PHANTOM will start to error due to a lack of disk space to save the new projects.
+
+# Running the tool
+To run the tool you need the following command;
+
+	$ cargo run --release
+
+To get an executable to run later you need the following commands;
+
+	$ cargo build --release
+	$ cd ./target/release
+	
+The execuatable file should be called project_analyser in this folder (.exe extension for windows)
